@@ -8,8 +8,7 @@ from .base import env
 
 import os
 
-
-ALLOWED_HOSTS = ['*']  # 일단 임시로 모두 허용. 배포 후 수정 가능
+ # 일단 임시로 모두 허용. 배포 후 수정 가능
 
 
 # GENERAL
@@ -17,7 +16,7 @@ ALLOWED_HOSTS = ['*']  # 일단 임시로 모두 허용. 배포 후 수정 가�
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["example.com"])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["https://s-angel-n2i7.onrender.com"])
 
 # DATABASES
 # ------------------------------------------------------------------------------
