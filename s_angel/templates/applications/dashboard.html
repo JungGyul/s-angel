@@ -1,0 +1,235 @@
+{% block content %}
+
+
+<style>
+  body {
+    background-color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #1f2937;
+    margin: 0;
+    padding: 20px;
+  }
+
+  .top-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+  }
+
+  .logout-link {
+    text-decoration: none;
+    color: #1e3a8a;
+    font-weight: bold;
+    font-size: 16px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 36px;
+    color: #1e3a8a;
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+  }
+
+  h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #1f2937;
+  }
+
+  .menu-button {
+    display: inline-block;
+    margin: 8px 0;
+    padding: 10px 20px;
+    background-color: #1e3a8a;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
+    transition: background-color 0.3s;
+  }
+
+  .menu-button:hover {
+    background-color: #2563eb;
+  }
+
+  .event-card {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  .event-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 8px;
+  }
+
+  .event-info {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: #4b5563;
+  }
+
+  .event-description {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 10px;
+  }
+
+  .status-badge {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background-color: #e0e7ff;
+    color: #1e3a8a;
+    font-weight: bold;
+  }
+
+  .status-closed {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .status-drawn {
+    background-color: #dcfce7;
+    color: #15803d;
+  }
+
+  .action-links a {
+    margin-right: 12px;
+    text-decoration: none;
+    font-weight: bold;
+    color: #1e3a8a;
+    font-size: 14px;
+  }
+
+  .action-links span {
+    font-size: 14px;
+    color: gray;
+    margin-right: 12px;
+  }
+
+  .my-application {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+</style>
+
+<div class="top-bar">
+  <form action="{% url 'logout' %}" method="post" style="display:inline">
+    {% csrf_token %}
+    <button type="submit" style="background:none;border:none;color:#2563eb;cursor:pointer;">
+      로그아웃
+    </button>
+  </form>
+</div>
+
+<h1>S-ANGEL</h1>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if is_admin %}
+  <h2>관리자 메뉴</h2>
+  <a class="menu-button" href="{% url 'applications:create_event' %}">+ 새로운 의전 활동 만들기</a>
+  <a class="menu-button" href="{% url 'applications:event_statistics' %}">📊 통계 페이지로 가기</a>
+
+  {% for item in event_status_list %}
+    {% with event=item.event %}
+      <div class="event-card">
+        <div class="event-title">
+          {{ event.title }}
+          {% if event.end_date <= today %}
+            <span class="status-badge status-closed">모집 마감</span>
+          {% endif %}
+          {% if item.is_drawn %}
+            <span class="status-badge status-drawn">추첨 완료</span>
+          {% endif %}
+        </div>
+
+        <div class="event-info">{{ event.start_date }} ~ {{ event.end_date }}</div>
+
+        <div class="event-description">
+          {{ event.description }}
+        </div>
+
+        <div class="action-links">
+          {% if not item.is_drawn %}
+            <a href="{% url 'applications:draw_event' event.id %}" onclick="return confirm('정말 추첨을 진행하시겠습니까?');">🎯 추첨 실행</a>
+          {% else %}
+            <span>추첨 완료</span>
+          {% endif %}
+          <a href="{% url 'applications:event_winners' event.id %}">🏆 당첨자 보기</a>
+          <a href="{% url 'applications:delete_event' event.id %}" onclick="return confirm('정말로 삭제하시겠습니까?');">🗑️ 삭제하기</a>
+        </div>
+        
+      </div>
+    {% endwith %}
+  {% endfor %}
+
+{% else %}
+  <h2>현재 신청 가능한 의전 활동</h2>
+
+  {% for item in event_status_list %}
+    {% with event=item.event %}
+      <div class="event-card">
+        <div class="event-title">
+          {{ event.title }}
+          {% if event.end_date <= today %}
+            <span class="status-badge status-closed">모집 마감</span>
+          {% endif %}
+          {% if item.is_drawn %}
+            <span class="status-badge status-drawn">추첨 완료</span>
+          {% endif %}
+        </div>
+
+        <div class="event-info">{{ event.start_date }} ~ {{ event.end_date }}</div>
+
+        <div class="event-description">
+          {{ event.description }}
+        </div>
+
+        <div class="action-links">
+          {% if event.id in applied_event_ids %}
+            <span>✅ 신청 완료</span>
+          {% else %}
+            {% if event.end_date > today %}
+              <a href="{% url 'applications:apply_event' event.id %}">신청하기</a>
+            {% else %}
+              <span>신청 마감</span>
+            {% endif %}
+          {% endif %}
+          <a href="{% url 'applications:event_winners' event.id %}">🏆 당첨자 보기</a>
+        </div>
+      </div>
+    {% endwith %}
+  {% endfor %}
+
+  <h2>나의 신청 내역</h2>
+
+  {% for app in my_applications %}
+    <div class="my-application">
+      {{ app.event.title }} -
+      {% if app.selected %}
+        🎉 당첨
+      {% else %}
+        ⏳ 대기
+      {% endif %}
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% endblock %}

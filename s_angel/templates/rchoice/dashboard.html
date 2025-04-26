@@ -1,0 +1,19 @@
+
+<h1>환영합니다, {{ user.username }}님!</h1>
+
+<h2>이벤트 현황</h2>
+<ul>
+  {% for event in events %}
+    <li>
+      <strong>{{ event.title }}</strong> ({{ event.start_date }} ~ {{ event.end_date }})
+      - 총 신청 인원: {{ event.application_set.count }}명
+    </li>
+  {% endfor %}
+</ul>
+
+<h2>나의 신청내역</h2>
+<ul>
+  {% for app in my_applications %}
+    <li>{{ app.event.title }} - {% if app.selected %}당첨{% else %}대기{% endif %}</li>
+  {% endfor %}
+</ul>

@@ -1,0 +1,97 @@
+{% block content %}
+
+<style>
+  body {
+    background-color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #1f2937;
+    margin: 0;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 32px;
+    color: #1e3a8a;
+    margin-bottom: 30px;
+  }
+
+  .event-card {
+    background-color: #f9fafb;
+    padding: 24px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+  }
+
+  .event-card h2 {
+    font-size: 22px;
+    color: #1e3a8a;
+    margin-bottom: 12px;
+  }
+
+  .event-card p {
+    margin: 6px 0;
+    font-size: 15px;
+  }
+
+  .winner-list {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 12px;
+  }
+
+  .winner-list li {
+    background-color: #e0e7ff;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1e3a8a;
+    font-weight: 500;
+  }
+
+  .winner-list li:last-child {
+    margin-bottom: 0;
+  }
+
+  .back-link {
+    display: block;
+    text-align: center;
+    margin-top: 32px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #1e3a8a;
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<h1>의전 활동 현황 통계</h1>
+
+{% for data in event_data %}
+  <div class="event-card">
+    <h2>{{ data.event.title }}</h2>
+    <p>총 신청자 수: {{ data.total_applications }}명</p>
+    <p>남성 신청자 수: {{ data.male_applications }}명</p>
+    <p>여성 신청자 수: {{ data.female_applications }}명</p>
+    <p>당첨자 수: {{ data.total_selected }}명</p>
+
+    <h3 style="margin-top: 20px; font-size: 18px;">🎯 당첨자 명단</h3>
+    <ul class="winner-list">
+      {% for winner in data.winners %}
+        <li>{{ winner.participant.name }}</li>
+      {% empty %}
+        <li style="background-color: #f3f4f6; color: #6b7280;">아직 당첨자가 없습니다.</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endfor %}
+
+<a href="{% url 'applications:dashboard' %}" class="back-link">← 대시보드로 돌아가기</a>
+
+{% endblock %}

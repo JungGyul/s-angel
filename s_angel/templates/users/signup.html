@@ -1,0 +1,178 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>S-ANGEL Sign Up</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f3f4f6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      .site-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1e3a8a;
+        text-align: center;
+        margin-bottom: 24px;
+        letter-spacing: 1px;
+      }
+
+      .signup-box {
+        background-color: #ffffff;
+        padding: 32px;
+        width: 100%;
+        max-width: 400px;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        box-sizing: border-box;
+      }
+
+      .signup-box h2 {
+        text-align: center;
+        margin-bottom: 24px;
+        color: #1f2937;
+        font-size: 24px;
+      }
+
+      .signup-box form {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .signup-box input[type="text"],
+      .signup-box input[type="password"],
+      .signup-box select {
+        padding: 14px 16px;
+        margin-bottom: 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 15px;
+        outline: none;
+        transition: border 0.3s ease;
+      }
+
+      .signup-box input[type="text"]:focus,
+      .signup-box input[type="password"]:focus,
+      .signup-box select:focus {
+        border-color: #2563eb;
+      }
+
+      .signup-box button {
+        padding: 14px 16px;
+        background-color: #1e3a8a;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      .signup-box button:hover {
+        background-color: #2563eb;
+      }
+
+      .login-link {
+        text-align: center;
+        margin-top: 16px;
+        font-size: 14px;
+      }
+
+      .login-link a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: bold;
+      }
+
+      .login-link a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 480px) {
+        .site-title {
+          font-size: 24px;
+          margin-bottom: 16px;
+        }
+
+        .signup-box {
+          padding: 24px;
+          border-radius: 12px;
+        }
+
+        .signup-box h2 {
+          font-size: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="site-title">S-ANGEL</h1>
+
+    <div class="signup-box">
+      <h2>회원가입</h2>
+      {# --- 에러 박스 --- #} {% if form.non_field_errors %}
+      <div class="error-box">
+        {% for err in form.non_field_errors %}
+        <p>{{ err }}</p>
+        {% endfor %}
+      </div>
+      {% endif %} {% for field in form %} {% if field.errors %}
+      <div class="error-box">
+        {% for err in field.errors %}
+        <p>{{ field.label }}: {{ err }}</p>
+        {% endfor %}
+      </div>
+      {% endif %} {% endfor %}
+
+      <form method="post">
+        {% csrf_token %}
+
+        <!-- Username -->
+        <input type="text" name="username" placeholder="아이디" required />
+
+        <!-- name -->
+        <input type="text" name="name" placeholder="이름" required />
+        <!-- Password -->
+        <input
+          type="password"
+          name="password1"
+          placeholder="비밀번호(8자 이상, 영문 숫자 포함)"
+          required
+        />
+
+        <!-- Password Confirm -->
+        <input
+          type="password"
+          name="password2"
+          placeholder="비밀번호 확인"
+          required
+        />
+
+        <!-- Gender Selection -->
+        <select name="gender" required>
+          <option value="M">남성</option>
+          <option value="F">여성</option>
+        </select>
+
+        <!-- Submit Button -->
+        <button type="submit">Sign up</button>
+      </form>
+
+      <p class="login-link">
+        이미 계정이 있나요? <a href="{% url 'users:main' %}">로그인하기</a>
+      </p>
+    </div>
+  </body>
+</html>
