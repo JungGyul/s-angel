@@ -5,6 +5,14 @@ from .base import INSTALLED_APPS
 from .base import REDIS_URL
 from .base import env
 
+
+import os
+
+DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
+
+ALLOWED_HOSTS = ['*']  # 일단 임시로 모두 허용. 배포 후 수정 가능
+
+
 # GENERAL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
