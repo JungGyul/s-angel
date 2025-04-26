@@ -8,7 +8,6 @@ from .base import env
 
 import os
 
-DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
 ALLOWED_HOSTS = ['*']  # 일단 임시로 모두 허용. 배포 후 수정 가능
 
