@@ -1,3 +1,19 @@
 # This file is expected by Heroku. 
 -r requirements/production.txt
 django-debug-toolbar
+boto3
+fido2
+qrcode
+requests
+sqlparse
+text-unidecode
+typing-extensions
+urllib3
+cffi
+cryptography
+s3transfer
+jmespath
+idna
+certifi
+django-extensions
+
