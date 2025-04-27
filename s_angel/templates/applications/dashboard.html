@@ -121,18 +121,37 @@
     font-size: 16px;
     margin-bottom: 8px;
   }
+  
+  .logout-button {
+    background-color: #1e3a8a;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+    background-color: #2563eb;
+}
 </style>
 
 <div class="top-bar">
   <form action="{% url 'logout' %}" method="post" style="display:inline">
     {% csrf_token %}
-    <button type="submit" style="background:none;border:none;color:#2563eb;cursor:pointer;">
+    <button type="submit" class="logout-button">
       로그아웃
     </button>
   </form>
 </div>
 
+
 <h1>S-ANGEL</h1>
+{% load app_filters %}
+
 
 {% if messages %}
   {% for message in messages %}
@@ -221,15 +240,21 @@
   <h2>나의 신청 내역</h2>
 
   {% for app in my_applications %}
-    <div class="my-application">
-      {{ app.event.title }} -
-      {% if app.selected %}
-        🎉 당첨
+  <div class="my-application">
+    {{ app.event.title }} -
+    {% if app.selected %}
+      🎉 당첨
+    {% else %}
+      {% if event_status_list|get_draw_status:app.event.id %}
+        ❌ 탈락
       {% else %}
         ⏳ 대기
       {% endif %}
-    </div>
-  {% endfor %}
+    {% endif %}
+  </div>
+{% endfor %}
+
+
 {% endif %}
 
 {% endblock %}

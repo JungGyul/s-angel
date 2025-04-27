@@ -29,22 +29,23 @@ def event_statistics(request):
 
     event_data = []
     for event in events:
-        total_applications = Application.objects.filter(event=event).count()
-        male_applications = Application.objects.filter(event=event, participant__gender='M').count()
-        female_applications = Application.objects.filter(event=event, participant__gender='F').count()
-        total_selected = Application.objects.filter(event=event, selected=True).count()
-        winners = Application.objects.filter(event=event, selected=True)
+        applications = Application.objects.filter(event=event).select_related('participant')
+        winners = applications.filter(selected=True)
+        losers = applications.filter(selected=False)
 
         event_data.append({
             'event': event,
-            'total_applications': total_applications,
-            'male_applications': male_applications,
-            'female_applications': female_applications,
-            'total_selected': total_selected,
-            'winners': winners,  # 추가
+            'applications': applications,
+            'winners': winners,
+            'losers': losers,
+            'total_applications': applications.count(),
+            'male_applications': applications.filter(participant__gender='M').count(),
+            'female_applications': applications.filter(participant__gender='F').count(),
+            'total_selected': winners.count(),
         })
 
     return render(request, 'applications/statistics.html', {'event_data': event_data})
+
 
 @staff_member_required
 def draw_event(request, event_id):

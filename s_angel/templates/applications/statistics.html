@@ -36,24 +36,31 @@
     font-size: 15px;
   }
 
-  .winner-list {
-    list-style-type: none;
-    padding: 0;
-    margin-top: 12px;
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
   }
 
-  .winner-list li {
-    background-color: #e0e7ff;
-    padding: 8px 12px;
-    margin-bottom: 6px;
-    border-radius: 8px;
+  th, td {
+    border: 1px solid #e5e7eb;
+    padding: 10px;
+    text-align: center;
     font-size: 14px;
-    color: #1e3a8a;
-    font-weight: 500;
   }
 
-  .winner-list li:last-child {
-    margin-bottom: 0;
+  th {
+    background-color: #e0e7ff;
+    color: #1e3a8a;
+    font-weight: bold;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+
+  tr:hover {
+    background-color: #f1f5f9;
   }
 
   .back-link {
@@ -81,14 +88,51 @@
     <p>여성 신청자 수: {{ data.female_applications }}명</p>
     <p>당첨자 수: {{ data.total_selected }}명</p>
 
-    <h3 style="margin-top: 20px; font-size: 18px;">🎯 당첨자 명단</h3>
-    <ul class="winner-list">
-      {% for winner in data.winners %}
-        <li>{{ winner.participant.name }}</li>
-      {% empty %}
-        <li style="background-color: #f3f4f6; color: #6b7280;">아직 당첨자가 없습니다.</li>
-      {% endfor %}
-    </ul>
+    <h3 style="margin-top: 20px; font-size: 18px;">📝 신청자 명단</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>이름</th>
+          <th>성별</th>
+          <th>결과</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if data.applications %}
+          {% for app in data.applications %}
+            <tr>
+              <td>{{ app.participant.name }}</td>
+              <td>
+                {% if app.participant.gender == 'M' %}
+                  남자
+                {% elif app.participant.gender == 'F' %}
+                  여자
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>
+                {% if data.total_selected > 0 %}
+                  {% if app.selected %}
+                    🎉 당첨
+                  {% else %}
+                    ❌ 탈락
+                  {% endif %}
+                {% else %}
+                  ⏳ 대기
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="3" style="color: #6b7280;">아직 신청자가 없습니다.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
   </div>
 {% endfor %}
 
