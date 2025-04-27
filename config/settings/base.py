@@ -289,3 +289,7 @@ SOCIALACCOUNT_FORMS = {"signup": "s_angel.users.forms.UserSocialSignupForm"}
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+# DEBUG가 True일 때만 debug_toolbar를 추가한다
+if DEBUG:
+    INSTALLED_APPS += ["debug_toolbar"]
+    MIDDLEWARE = ["debug_toolbar.middleware.DebugToolbarMiddleware"] + MIDDLEWARE
