@@ -121,7 +121,7 @@
     font-size: 16px;
     margin-bottom: 8px;
   }
-  
+
   .logout-button {
     background-color: #1e3a8a;
     color: white;
@@ -225,11 +225,13 @@
           {% if event.id in applied_event_ids %}
             <span>✅ 신청 완료</span>
           {% else %}
-            {% if event.end_date > today %}
+            {% if event.end_date > today and not item.is_drawn %}
               <a href="{% url 'applications:apply_event' event.id %}">신청하기</a>
             {% else %}
               <span>신청 마감</span>
             {% endif %}
+          {% endif %}
+
           {% endif %}
           <a href="{% url 'applications:event_winners' event.id %}">🏆 당첨자 보기</a>
         </div>
