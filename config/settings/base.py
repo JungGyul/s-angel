@@ -50,7 +50,7 @@ LOCALE_PATHS = [str(BASE_DIR / "locale")]
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
-        default="postgres://postgres:0925@localhost:5432/s_angel",
+        default="postgres://postgres:0925@localhost:5432/s_angel_db",
     ),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
