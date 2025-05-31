@@ -20,6 +20,12 @@ from pathlib import Path
 
 from django.core.wsgi import get_wsgi_application
 
+# 보통 settings/base.py나 config/settings/production.py의 최상단
+import environ
+
+env = environ.Env()
+environ.Env.read_env()  # .env 파일을 읽어옵니다
+
 # This allows easy placement of apps within the interior
 # s_angel directory.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
