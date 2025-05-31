@@ -16,7 +16,8 @@ import os
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = env.list("128.199.84.254", default=["https://s-angel-n2i7.onrender.com"])
+ALLOWED_HOSTS = ["128.199.84.254", "s-angel-n2i7.onrender.com"]
+
 
 # DATABASES
 # ------------------------------------------------------------------------------
