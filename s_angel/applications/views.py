@@ -177,9 +177,11 @@ def dashboard(request):
 
     if request.user.is_staff:
         events = Event.objects.all()
+        events = Event.objects.order_by('-id')
         is_admin = True
     else:
         events = Event.objects.all()
+        events = Event.objects.order_by('-id')
         is_admin = False
 
     my_applications = Application.objects.filter(participant=request.user)
