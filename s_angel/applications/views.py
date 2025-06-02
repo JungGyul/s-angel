@@ -10,6 +10,20 @@ import random
 from django.contrib import messages
 import datetime
 
+@login_required
+def cancel_application(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    application = Application.objects.filter(event=event, participant=request.user).first()
+    if not application:
+        return redirect('applications:dashboard')
+
+    # 이미 추첨이 완료된 경우 취소 불가
+    if Application.objects.filter(event=event, selected=True).exists():
+        return redirect('applications:dashboard')
+
+    application.delete()
+    return redirect('applications:dashboard')
+
 @staff_member_required
 def delete_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)

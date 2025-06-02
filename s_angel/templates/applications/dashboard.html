@@ -137,6 +137,37 @@
 .logout-button:hover {
     background-color: #2563eb;
 }
+
+/* ─────────────────────────────────────────────────────────── */
+/* action-links 내부의 span 및 a 모두 동일한 모양으로 보이도록 */
+.action-links a,
+.action-links span.status-text {
+  margin-right: 12px;
+  text-decoration: none;
+  font-weight: bold;
+  color: #1e3a8a;
+  font-size: 14px;
+  padding: 4px 8px;          /* 살짝 여백을 주면 버튼처럼 보임 */
+  border-radius: 6px;        /* 둥근 모서리 */
+  transition: background-color 0.3s;
+}
+
+/* 마우스를 올렸을 때 배경색 변화 (링크와 동일하게) */
+.action-links a:hover,
+.action-links span.status-text:hover {
+  background-color: #e0e7ff; 
+  cursor: default;            /* span은 링크가 아니므로 pointer 대신 default */
+}
+
+/* disabled 상태(예: → “신청 마감” 같은 경우에 좀 더 회색 느낌으로) */
+.action-links span.disabled {
+  color: #9ca3af;
+  font-weight: normal;
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
+/* ─────────────────────────────────────────────────────────── */
+
 </style>
 
 <div class="top-bar">
@@ -203,40 +234,57 @@
   <h2>현재 신청 가능한 의전 활동</h2>
 
   {% for item in event_status_list %}
-    {% with event=item.event %}
-      <div class="event-card">
-        <div class="event-title">
-          {{ event.title }}
-          {% if event.end_date <= today %}
-            <span class="status-badge status-closed">모집 마감</span>
-          {% endif %}
-          {% if item.is_drawn %}
-            <span class="status-badge status-drawn">추첨 완료</span>
-          {% endif %}
-        </div>
-
-        <div class="event-info">{{ event.start_date }} ~ {{ event.end_date }}</div>
-
-        <div class="event-description">
-          {{ event.description }}
-        </div>
-
-        <div class="action-links">
-          {% if event.id in applied_event_ids %}
-            <span>✅ 신청 완료</span>
-          {% else %}
-            {% if event.end_date > today and not item.is_drawn %}
-              <a href="{% url 'applications:apply_event' event.id %}">신청하기</a>
-            {% else %}
-              <span>신청 마감</span>
-            {% endif %}
-          {% endif %}
-
-          <a href="{% url 'applications:event_winners' event.id %}">🏆 당첨자 보기</a>
-        </div>
+  {% with event=item.event %}
+    <div class="event-card">
+      <div class="event-title">
+        {{ event.title }}
+        {% if event.end_date <= today %}
+          <span class="status-badge status-closed">모집 마감</span>
+        {% endif %}
+        {% if item.is_drawn %}
+          <span class="status-badge status-drawn">추첨 완료</span>
+        {% endif %}
       </div>
-    {% endwith %}
-  {% endfor %}
+
+      <div class="event-info">{{ event.start_date }} ~ {{ event.end_date }}</div>
+      <div class="event-description">{{ event.description }}</div>
+
+      <div class="action-links">
+        {# ─── 이미 신청한 사용자 ─── #}
+        {% if event.id in applied_event_ids %}
+          {% if event.end_date > today and not item.is_drawn %}
+            {# → 신청 취소 가능: 빨간색 텍스트, 버튼 형태 #}
+            <a href="{% url 'applications:cancel_event' event.id %}"
+               onclick="return confirm('정말로 신청을 취소하시겠습니까?');"
+               style="color: #b91c1c; background-color: #fee2e2;">
+              ❌ 신청 취소
+            </a>
+          {% else %}
+            {# → 신청 완료 (취소 불가): 회색 tone span #}
+            <span class="status-text disabled">✅ 신청 완료</span>
+          {% endif %}
+        {% else %}
+          {# ─── 아직 신청하지 않은 사용자 ─── #}
+          {% if event.end_date > today and not item.is_drawn %}
+            <a href="{% url 'applications:apply_event' event.id %}"
+               style="background-color: #d1fae5; color: #065f46;">
+              ✔️ 신청하기
+            </a>
+          {% else %}
+            <span class="status-text disabled">신청 마감</span>
+          {% endif %}
+        {% endif %}
+
+        {# ─── “당첨자 보기” 버튼에도 동일한 스타일 입히기 ─── #}
+        <a href="{% url 'applications:event_winners' event.id %}" 
+           style="background-color: #e0e7ff; color: #1e3a8a;">
+          🏆 당첨자 보기
+        </a>
+      </div>
+    </div>
+  {% endwith %}
+{% endfor %}
+
 
   <h2>나의 신청 내역</h2>
 
