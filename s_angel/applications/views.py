@@ -11,6 +11,7 @@ from django.contrib import messages
 import datetime
 from django.contrib.auth import get_user_model # <--- User를 직접 import하는 대신 이 함수를 가져옵니다.
 User = get_user_model() # <--- settings.py에 설정된 User 모델을 가져와 변수에 할당합니다.
+from django.db.models import Q
 
 @login_required
 def cancel_application(request, event_id):
@@ -183,16 +184,34 @@ def dashboard(request):
 def admin_page(request):
     """관리자 전용 종합 관리 페이지 뷰"""
     pending_users = User.objects.filter(is_active=False).order_by('-date_joined')
-    
-    # ▼▼▼ 이 부분을 수정합니다 ▼▼▼
-    # 활성 사용자 목록에서, 현재 로그인한 사용자(request.user)는 제외합니다.
-    active_users = User.objects.filter(is_active=True).exclude(id=request.user.id).order_by('-date_joined')
+
+    # ▼▼▼ 검색 및 정렬 로직 시작 ▼▼▼
+
+    # 1. GET 파라미터에서 검색어(q)를 가져옵니다.
+    search_query = request.GET.get('q', None)
+
+    # 2. 기본적으로 모든 활성 사용자를 가져옵니다.
+    active_users = User.objects.filter(is_active=True).exclude(id=request.user.id)
+
+    # 3. 만약 검색어가 있다면, 해당 검색어로 필터링합니다.
+    if search_query:
+        # username 필드 또는 name 필드에 검색어가 포함(icontains)된 사용자를 찾습니다.
+        active_users = active_users.filter(
+            Q(username__icontains=search_query) | Q(name__icontains=search_query)
+        )
+
+    # 4. 최종적으로 사용자 이름(name)을 기준으로 가나다순 정렬합니다.
+    active_users = active_users.order_by('name')
+
+    # ▲▲▲ 검색 및 정렬 로직 끝 ▲▲▲
 
     context = {
         'pending_users': pending_users,
         'active_users': active_users,
+        'search_query': search_query, # 템플릿에 검색어를 전달
     }
     return render(request, 'applications/admin_page.html', context)
+
 
 
 @staff_member_required

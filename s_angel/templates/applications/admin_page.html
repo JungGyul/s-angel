@@ -2,50 +2,30 @@
 
 {% block content %}
 <style>
-    /* 그라데이션 & 클린 테마 */
+    /* ... (기존 스타일 상단은 동일) ... */
     :root {
-        --gradient-start: #3B82F6; --gradient-end: #6366F1; --background-color: #F9FAFB;
+        --gradient-start: #1E3A8A; --gradient-end: #312E81; --background-color: #F9FAFB;
         --card-bg: #FFFFFF; --border-color: #E5E7EB; --text-dark: #111827;
-        --navy-dark: #1A2C5B; /* <-- 이 색상을 제목에 사용합니다 */
-        --text-medium: #374151; --text-light: #6B7280; --danger-red: #EF4444;
-        --danger-red-light: #FEF2F2;
+        --navy-dark: #1A2C5B; --text-medium: #374151; --text-light: #6B7280;
+        --danger-red: #EF4444; --danger-red-light: #FEF2F2;
     }
-
     *, *::before, *::after { box-sizing: border-box; }
     .admin-body-v2 { background-color: var(--background-color); font-family: 'Inter', 'Pretendard', sans-serif; }
     .admin-container-v2 { max-width: 1200px; margin: auto; padding: 3rem 1.5rem; }
-
-    .page-header-v2 {
-        display: flex; align-items: center; padding-bottom: 1.5rem;
-        border-bottom: 1px solid var(--border-color); margin-bottom: 2.5rem;
-    }
-    /* ▼▼▼ 이 부분을 수정합니다 ▼▼▼ */
-    .page-header-v2 h1 {
-        font-weight: 800;
-        font-size: 2.25rem;
-        color: var(--navy-dark); /* <-- 진한 네이비 색상으로 변경 */
-        margin: 0;
-    }
-    /* ▲▲▲ 여기까지 ▲▲▲ */
-
-    .btn-dashboard {
-        background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-medium);
-        font-weight: 600; padding: 0.6rem 1.2rem; border-radius: 0.5rem; text-decoration: none;
-        transition: all 0.2s ease;
-    }
+    .page-header-v2 { display: flex; align-items: center; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 2.5rem; }
+    .page-header-v2 h1 { font-weight: 800; font-size: 2.25rem; color: var(--navy-dark); margin: 0; }
+    .btn-dashboard { background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-medium); font-weight: 600; padding: 0.6rem 1.2rem; border-radius: 0.5rem; text-decoration: none; transition: all 0.2s ease; }
     .btn-dashboard:hover { background-color: var(--text-dark); color: var(--card-bg); border-color: var(--text-dark); }
-    
-    /* ... (나머지 스타일은 모두 동일) ... */
     .section-card { background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05); overflow: hidden; }
     .section-card-header { padding: 1rem 1.5rem; background-color: #F9FAFB; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; font-weight: 600; color: var(--text-medium); }
-    .section-card-body { padding: 0.5rem 1.5rem; }
+    .section-card-body { padding: 1.5rem; } /* 내부 여백을 조금 더 줍니다. */
     .user-item { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 0; border-bottom: 1px solid var(--border-color); }
     .user-item:last-child { border: none; }
     .user-details strong { font-size: 1.05rem; font-weight: 600; color: var(--text-dark); }
     .user-details small { color: var(--text-light); font-size: 0.8rem; }
     .weight-form-v2 { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
     .weight-form-v2 .form-control { border-radius: 0.375rem; border-color: var(--border-color); width: 80px; }
-    .weight-form-v2 .form-control:focus { border-color: var(--gradient-start); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+    .weight-form-v2 .form-control:focus { border-color: var(--gradient-start); box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.25); }
     .btn-action { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; border-radius: 0.375rem; border: 2px solid transparent; transition: all 0.2s ease-in-out; padding: 0.25rem 0.75rem; }
     .btn-action-outline { background-color: transparent; border-color: var(--border-color); color: var(--text-light); }
     .btn-action-outline:hover { border-color: transparent; background-image: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-end) 100%); color: white; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); }
@@ -54,92 +34,82 @@
     .custom-alert { padding: 1rem 1.5rem; margin-bottom: 2rem; border: 1px solid var(--border-color); border-left-width: 5px; border-left-color: var(--gradient-start); background-color: var(--card-bg); color: var(--text-medium); border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); display: flex; align-items: center; font-weight: 500; }
     .custom-alert i { color: var(--gradient-start); margin-right: 1rem; font-size: 1.25rem; }
     .ms-auto { margin-left: auto; }
+
+    /* ▼▼▼ 검색창 스타일 추가 ▼▼▼ */
+    .search-form {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.5rem; /* 아이콘 공간 확보 */
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+    }
+    .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-light);
+    }
+    /* ▲▲▲ 여기까지 ▲▲▲ */
 </style>
 
 <body class="admin-body-v2">
     <div class="admin-container-v2">
         <header class="page-header-v2">
             <h1><i class="fas fa-user-cog"></i> 관리자 페이지</h1>
-            <a href="{% url 'applications:dashboard' %}" class="btn-dashboard ms-auto">
-                <i class="fas fa-arrow-left me-2"></i>대시보드
-            </a>
+            <a href="{% url 'applications:dashboard' %}" class="btn-dashboard ms-auto"><i class="fas fa-arrow-left me-2"></i>대시보드</a>
         </header>
-        
+
         {% if messages %}
-            {% for message in messages %}
-            <div class="custom-alert" role="alert">
-                <i class="fas fa-check-circle"></i>
-                <span>{{ message }}</span>
-            </div>
-            {% endfor %}
+            {% for message in messages %}<div class="custom-alert" role="alert"><i class="fas fa-check-circle"></i><span>{{ message }}</span></div>{% endfor %}
         {% endif %}
+
         <div class="row g-4">
             <div class="col-lg-5">
                 <section class="section-card">
-                    <header class="section-card-header">
-                        <i class="fas fa-user-clock me-2 text-warning"></i>
-                        가입 승인 대기
-                        <span class="badge bg-danger float-end">{{ pending_users.count }} 명</span>
-                    </header>
+                    <header class="section-card-header"><i class="fas fa-user-clock me-2 text-warning"></i>가입 승인 대기<span class="badge bg-danger float-end">{{ pending_users.count }} 명</span></header>
                     <div class="section-card-body">
-                        {% if pending_users %}
-                            {% for p_user in pending_users %}
-                                <div class="user-item">
-                                    <div class="user-details">
-                                        <strong>{{ p_user.name }}</strong>
-                                        <small class="d-block">신청: {{ p_user.date_joined|date:"Y.m.d" }}</small>
-                                    </div>
-                                    <form action="{% url 'applications:approve_user' p_user.id %}" method="post">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn-action btn-action-outline">
-                                            <i class="fas fa-check"></i>승인
-                                        </button>
-                                    </form>
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <p class="text-center text-muted py-4">승인 대기중인 사용자가 없습니다.</p>
-                        {% endif %}
+                        {% for p_user in pending_users %}
+                            <div class="user-item"><div class="user-details"><strong>{{ p_user.username }}</strong><small class="d-block">신청: {{ p_user.date_joined|date:"Y.m.d" }}</small></div><form action="{% url 'applications:approve_user' p_user.id %}" method="post">{% csrf_token %}<button type="submit" class="btn-action btn-action-outline"><i class="fas fa-check"></i>승인</button></form></div>
+                        {% empty %}
+                            <p class="text-center text-muted py-3">승인 대기중인 사용자가 없습니다.</p>
+                        {% endfor %}
                     </div>
                 </section>
             </div>
             <div class="col-lg-7">
                 <section class="section-card">
-                    <header class="section-card-header">
-                        <i class="fas fa-users me-2 text-success"></i>
-                        사용자 관리
-                        <span class="badge bg-light text-dark float-end">{{ active_users.count }} 명</span>
-                    </header>
+                    <header class="section-card-header"><i class="fas fa-users me-2 text-success"></i>사용자 관리<span class="badge bg-light text-dark float-end">{{ active_users.count }} 명</span></header>
                     <div class="section-card-body">
+                        
+                        <form method="get" action="{% url 'applications:admin_page' %}" class="search-form">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" name="q" class="search-input" placeholder="사용자 아이디 또는 이름으로 검색" value="{{ search_query|default_if_none:'' }}">
+                        </form>
+
                         {% for a_user in active_users %}
                             <div class="user-item">
                                 <div>
-                                    <div class="user-details">
-                                        <strong>{{ a_user.name }}</strong>
-                                        {% if a_user.is_staff %}
-                                            <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill ms-2">Admin</span>
-                                        {% endif %}
-                                    </div>
+                                    <div class="user-details"><strong>{{ a_user.name }}</strong> ({{ a_user.username }}){% if a_user.is_staff %}<span class="badge bg-primary-subtle text-primary-emphasis rounded-pill ms-2">Admin</span>{% endif %}</div>
                                     <form action="{% url 'applications:update_user_weight' a_user.id %}" method="post" class="weight-form-v2">
-                                        {% csrf_token %}
-                                        <label for="weight-{{ a_user.id }}" class="form-label mb-0 small text-light">가중치:</label>
-                                        <input type="number" name="weight" value="{{ a_user.weight }}" class="form-control form-control-sm" min="1" id="weight-{{ a_user.id }}">
-                                        <button type="submit" class="btn-action btn-action-outline">
-                                            <i class="fas fa-pencil-alt"></i>수정
-                                        </button>
+                                        {% csrf_token %}<label for="weight-{{ a_user.id }}" class="form-label mb-0 small text-light">가중치:</label><input type="number" name="weight" value="{{ a_user.weight }}" class="form-control form-control-sm" min="1" id="weight-{{ a_user.id }}"><button type="submit" class="btn-action btn-action-outline"><i class="fas fa-pencil-alt"></i>수정</button>
                                     </form>
                                 </div>
                                 <div>
-                                    {% if not a_user.is_staff %}
-                                        <form action="{% url 'applications:delete_user' a_user.id %}" method="post" onsubmit="return confirm('정말로 {{ a_user.name }} 사용자를 삭제하시겠습니까?');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn-delete">
-                                                <i class="fas fa-trash-alt me-1"></i>삭제
-                                            </button>
-                                        </form>
-                                    {% endif %}
+                                    {% if not a_user.is_staff %}<form action="{% url 'applications:delete_user' a_user.id %}" method="post" onsubmit="return confirm('정말로 {{ a_user.username }} 사용자를 삭제하시겠습니까?');">{% csrf_token %}<button type="submit" class="btn-delete"><i class="fas fa-trash-alt me-1"></i>삭제</button></form>{% endif %}
                                 </div>
                             </div>
+                        {% empty %}
+                            <p class="text-center text-muted py-3">
+                                {% if search_query %}
+                                    '{{ search_query }}'에 대한 검색 결과가 없습니다.
+                                {% else %}
+                                    활성 사용자가 없습니다.
+                                {% endif %}
+                            </p>
                         {% endfor %}
                     </div>
                 </section>
@@ -147,7 +117,6 @@
         </div>
     </div>
 </body>
-
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 {% endblock %}
