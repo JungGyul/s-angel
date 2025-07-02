@@ -1,158 +1,182 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="ko">
+<head>
     <meta charset="UTF-8" />
     <title>S-ANGEL Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-      body {
-        margin: 0;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #ffffff;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        padding: 24px;
-      }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
 
-      .site-title {
-        font-size: 32px;
-        font-weight: 700;
-        color: #1e3a8a;
-        text-align: center;
-        margin-bottom: 24px;
-        letter-spacing: 1px;
-      }
+        /* ▼▼▼ 그라데이션 색상을 한 단계 더 진한 색으로 변경 ▼▼▼ */
+        :root {
+            --gradient-start: #1E3A8A; /* 로고와 비슷한 진한 네이비 */
+            --gradient-end: #312E81;   /* 더 진한 다크 인디고 */
+            --background-color: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --border-color: #E5E7EB;
+            --text-dark: #111827;
+            --text-medium: #374151;
+            --text-light: #6B7280;
+            --danger-red: #EF4444;
+            --info-blue: #1E3A8A;     /* 정보 박스 색상도 통일 */
+        }
+        /* ▲▲▲ 여기까지 ▲▲▲ */
 
-      .login-box {
-        background-color: #ffffff;
-        padding: 32px;
-        width: 100%;
-        max-width: 400px;
-        border-radius: 16px;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-        box-sizing: border-box;
-      }
+        body {
+            background-color: var(--background-color);
+            font-family: 'Inter', 'Pretendard', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1.5rem;
+        }
 
-      .login-box h2 {
-        text-align: center;
-        margin-bottom: 24px;
-        color: #1f2937;
-        font-size: 24px;
-      }
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+        }
 
-      .error-box {
-        background-color: #fee2e2;
-        color: #b91c1c;
-        padding: 12px 16px;
-        margin-bottom: 16px;
-        border: 1px solid #fca5a5;
-        border-radius: 8px;
-        font-size: 14px;
-        position: relative;
-        z-index: 10;
-      }
-
-      .login-box form {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .login-box input[type="input"],
-      .login-box input[type="password"] {
-        padding: 14px 16px;
-        margin-bottom: 16px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        font-size: 15px;
-        outline: none;
-        transition: border 0.3s ease;
-      }
-
-      .login-box input[type="input"]:focus,
-      .login-box input[type="password"]:focus {
-        border-color: #2563eb;
-      }
-
-      .login-box input[type="submit"] {
-        padding: 14px 16px;
-        background-color: #1e3a8a;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-      }
-
-      .login-box input[type="submit"]:hover {
-        background-color: #2563eb;
-      }
-
-      .signup-link {
-        text-align: center;
-        margin-top: 16px;
-        font-size: 14px;
-      }
-
-      .signup-link a {
-        color: #2563eb;
-        text-decoration: none;
-      }
-
-      .signup-link a:hover {
-        text-decoration: underline;
-      }
-
-      @media (max-width: 480px) {
         .site-title {
-          font-size: 24px;
-          margin-bottom: 16px;
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            letter-spacing: -1px;
+            background-image: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
-        .login-box {
-          padding: 24px;
-          border-radius: 12px;
+        .login-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
+            padding: 2.5rem;
+        }
+        .login-card h2 {
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-medium);
+            margin-top: 0;
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
         }
 
-        .login-box h2 {
-          font-size: 20px;
+        .message-box {
+            padding: 0.9rem 1.25rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
         }
-      }
+        .message-box i { margin-right: 0.75rem; }
+        .info-box { background-color: #DBEAFE; color: var(--info-blue); }
+        .error-box { background-color: #FEF2F2; color: var(--danger-red); }
+
+        .form-group { position: relative; margin-bottom: 1.25rem; }
+        .form-control {
+            width: 100%;
+            padding: 0.9rem 1rem 0.9rem 2.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--background-color);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        /* ▼▼▼ 포커스 색상도 새로운 테마에 맞게 변경 ▼▼▼ */
+        .form-control:focus {
+            border-color: var(--gradient-start);
+            background-color: var(--card-bg);
+            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.25);
+            outline: none;
+        }
+        .form-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+        
+        .btn-gradient {
+            width: 100%;
+            padding: 0.9rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            background-image: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+            background-size: 200% auto;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        .btn-gradient:hover { background-position: right center; }
+
+        .signup-link {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        .signup-link a {
+            color: var(--gradient-end);
+            font-weight: 600;
+            text-decoration: none;
+        }
     </style>
-  </head>
-  <body>
-    <h1 class="site-title">S-ANGEL</h1>
+</head>
+<body>
+    <div class="login-container">
+        <h1 class="site-title">S-ANGEL</h1>
+        <div class="login-card">
+            <h2>로그인</h2>
+            
+            {% if messages %}
+                {% for message in messages %}
+                  <div class="message-box info-box">
+                    <i class="fas fa-info-circle"></i>{{ message|safe }}
+                </div>
+                {% endfor %}
+            {% endif %}
 
-    <div class="login-box">
-      <h2>로그인</h2>
+            {% if error %}
+                <div class="message-box error-box">
+                    <i class="fas fa-exclamation-triangle"></i>{{ error }}
+                </div>
+            {% endif %}
 
-      {% if error %}
-      <div class="error-box">{{ error }}</div>
-      {% endif %}
-
-      <form action="{% url 'users:main' %}" method="post">
-        {% csrf_token %}
-        <input type="input" name="username" placeholder="아이디" required />
-        <input
-          type="password"
-          name="password"
-          placeholder="비밀번호"
-          required
-        />
-        <input type="submit" value="Login" />
-      </form>
-
-      <div class="signup-link">
-        <p>
-          <a href="{% url 'users:signup' %}">회원가입하기</a>
-        </p>
-      </div>
+            <form action="{% url 'users:main' %}" method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <i class="fas fa-user form-icon"></i>
+                    <input type="text" name="username" class="form-control" placeholder="아이디" required />
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-lock form-icon"></i>
+                    <input type="password" name="password" class="form-control" placeholder="비밀번호" required />
+                </div>
+                <button type="submit" class="btn-gradient">로그인</button>
+            </form>
+        </div>
+        <div class="signup-link">
+            <span>계정이 없으신가요?</span>
+            <a href="{% url 'users:signup' %}">회원가입</a>
+        </div>
     </div>
-  </body>
+</body>
 </html>

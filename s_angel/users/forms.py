@@ -12,11 +12,15 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class SimpleUserSignupForm(UserCreationForm):
-    gender = forms.ChoiceField(choices=[('M', '남성'), ('F', '여성')])
+    # UserCreationForm에 없는 필드들을 직접 정의합니다.
+    name = forms.CharField(max_length=150, required=True, help_text="이름을 입력하세요.")
+    gender = forms.ChoiceField(choices=[('M', '남성'), ('F', '여성')], required=True)
 
-    class Meta:
-        model = User
-        fields = ['username', 'name', 'gender', 'password1', 'password2'] 
+    class Meta(UserCreationForm.Meta):
+        # model은 settings.py에 설정된 User 모델을 가져옵니다.
+        model = get_user_model()
+        # UserCreationForm의 기본 필드('username')에 우리가 추가할 필드를 더해줍니다.
+        fields = UserCreationForm.Meta.fields + ('name', 'gender')
 
 
 

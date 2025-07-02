@@ -13,4 +13,9 @@ urlpatterns = [
     path('winners/<int:event_id>/', views.event_winners, name='event_winners'),
     path('delete/<int:event_id>/', views.delete_event, name='delete_event'),
     path('event/<int:event_id>/cancel/', views.cancel_application, name='cancel_event'),
+
+    path('admin-page/', views.admin_page, name='admin_page'),
+    path('user/<int:user_id>/approve/', views.approve_user, name='approve_user'),
+    path('user/<int:user_id>/delete/', views.delete_user, name='delete_user'),
+    path('user/<int:user_id>/update_weight/', views.update_user_weight, name='update_user_weight'),
 ]

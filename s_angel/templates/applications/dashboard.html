@@ -1,309 +1,336 @@
-{% block content %}
 
-
-<style>
-  body {
-    background-color: #ffffff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #1f2937;
-    margin: 0;
-    padding: 20px;
-  }
-
-  .top-bar {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 20px;
-  }
-
-  .logout-link {
-    text-decoration: none;
-    color: #1e3a8a;
-    font-weight: bold;
-    font-size: 16px;
-  }
-
-  h1 {
-    text-align: center;
-    font-size: 36px;
-    color: #1e3a8a;
-    margin-bottom: 30px;
-    letter-spacing: 1px;
-  }
-
-  h2 {
-    font-size: 24px;
-    margin-bottom: 20px;
-    color: #1f2937;
-  }
-
-  .menu-button {
-    display: inline-block;
-    margin: 8px 0;
-    padding: 10px 20px;
-    background-color: #1e3a8a;
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 16px;
-    transition: background-color 0.3s;
-  }
-
-  .menu-button:hover {
-    background-color: #2563eb;
-  }
-
-  .event-card {
-    background-color: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  }
-
-  .event-title {
-    font-size: 18px;
-    font-weight: bold;
-    color: #1f2937;
-    margin-bottom: 8px;
-  }
-
-  .event-info {
-    font-size: 14px;
-    margin-bottom: 10px;
-    color: #4b5563;
-  }
-
-  .event-description {
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 10px;
-  }
-
-  .status-badge {
-    display: inline-block;
-    margin-left: 6px;
-    font-size: 12px;
-    padding: 2px 8px;
-    border-radius: 6px;
-    background-color: #e0e7ff;
-    color: #1e3a8a;
-    font-weight: bold;
-  }
-
-  .status-closed {
-    background-color: #fee2e2;
-    color: #b91c1c;
-  }
-
-  .status-drawn {
-    background-color: #dcfce7;
-    color: #15803d;
-  }
-
-  .action-links a {
-    margin-right: 12px;
-    text-decoration: none;
-    font-weight: bold;
-    color: #1e3a8a;
-    font-size: 14px;
-  }
-
-  .action-links span {
-    font-size: 14px;
-    color: gray;
-    margin-right: 12px;
-  }
-
-  .my-application {
-    font-size: 16px;
-    margin-bottom: 8px;
-  }
-
-  .logout-button {
-    background-color: #1e3a8a;
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.logout-button:hover {
-    background-color: #2563eb;
-}
-
-/* ─────────────────────────────────────────────────────────── */
-/* action-links 내부의 span 및 a 모두 동일한 모양으로 보이도록 */
-.action-links a,
-.action-links span.status-text {
-  margin-right: 12px;
-  text-decoration: none;
-  font-weight: bold;
-  color: #1e3a8a;
-  font-size: 14px;
-  padding: 4px 8px;          /* 살짝 여백을 주면 버튼처럼 보임 */
-  border-radius: 6px;        /* 둥근 모서리 */
-  transition: background-color 0.3s;
-}
-
-/* 마우스를 올렸을 때 배경색 변화 (링크와 동일하게) */
-.action-links a:hover,
-.action-links span.status-text:hover {
-  background-color: #e0e7ff; 
-  cursor: default;            /* span은 링크가 아니므로 pointer 대신 default */
-}
-
-/* disabled 상태(예: → “신청 마감” 같은 경우에 좀 더 회색 느낌으로) */
-.action-links span.disabled {
-  color: #9ca3af;
-  font-weight: normal;
-  background-color: #f3f4f6;
-  cursor: not-allowed;
-}
-/* ─────────────────────────────────────────────────────────── */
-
-</style>
-
-<div class="top-bar">
-  <form action="{% url 'logout' %}" method="post" style="display:inline">
-    {% csrf_token %}
-    <button type="submit" class="logout-button">
-      로그아웃
-    </button>
-  </form>
-</div>
-
-
-<h1>S-ANGEL</h1>
 {% load app_filters %}
 
+{% block content %}
+<style>
+    /* 네이비 테마 컬러 팔레트 */
+    :root {
+        --navy-dark: #1A2C5B;
+        --navy-medium: #2B4E8C;
+        --blue-accent: #4A90E2;
+        --background-light: #F0F4F8;
+        --border-color: #DDE4ED;
+        --text-primary: #334155;
+        --text-secondary: #64748B;
+        --white-color: #FFFFFF;
+        --success-green: #10B981;
+        --danger-red: #EF4444;
+    }
 
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">
-      {{ message }}
+    .dashboard-body {
+        background-color: var(--background-light);
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        color: var(--text-primary);
+    }
+
+    .dashboard-container {
+        max-width: 960px;
+        margin: auto;
+        padding: 2.5rem 1.5rem;
+    }
+
+    /* 상단 네비게이션 바 */
+    .top-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .top-nav .site-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--navy-dark);
+        text-decoration: none;
+    }
+    .top-nav .nav-actions a, .top-nav .nav-actions form button {
+        text-decoration: none;
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-left: 1.5rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+    .top-nav .nav-actions a.admin-link {
+        color: var(--blue-accent);
+    }
+
+    /* 페이지 섹션 제목 */
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--navy-dark);
+        padding-left: 0.75rem;
+    }
+
+    /* 이벤트 카드 */
+    .event-card {
+        background-color: var(--white-color);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        overflow: hidden; /* 내부 요소가 카드를 벗어나지 않도록 */
+    }
+    .event-card-header {
+        padding: 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .event-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+    }
+    .event-card-body {
+    padding: 1rem 1.5rem 1.5rem; /* 위쪽 여백을 1.5rem에서 1rem으로 줄입니다 */
+    }
+    .event-info {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+    }
+    .event-description {
+        margin-bottom: 1.5rem;
+    }
+
+    /* 액션 버튼/링크 */
+    .action-links {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .action-btn.primary {
+        background-color: var(--white-color);
+        color: var(--text-primary);
+        border-color: var(--border-color);
+    }
+    .action-btn.primary:hover {
+        background-color: var(--blue-accent);
+    }
+    .action-btn.third {
+        background-color: var(--navy-dark);
+        color: var(--white-color);
+    }
+    .action-btn.third:hover {
+        background-color: var(--navy-medium);
+    }
+    .action-btn.secondary {
+        background-color: var(--white-color);
+        color: var(--text-primary);
+        border-color: var(--border-color);
+    }
+    .action-btn.secondary:hover {
+        background-color: #f8f9fa;
+        border-color: #ced4da;
+    }
+    .action-btn.danger {
+        background-color: #fff1f2;
+        color: var(--danger-red);
+    }
+    .action-btn.disabled {
+        background-color: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
+
+    /* 나의 신청 내역 카드 */
+    .my-applications-card {
+        background-color: var(--white-color);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+    }
+    .my-application-item {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .my-application-item:last-child {
+        border-bottom: none;
+    }
+    .status-badge {
+        font-weight: 600;
+        padding: 0.3em 0.65em;
+        border-radius: 10rem;
+        font-size: 0.8rem;
+    }
+    .status-badge.closed {
+        background-color: var(--danger-red);
+        color: var(--white-color);
+    }
+
+    /* '추첨 완료' 배지 (새로 추가) */
+    .status-badge.drawn {
+        background-color: var(--success-green);
+        color: var(--white-color);
+    }
+    .custom-alert {
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--border-color);
+        border-left-width: 5px;
+        border-left-color: var(--gradient-start);
+        background-color: var(--card-bg);
+        color: var(--text-medium);
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        display: flex;
+        align-items: center;
+        font-weight: 500;
+    }
+    .custom-alert i {
+        color: var(--gradient-start);
+        margin-right: 1rem;
+        font-size: 1.25rem;
+    }
+</style>
+
+<body class="dashboard-body">
+    <div class="dashboard-container">
+        <nav class="top-nav">
+            <a href="{% url 'applications:dashboard' %}" class="site-title">S-ANGEL</a>
+            <div class="nav-actions">
+                {% if request.user.is_staff %}
+                    <a href="{% url 'applications:admin_page' %}" class="admin-link">
+                        <i class="fas fa-shield-alt me-1"></i>관리자 페이지
+                    </a>
+                {% endif %}
+                <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit"><i class="fas fa-sign-out-alt me-1"></i>로그아웃</button>
+                </form>
+            </div>
+        </nav>
+        {% if messages %}
+            {% for message in messages %}
+            <div class="custom-alert" role="alert">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% if request.user.is_staff %}
+        <div class="mb-5">
+            <h2 class="section-title">관리자 메뉴</h2>
+            <div class="d-flex gap-3">
+                <a class="action-btn third" href="{% url 'applications:create_event' %}">
+                    <i class="fas fa-plus me-2"></i>새로운 의전 활동 만들기
+                </a>
+                <a class="action-btn secondary" href="{% url 'applications:event_statistics' %}">
+                    <i class="fas fa-chart-bar me-2"></i>통계 페이지로 가기
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <div>
+            {% if request.user.is_staff %}
+                <h2 class="section-title">전체 의전 활동 관리</h2>
+            {% else %}
+                <h2 class="section-title">현재 신청 가능한 의전 활동</h2>
+            {% endif %}
+
+            {% for item in event_status_list %}
+            {% with event=item.event %}
+                <div class="event-card">
+                  <div class="event-card-header">
+                    <h3 class="event-title">{{ event.title }}</h3>
+                    <div> {# 배지를 감싸는 div 추가 #}
+                        {% if event.end_date < today %}
+                            <span class="status-badge closed">모집 마감</span>
+                        {% endif %}
+                        {% if item.is_drawn %}
+                            <span class="status-badge drawn">추첨 완료</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="event-card-body">
+                    <p class="event-info">
+                        <i class="fas fa-calendar-alt me-2"></i>{{ event.start_date }} ~ {{ event.end_date }}
+                    </p>
+                        <p class="event-description">{{ event.description }}</p>
+
+                        <div class="action-links">
+                            {% if request.user.is_staff %}
+                                {% if not item.is_drawn %}
+                                    <a href="{% url 'applications:draw_event' event.id %}" onclick="return confirm('정말 추첨을 진행하시겠습니까?');" class="action-btn primary">🎯 추첨 실행</a>
+                                {% else %}
+                                    <span class="action-btn disabled">추첨 완료</span>
+                                {% endif %}
+                                <a href="{% url 'applications:event_winners' event.id %}" class="action-btn secondary">🏆 당첨자 보기</a>
+                                <a href="{% url 'applications:delete_event' event.id %}" onclick="return confirm('정말로 삭제하시겠습니까?');" class="action-btn secondary">🗑️ 삭제하기</a>
+                            {% else %}
+                                {% if event.id in applied_event_ids %}
+                                    {% if event.end_date >= today and not item.is_drawn %}
+                                        <a href="{% url 'applications:cancel_event' event.id %}" onclick="return confirm('정말로 신청을 취소하시겠습니까?');" class="action-btn danger">❌ 신청 취소</a>
+                                    {% else %}
+                                        <span class="action-btn disabled">✅ 신청 완료</span>
+                                    {% endif %}
+                                {% else %}
+                                    {% if event.end_date >= today and not item.is_drawn %}
+                                        <a href="{% url 'applications:apply_event' event.id %}" class="action-btn primary">✔️ 신청하기</a>
+                                    {% else %}
+                                        <span class="action-btn disabled">신청 마감</span>
+                                    {% endif %}
+                                {% endif %}
+                                <a href="{% url 'applications:event_winners' event.id %}" class="action-btn secondary">🏆 당첨자 보기</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+
+        {% if not request.user.is_staff %}
+        <div class="mt-5">
+            <h2 class="section-title">나의 신청 내역</h2>
+            <div class="my-applications-card">
+                {% for app in my_applications %}
+                <div class="my-application-item d-flex justify-content-between">
+                    <span>{{ app.event.title }}</span>
+                    <span>
+                        {% if app.selected %}
+                            <span class="badge bg-success">🎉 당첨</span>
+                        {% else %}
+                            {% if event_status_list|get_draw_status:app.event.id %}
+                                <span class="badge bg-danger">❌ 미당첨</span>
+                            {% else %}
+                                <span class="badge bg-secondary">⏳ 대기중</span>
+                            {% endif %}
+                        {% endif %}
+                    </span>
+                </div>
+                {% empty %}
+                <p class="text-center text-muted mb-0">아직 신청한 내역이 없습니다.</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
     </div>
-  {% endfor %}
-{% endif %}
 
-{% if is_admin %}
-  <h2>관리자 메뉴</h2>
-  <a class="menu-button" href="{% url 'applications:create_event' %}">+ 새로운 의전 활동 만들기</a>
-  <a class="menu-button" href="{% url 'applications:event_statistics' %}">📊 통계 페이지로 가기</a>
-
-  {% for item in event_status_list %}
-    {% with event=item.event %}
-      <div class="event-card">
-        <div class="event-title">
-          {{ event.title }}
-          {% if event.end_date <= today %}
-            <span class="status-badge status-closed">모집 마감</span>
-          {% endif %}
-          {% if item.is_drawn %}
-            <span class="status-badge status-drawn">추첨 완료</span>
-          {% endif %}
-        </div>
-
-        <div class="event-info">{{ event.start_date }} ~ {{ event.end_date }}</div>
-
-        <div class="event-description">
-          {{ event.description }}
-        </div>
-
-        <div class="action-links">
-          {% if not item.is_drawn %}
-            <a href="{% url 'applications:draw_event' event.id %}" onclick="return confirm('정말 추첨을 진행하시겠습니까?');">🎯 추첨 실행</a>
-          {% else %}
-            <span>추첨 완료</span>
-          {% endif %}
-          <a href="{% url 'applications:event_winners' event.id %}">🏆 당첨자 보기</a>
-          <a href="{% url 'applications:delete_event' event.id %}" onclick="return confirm('정말로 삭제하시겠습니까?');">🗑️ 삭제하기</a>
-        </div>
-        
-      </div>
-    {% endwith %}
-  {% endfor %}
-
-{% else %}
-  <h2>현재 신청 가능한 의전 활동</h2>
-
-  {% for item in event_status_list %}
-  {% with event=item.event %}
-    <div class="event-card">
-      <div class="event-title">
-        {{ event.title }}
-        {% if event.end_date <= today %}
-          <span class="status-badge status-closed">모집 마감</span>
-        {% endif %}
-        {% if item.is_drawn %}
-          <span class="status-badge status-drawn">추첨 완료</span>
-        {% endif %}
-      </div>
-
-      <div class="event-info">{{ event.start_date }} ~ {{ event.end_date }}</div>
-      <div class="event-description">{{ event.description }}</div>
-
-      <div class="action-links">
-        {# ─── 이미 신청한 사용자 ─── #}
-        {% if event.id in applied_event_ids %}
-          {% if event.end_date > today and not item.is_drawn %}
-            {# → 신청 취소 가능: 빨간색 텍스트, 버튼 형태 #}
-            <a href="{% url 'applications:cancel_event' event.id %}"
-               onclick="return confirm('정말로 신청을 취소하시겠습니까?');"
-               style="color: #b91c1c; background-color: #fee2e2;">
-              ❌ 신청 취소
-            </a>
-          {% else %}
-            {# → 신청 완료 (취소 불가): 회색 tone span #}
-            <span class="status-text disabled">✅ 신청 완료</span>
-          {% endif %}
-        {% else %}
-          {# ─── 아직 신청하지 않은 사용자 ─── #}
-          {% if event.end_date > today and not item.is_drawn %}
-            <a href="{% url 'applications:apply_event' event.id %}"
-               style="background-color: #d1fae5; color: #065f46;">
-              ✔️ 신청하기
-            </a>
-          {% else %}
-            <span class="status-text disabled">신청 마감</span>
-          {% endif %}
-        {% endif %}
-
-        {# ─── “당첨자 보기” 버튼에도 동일한 스타일 입히기 ─── #}
-        <a href="{% url 'applications:event_winners' event.id %}" 
-           style="background-color: #e0e7ff; color: #1e3a8a;">
-          🏆 당첨자 보기
-        </a>
-      </div>
-    </div>
-  {% endwith %}
-{% endfor %}
-
-
-  <h2>나의 신청 내역</h2>
-
-  {% for app in my_applications %}
-  <div class="my-application">
-    {{ app.event.title }} -
-    {% if app.selected %}
-      🎉 당첨
-    {% else %}
-      {% if event_status_list|get_draw_status:app.event.id %}
-        ❌ 탈락
-      {% else %}
-        ⏳ 대기
-      {% endif %}
-    {% endif %}
-  </div>
-{% endfor %}
-
-
-{% endif %}
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
 
 {% endblock %}
