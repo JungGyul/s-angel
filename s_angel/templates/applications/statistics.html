@@ -175,7 +175,7 @@
                         <tbody>
                             {% for app in data.applications %}
                                 <tr class="{% if app.selected %}table-row-winner{% endif %}">
-                                    <td>{{ app.participant.username }}</td>
+                                    <td>{{ app.participant.name }}</td>
                                     <td class="text-center">
                                         {% if app.participant.gender == 'M' %}
                                             <span class="icon-text text-primary"><i class="fas fa-mars"></i> 남자</span>
