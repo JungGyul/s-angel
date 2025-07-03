@@ -64,40 +64,33 @@
         transform: translateY(-50%);
         color: var(--text-light);
     }
-    /* style 태그 맨 아래에 추가할 코드 */
-
-    /* 화면 너비가 768px 이하일 때 (일반적인 모바일/태블릿 환경) 아래 스타일을 적용 */
     @media (max-width: 768px) {
-        .admin-container-v2 {
-            /* 모바일에서는 상하좌우 여백을 줄여 공간 확보 */
-            padding: 1.5rem 1rem;
-        }
-
-        .page-header-v2 h1 {
-            /* 페이지 제목 크기를 모바일에 맞게 조정 */
-            font-size: 1.75rem;
-        }
-        
-        .page-header-v2 {
-            /* 제목과 버튼이 너무 붙지 않도록 간격 조정 */
-            gap: 1rem;
-        }
-
-        /* 가장 중요한 변경: 사용자 목록의 레이아웃을 세로로 변경 */
-        .user-item {
-            flex-direction: column;       /* 가로 배치 -> 세로 배치로 변경 */
-            align-items: flex-start;    /* 왼쪽 정렬 */
-            gap: 0.75rem;                 /* 요소들 사이의 세로 간격 추가 */
-        }
-
-        .user-item > div:last-child {
-            width: 100%; /* 삭제 버튼을 담은 div의 너비를 100%로 */
-        }
-
-        .btn-delete {
-            width: 100%; /* 삭제 버튼 자체의 너비도 100%로 만들어 꽉 차게 */
-        }
+    .admin-container-v2 {
+        padding: 1.5rem 1rem;
     }
+
+    .page-header-v2 {
+        gap: 1rem;
+    }
+    
+    /* ▼▼▼ 제목 글자 크기를 줄입니다 ▼▼▼ */
+    .page-header-v2 h1 {
+        font-size: 1.6rem; 
+    }
+    
+    .user-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem; /* 세로 간격을 조금 더 줍니다 */
+    }
+
+    .user-item > div {
+        width: 100%;
+    }
+    .btn-delete {
+        width: 100%; 
+    }
+}
 </style>
 </head>
 <body class="admin-body-v2">

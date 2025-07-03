@@ -38,34 +38,56 @@
         padding: 2.5rem 1.5rem;
     }
 
-    /* 상단 네비게이션 바 */
     .top-nav {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-    .top-nav .site-title {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: var(--navy-dark);
-        text-decoration: none;
-    }
-    .top-nav .nav-actions a, .top-nav .nav-actions form button {
-        text-decoration: none;
-        color: var(--text-secondary);
-        font-weight: 600;
-        margin-left: 1.5rem;
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1rem;
-    }
-    .top-nav .nav-actions a.admin-link {
-        color: var(--blue-accent);
-    }
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.top-nav .site-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    text-decoration: none;
+    background-image: linear-gradient(to right, var(--navy-dark), var(--navy-medium));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.top-nav .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.top-nav .nav-actions form {
+    margin: 0; /* form 태그의 불필요한 마진 제거 */
+}
+/* a 태그와 button 태그에 완전히 동일한 스타일을 적용하여 정렬을 맞춤 */
+.top-nav .nav-actions a, 
+.top-nav .nav-actions button {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: color 0.2s ease;
+    padding: 0; /* 버튼의 기본 패딩 제거 */
+    margin: 0; /* 버튼의 기본 마진 제거 */
+    font-family: inherit; /* body의 폰트를 상속받도록 */
+}
+.top-nav .nav-actions a:hover, 
+.top-nav .nav-actions button:hover {
+    color: var(--navy-dark);
+}
+.top-nav .nav-actions a.admin-link {
+    color: var(--navy-medium);
+    font-weight: 700;
+}
 
     /* 페이지 섹션 제목 */
     .section-title {
@@ -272,7 +294,7 @@
                         <i class="fas fa-shield-alt me-1"></i>관리자 페이지
                     </a>
                 {% endif %}
-                <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                <form action="{% url 'logout' %}" method="post">
                     {% csrf_token %}
                     <button type="submit"><i class="fas fa-sign-out-alt me-1"></i>로그아웃</button>
                 </form>
