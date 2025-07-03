@@ -83,6 +83,20 @@
             color: var(--text-light);
         }
         .bottom-link a { color: var(--gradient-end); font-weight: 600; text-decoration: none; }
+        select.form-control {
+        /* 브라우저 기본 화살표 디자인 제거 */
+        -webkit-appearance: none;
+        appearance: none;
+
+        /* 우리가 직접 만든 화살표 아이콘 추가 */
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236B7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M10%2012a1%201%200%2001-.707-.293l-3-3a1%201%200%20011.414-1.414L10%209.586l2.293-2.293a1%201%200%20011.414%201.414l-3%203A1%201%200%200110%2012z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E');
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1.25em 1.25em;
+
+        /* 오른쪽 화살표 공간 확보를 위해 오른쪽 패딩 추가 */
+        padding-right: 2.5rem;
+    }
     </style>
 </head>
 <body>
