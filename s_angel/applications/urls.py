@@ -18,4 +18,5 @@ urlpatterns = [
     path('user/<int:user_id>/approve/', views.approve_user, name='approve_user'),
     path('user/<int:user_id>/delete/', views.delete_user, name='delete_user'),
     path('user/<int:user_id>/update_weight/', views.update_user_weight, name='update_user_weight'),
+    path('user/<int:user_id>/reject/', views.reject_user, name='reject_user'),
 ]

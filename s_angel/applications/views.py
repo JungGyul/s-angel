@@ -251,3 +251,13 @@ def delete_user(request, user_id):
         user_to_delete.delete()
         messages.success(request, f"사용자 '{username}'이(가) 성공적으로 삭제되었습니다.")
     return redirect('applications:admin_page')
+
+@staff_member_required
+def reject_user(request, user_id):
+    """선택한 사용자의 가입을 거절 (삭제)하는 뷰"""
+    if request.method == 'POST':
+        user_to_reject = get_object_or_404(User, id=user_id)
+        username = user_to_reject.username
+        user_to_reject.delete()
+        messages.success(request, f"사용자 '{username}'의 가입 요청을 거절했습니다.")
+    return redirect('applications:admin_page')
