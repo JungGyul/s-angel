@@ -122,44 +122,38 @@
     /* style 태그 맨 아래에 있는 기존 @media 블록을 이 코드로 교체 */
 
     @media (max-width: 768px) {
-        .form-container {
-            padding: 1.5rem 1rem;
-        }
-
-        .page-header {
-            flex-direction: column;
-            gap: 1.5rem;
-            align-items: center;
-            text-align: center;
-        }
-
-        .page-header h1 {
-            font-size: 1.75rem;
-        }
-        
-        /* ▼▼▼ 이 부분을 추가/수정한 것입니다 ▼▼▼ */
-        .btn-dashboard {
-            width: 40%; /* 너비를 100%로 설정 */
-            justify-content: center; /* 아이콘과 텍스트를 가운데로 정렬 */
-        }
-        /* ▲▲▲ 여기까지 ▲▲▲ */
-
-        .form-card {
-            padding: 1.5rem;
-        }
-
-        .row > [class*="col-"] {
-            width: 100%;
-            flex: 0 0 100%;
-            max-width: 100%;
-            padding-left: 0;
-            padding-right: 0;
-        }
-        
-        .btn-gradient {
-            width: 100%;
-        }
+    .form-container {
+        padding: 1.5rem 1rem;
     }
+
+    /* ▼▼▼ 헤더 관련 스타일을 수정합니다 ▼▼▼ */
+    .page-header {
+        /* 세로 쌓기(flex-direction: column)를 제거하여 가로 배치를 유지합니다. */
+        margin-bottom: 2rem; /* 간격만 살짝 조정 */
+    }
+    .page-header h1 {
+        font-size: 1.5rem; /* 모바일에서 제목 폰트 크기 축소 */
+    }
+    .btn-dashboard {
+        padding: 0.5rem 0.8rem; /* 모바일에서 버튼 내부 여백 축소 */
+        font-size: 0.85rem; /* 모바일에서 버튼 폰트 크기 축소 */
+    }
+    /* ▲▲▲ 여기까지 ▲▲▲ */
+
+    .form-card {
+        padding: 1.5rem;
+    }
+
+    /* 날짜와 인원수 필드는 그대로 세로로 쌓이도록 유지 */
+    .row > [class*="col-"] {
+        width: 100%;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    .btn-gradient {
+        width: 100%;
+    }
+}
 </style>
 </head>
 <body class="form-body">

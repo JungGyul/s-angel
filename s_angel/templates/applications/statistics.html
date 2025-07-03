@@ -139,6 +139,47 @@
         margin-right: 0.5rem;
     }
     /* ▲▲▲ 여기까지 ▲▲▲ */
+    /* 기존 @media 블록을 아래 내용으로 교체 */
+
+@media (max-width: 768px) {
+    .stats-container { padding: 1.5rem 1rem; }
+
+    /* ▼▼▼ 이 부분을 수정합니다 ▼▼▼ */
+    .page-header {
+        /* 세로로 쌓는 flex-direction: column 제거 -> 가로 배치 유지 */
+        gap: 1rem; /* 제목과 버튼 사이 간격 */
+        margin-bottom: 2rem;
+    }
+    .page-header h1 {
+        font-size: 1.5rem; /* 제목 폰트 크기 축소 */
+    }
+    .btn-dashboard {
+        /* 너비 40% 대신, 내용에 맞게 크기를 자동 조정 */
+        padding: 0.5rem 0.8rem; /* 버튼 내부 여백 축소 */
+        font-size: 0.85rem; /* 버튼 폰트 크기 축소 */
+        /* justify-content는 버튼이 flex 컨테이너가 아니므로 불필요 */
+    }
+    /* ▲▲▲ 여기까지 ▲▲▲ */
+
+    .event-stats-card { margin-bottom: 1.5rem; }
+    .event-stats-card h2 { font-size: 1.25rem; padding: 1rem 1.25rem; }
+    .summary-grid { padding: 1.25rem; gap: 1rem; }
+    
+    /* 테이블 가로 스크롤 스타일은 그대로 유지 */
+    .applicant-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 0 1.25rem 1.25rem;
+    }
+    .applicant-table {
+        white-space: nowrap;
+    }
+    .applicant-table th, .applicant-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+    }
+
+}
 </style>
 </head> 
 <body class="stats-body">
