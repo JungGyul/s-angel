@@ -69,26 +69,29 @@
         padding: 1.5rem 1rem;
     }
 
+    /* ▼▼▼ 헤더 관련 스타일을 '새 활동 만들기' 페이지와 동일하게 수정합니다 ▼▼▼ */
     .page-header-v2 {
-        gap: 1rem;
+        gap: 1rem; /* 제목과 버튼 사이 간격 */
     }
-    
-    /* ▼▼▼ 제목 글자 크기를 줄입니다 ▼▼▼ */
     .page-header-v2 h1 {
-        font-size: 1.6rem; 
+        font-size: 1.5rem; /* 제목 폰트 크기 축소 */
     }
+    .btn-dashboard {
+        padding: 0.5rem 0.8rem; /* 버튼 내부 여백 축소 */
+        font-size: 0.85rem;    /* 버튼 폰트 크기 축소 */
+    }
+    /* ▲▲▲ 여기까지 ▲▲▲ */
     
     .user-item {
         flex-direction: column;
         align-items: flex-start;
-        gap: 1rem; /* 세로 간격을 조금 더 줍니다 */
+        gap: 1rem;
     }
-
     .user-item > div {
         width: 100%;
     }
     .btn-delete {
-        width: 100%; 
+        width: 100%;
     }
 }
 </style>
