@@ -23,7 +23,18 @@ class SimpleUserSignupForm(UserCreationForm):
         fields = UserCreationForm.Meta.fields + ('name', 'gender')
 
 
+# users/forms.py 파일 하단에 추가
 
+class UserProfileChangeForm(forms.ModelForm):
+    class Meta:
+        model = get_user_model()
+        fields = ['username', 'name', 'gender']
+
+        labels = {
+            'username': '아이디',
+            'name': '이름',
+            'gender': '성별',
+        }
 
 class UserAdminChangeForm(admin_forms.UserChangeForm):
     class Meta(admin_forms.UserChangeForm.Meta):  # type: ignore[name-defined]

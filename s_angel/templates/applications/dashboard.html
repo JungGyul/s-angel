@@ -121,6 +121,14 @@
         font-weight: 600;
         margin: 0;
     }
+    .event-title-link {
+    text-decoration: none; /* 기본 밑줄 제거 */
+    color: inherit; /* 부모 요소의 글자색 상속 */
+    }
+    .event-title-link:hover .event-title {
+        color: var(--navy-dark); /* 마우스 올렸을 때 색상 변경 */
+        text-decoration: underline; /* 마우스 올렸을 때 밑줄 표시 */
+    }
     .event-card-body {
     padding: 1rem 1.5rem 1.5rem; /* 위쪽 여백을 1.5rem에서 1rem으로 줄입니다 */
     }
@@ -290,6 +298,11 @@
         <nav class="top-nav">
             <a href="{% url 'applications:dashboard' %}" class="site-title">S-ANGEL</a>
             <div class="nav-actions">
+                {% if not request.user.is_staff %} {# 일반 사용자에게만 보이도록 #}
+                    <a href="{% url 'users:profile_update' %}" class="admin-link">
+                        <i class="fas fa-user-edit me-1"></i>프로필 수정
+                    </a>
+                {% endif %}
                 {% if request.user.is_staff %}
                     <a href="{% url 'applications:admin_page' %}" class="admin-link">
                         <i class="fas fa-shield-alt me-1"></i>관리자 페이지
@@ -334,7 +347,13 @@
             {% with event=item.event %}
                 <div class="event-card">
                   <div class="event-card-header">
-                    <h3 class="event-title">{{ event.title }}</h3>
+                    {% if request.user.is_staff%}
+                        <a href="{% url 'applications:event_update' event.id %}" class="event-title-link">
+                            <h3 class="event-title">{{ event.title }}</h3>
+                        </a>
+                    {% else %}
+                        <h3 class="event-title">{{ event.title }}</h3>
+                    {% endif %}
                     <div> {# 배지를 감싸는 div 추가 #}
                         {% if event.end_date < today %}
                             <span class="status-badge closed">모집 마감</span>

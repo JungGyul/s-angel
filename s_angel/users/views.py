@@ -10,12 +10,14 @@ from django.contrib import messages  # messages 프레임워크 import
 
 
 User = get_user_model()
-from .forms import SimpleUserSignupForm
+from .forms import SimpleUserSignupForm, UserProfileChangeForm
+from django.contrib.auth.decorators import login_required
 
 
 
 def signup(request):
     if request.method == "POST":
+        
         form = SimpleUserSignupForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)  # DB에 바로 저장하지 않고
@@ -38,6 +40,13 @@ def signup(request):
             return render(request, 'users/signup.html', {'form': form, 'errors': form.errors})
     else:
         form = SimpleUserSignupForm()
+        
+        # ▼▼▼ messages 대신 context 변수로 직접 전달합니다. ▼▼▼
+        context = {
+            'form': form,
+            'info_message': '에스엔젤 부원만 회원가입할 수 있습니다.'
+        }
+        return render(request, 'users/signup.html', context)
 
     return render(request, 'users/signup.html', {'form': form})
 
@@ -63,3 +72,15 @@ def main(request):
             # 아이디 또는 비밀번호가 틀렸을 때
             return render(request, 'users/main.html', {'error': '아이디 또는 비밀번호가 올바르지 않습니다.'})
 
+@login_required
+def profile_update(request):
+    if request.method == 'POST':
+        form = UserProfileChangeForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '프로필이 성공적으로 수정되었습니다.')
+            return redirect('applications:dashboard')
+    else:
+        form = UserProfileChangeForm(instance=request.user)
+        
+    return render(request, 'users/profile_update.html', {'form': form})

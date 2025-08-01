@@ -71,7 +71,7 @@ def event_statistics(request):
 
 @staff_member_required
 def draw_event(request, event_id):
-    """추첨 실행 뷰"""
+    """추첨 실행 뷰 (성비 맞춤 기능 추가)"""
     event = get_object_or_404(Event, id=event_id)
 
     if Application.objects.filter(event=event, selected=True).exists():
@@ -84,35 +84,70 @@ def draw_event(request, event_id):
         messages.info(request, "지원자가 없어 추첨을 진행할 수 없습니다.")
         return redirect('applications:dashboard')
 
-    applicant_weights = [app.participant.weight for app in all_applicants]
-    num_to_select = min(event.total_slots, all_applicants.count())
+    # ▼▼▼ 추첨 로직 수정 시작 ▼▼▼
 
-    if num_to_select > 0:
-        winners = random.choices(
-            population=list(all_applicants),
-            weights=applicant_weights,
-            k=num_to_select
-        )
+    winners = []
+    # 1. 이벤트에 성비 인원이 설정되었는지 확인
+    if event.male_slots > 0 or event.female_slots > 0:
+        # --- 성비 맞춤 추첨 ---
+        male_applicants = all_applicants.filter(participant__gender='M')
+        female_applicants = all_applicants.filter(participant__gender='F')
 
-        # 1. 당첨된 '신청'의 상태를 업데이트합니다.
+        # 남자 추첨
+        if male_applicants.exists() and event.male_slots > 0:
+            male_weights = [app.participant.weight for app in male_applicants]
+            num_to_select_male = min(event.male_slots, male_applicants.count())
+            male_winners = random.choices(
+                population=list(male_applicants),
+                weights=male_weights,
+                k=num_to_select_male
+            )
+            winners.extend(male_winners)
+
+        # 여자 추첨
+        if female_applicants.exists() and event.female_slots > 0:
+            female_weights = [app.participant.weight for app in female_applicants]
+            num_to_select_female = min(event.female_slots, female_applicants.count())
+            female_winners = random.choices(
+                population=list(female_applicants),
+                weights=female_weights,
+                k=num_to_select_female
+            )
+            winners.extend(female_winners)
+    
+    else:
+        # --- 성비 없는 전체 추첨 ---
+        applicant_weights = [app.participant.weight for app in all_applicants]
+        num_to_select = min(event.total_slots, all_applicants.count())
+        if num_to_select > 0:
+            winners = random.choices(
+                population=list(all_applicants),
+                weights=applicant_weights,
+                k=num_to_select
+            )
+
+    # ▲▲▲ 추첨 로직 수정 끝 ▲▲▲
+
+
+    if winners:
+        # 1. 당첨된 '신청'의 상태를 업데이트
         selected_ids = [winner.id for winner in winners]
         Application.objects.filter(id__in=selected_ids).update(selected=True)
 
-        # ▼▼▼ (여기 추가) 당첨된 '사용자'의 가중치를 1로 초기화합니다. ▼▼▼
+        # 2. 당첨된 '사용자'의 가중치를 1로 초기화
         winner_user_ids = [winner.participant.id for winner in winners]
         User.objects.filter(id__in=winner_user_ids).update(weight=1)
 
-        # 3. 떨어진 '사용자'의 가중치를 1씩 올립니다.
+        # 3. 떨어진 '사용자'의 가중치를 1씩 올림
         from django.db.models import F
         loser_user_ids = Application.objects.filter(event=event, selected=False).values_list('participant_id', flat=True)
         User.objects.filter(id__in=loser_user_ids).update(weight=F('weight') + 1)
         
         messages.success(request, f"'{event.title}' 이벤트 추첨이 완료되었습니다.")
     else:
-        messages.info(request, "뽑을 인원이 없어 추첨을 진행하지 않았습니다.")
+        messages.info(request, "추첨 조건에 맞는 지원자가 없어 당첨자를 선정하지 못했습니다.")
 
     return redirect('applications:dashboard')
-
 
 @login_required
 def apply_event(request, event_id):
@@ -261,3 +296,36 @@ def reject_user(request, user_id):
         user_to_reject.delete()
         messages.success(request, f"사용자 '{username}'의 가입 요청을 거절했습니다.")
     return redirect('applications:admin_page')
+# applications/views.py 파일 하단에 추가
+
+def introduction(request):
+    """소개 페이지를 렌더링하는 뷰"""
+    return render(request, 'applications/introduction.html')
+
+@staff_member_required
+def event_update(request, event_id):
+    """기존 의전 활동을 수정하는 뷰"""
+    event = get_object_or_404(Event, id=event_id)
+
+    # ▼▼▼ 이 부분을 추가합니다 ▼▼▼
+    # 추첨이 완료되었는지 확인
+    is_drawn = Application.objects.filter(event=event, selected=True).exists()
+    if is_drawn:
+        messages.error(request, "이미 추첨이 완료된 활동은 수정할 수 없습니다.")
+        return redirect('applications:dashboard')
+    # ▲▲▲ 여기까지 ▲▲▲
+
+    if request.method == 'POST':
+        form = EventCreateForm(request.POST, instance=event)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"'{event.title}' 활동이 성공적으로 수정되었습니다.")
+            return redirect('applications:dashboard')
+    else:
+        form = EventCreateForm(instance=event)
+        
+    context = {
+        'form': form,
+        'event': event,
+    }
+    return render(request, 'applications/event_update.html', context)

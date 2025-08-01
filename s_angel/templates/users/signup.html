@@ -97,6 +97,17 @@
         /* 오른쪽 화살표 공간 확보를 위해 오른쪽 패딩 추가 */
         padding-right: 2.5rem;
     }
+    .message-box {
+            padding: 0.9rem 1.25rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        .message-box i { margin-right: 0.75rem; }
+        .info-box { background-color: #DBEAFE; color: var(--info-blue); }
     </style>
 </head>
 <body>
@@ -104,7 +115,12 @@
         <h1 class="site-title">S-ANGEL</h1>
         <div class="auth-card">
             <h2>회원가입</h2>
-
+            {% if info_message %}
+                <div class="message-box info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <span>{{ info_message }}</span>
+                </div>
+            {% endif %}
             <form method="post">
                 {% csrf_token %}
 
