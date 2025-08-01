@@ -27,6 +27,34 @@
     .btn-gradient { width: 100%; padding: 0.9rem; font-size: 1.1rem; font-weight: 700; background-image: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-end) 100%); border: none; color: white; transition: all 0.3s ease; background-size: 200% auto; border-radius: 0.5rem; cursor: pointer; }
     .btn-gradient:hover { background-position: right center; }
     .error-text { color: var(--danger-red); font-size: 0.875rem; margin-top: 0.25rem; }
+
+    @media (max-width: 768px) {
+    .form-container {
+        /* 모바일에서는 상하좌우 여백을 줄여 공간 확보 */
+        padding: 1.5rem 1rem;
+    }
+
+    .page-header {
+        /* 헤더의 가로 배치는 유지하되, 간격만 조정 */
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        /* 페이지 제목 크기를 모바일에 맞게 조정 */
+        font-size: 1.5rem;
+    }
+    
+    .btn-dashboard {
+        /* 버튼 내부 여백과 글자 크기 축소 */
+        padding: 0.5rem 0.8rem;
+        font-size: 0.85rem;
+    }
+
+    .form-card {
+        /* 폼 카드의 내부 여백을 줄임 */
+        padding: 1.5rem;
+    }
+}
 </style>
 </head>
 <body class="form-body">
