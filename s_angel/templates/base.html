@@ -63,6 +63,31 @@
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(30, 58, 138, 0.4);
         }
+
+        /* style 태그 맨 아래에 추가할 코드 */
+
+/* 화면 너비가 768px 이하일 때 (모바일 환경) 아래 스타일을 적용 */
+@media (max-width: 768px) {
+    .container {
+        padding: 1.5rem;
+    }
+    .icon {
+        font-size: 3rem;
+        margin-bottom: 1.5rem;
+    }
+    h1 {
+        font-size: 1.75rem;
+    }
+    p {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+    .action-btn {
+        width: 100%; /* 버튼 너비를 꽉 채워 누르기 쉽게 */
+        padding: 0.8rem 1.5rem;
+        font-size: 1rem;
+    }
+}
     </style>
 </head>
 <body>
@@ -70,7 +95,7 @@
         <div class="icon">
             <i class="fas fa-lock"></i>
         </div>
-        <h1>접근 권한이 없습니다</h1>
+        <h1>잘못된 페이지 접근입니다</h1>
         <p>
             요청하신 페이지를 보려면 로그인이 필요하거나,<br>
             해당 기능을 사용할 수 있는 권한이 필요합니다.
