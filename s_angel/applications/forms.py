@@ -1,5 +1,6 @@
 from django import forms
 from .models import Event
+from django.contrib.auth import get_user_model
 
 class EventCreateForm(forms.ModelForm):
     class Meta:
@@ -28,3 +29,10 @@ class EventCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['male_slots'].required = False
         self.fields['female_slots'].required = False
+class UserGenderUpdateForm(forms.ModelForm):
+    class Meta:
+        model = get_user_model()
+        fields = ['gender']
+        labels = {
+            'gender': '성별',
+        }

@@ -21,8 +21,7 @@ class SimpleUserSignupForm(UserCreationForm):
         model = get_user_model()
         # UserCreationForm의 기본 필드('username')에 우리가 추가할 필드를 더해줍니다.
         fields = UserCreationForm.Meta.fields + ('name', 'gender')
-
-
+        
 # users/forms.py 파일 하단에 추가
 
 class UserProfileChangeForm(forms.ModelForm):

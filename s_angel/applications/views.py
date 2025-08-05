@@ -5,13 +5,14 @@ from django.shortcuts import render, get_object_or_404
 from .models import Event, Application
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import redirect
-from .forms import EventCreateForm
+from .forms import EventCreateForm, UserGenderUpdateForm
 import random
 from django.contrib import messages
 import datetime
 from django.contrib.auth import get_user_model # <--- User를 직접 import하는 대신 이 함수를 가져옵니다.
 User = get_user_model() # <--- settings.py에 설정된 User 모델을 가져와 변수에 할당합니다.
 from django.db.models import Q
+
 
 @login_required
 def cancel_application(request, event_id):
@@ -69,9 +70,53 @@ def event_statistics(request):
 
     return render(request, 'applications/statistics.html', {'event_data': event_data})
 
+def _perform_tiered_lottery(applicants_qs, slots_to_fill):
+    """우선 선발 및 경쟁 추첨을 수행하는 도우미 함수"""
+    
+    # QuerySet을 리스트로 변환하여 작업 (DB 재조회 방지)
+    applicants_list = list(applicants_qs)
+
+    if not applicants_list or slots_to_fill <= 0:
+        return []
+
+    # 1. 지원자를 두 그룹으로 나눕니다.
+    priority_applicants = [app for app in applicants_list if app.participant.weight >= 3]
+    regular_applicants = [app for app in applicants_list if app.participant.weight < 3]
+
+    # 2. 우선 선발 그룹을 정렬합니다.
+    random.shuffle(priority_applicants) # 동일 가중치 내 무작위성 보장
+    priority_applicants.sort(key=lambda app: app.participant.weight, reverse=True) # 가중치 높은 순
+
+    winners = []
+    slots_remaining = slots_to_fill
+
+    # 3. 우선 선발 그룹에서 당첨자를 먼저 확정합니다.
+    num_priority_to_select = min(slots_remaining, len(priority_applicants))
+    if num_priority_to_select > 0:
+        priority_winners = priority_applicants[:num_priority_to_select]
+        winners.extend(priority_winners)
+        slots_remaining -= len(priority_winners)
+
+    # 4. 남은 T/O가 있다면, 나머지 인원으로 경쟁 추첨을 진행합니다.
+    remaining_applicants = priority_applicants[num_priority_to_select:] + regular_applicants
+    
+    if slots_remaining > 0 and remaining_applicants:
+        remaining_weights = [app.participant.weight for app in remaining_applicants]
+        num_regular_to_select = min(slots_remaining, len(remaining_applicants))
+        
+        regular_winners = random.choices(
+            population=remaining_applicants,
+            weights=remaining_weights,
+            k=num_regular_to_select
+        )
+        winners.extend(regular_winners)
+        
+    return winners
+
+
 @staff_member_required
 def draw_event(request, event_id):
-    """추첨 실행 뷰 (성비 맞춤 기능 추가)"""
+    """추첨 실행 뷰 (성비 맞춤 + 우선선발 로직 결합)"""
     event = get_object_or_404(Event, id=event_id)
 
     if Application.objects.filter(event=event, selected=True).exists():
@@ -80,11 +125,9 @@ def draw_event(request, event_id):
 
     all_applicants = Application.objects.filter(event=event).select_related('participant')
 
-    if all_applicants.count() == 0:
+    if not all_applicants.exists():
         messages.info(request, "지원자가 없어 추첨을 진행할 수 없습니다.")
         return redirect('applications:dashboard')
-
-    # ▼▼▼ 추첨 로직 수정 시작 ▼▼▼
 
     winners = []
     # 1. 이벤트에 성비 인원이 설정되었는지 확인
@@ -93,52 +136,24 @@ def draw_event(request, event_id):
         male_applicants = all_applicants.filter(participant__gender='M')
         female_applicants = all_applicants.filter(participant__gender='F')
 
-        # 남자 추첨
-        if male_applicants.exists() and event.male_slots > 0:
-            male_weights = [app.participant.weight for app in male_applicants]
-            num_to_select_male = min(event.male_slots, male_applicants.count())
-            male_winners = random.choices(
-                population=list(male_applicants),
-                weights=male_weights,
-                k=num_to_select_male
-            )
-            winners.extend(male_winners)
-
-        # 여자 추첨
-        if female_applicants.exists() and event.female_slots > 0:
-            female_weights = [app.participant.weight for app in female_applicants]
-            num_to_select_female = min(event.female_slots, female_applicants.count())
-            female_winners = random.choices(
-                population=list(female_applicants),
-                weights=female_weights,
-                k=num_to_select_female
-            )
-            winners.extend(female_winners)
+        male_winners = _perform_tiered_lottery(male_applicants, event.male_slots)
+        female_winners = _perform_tiered_lottery(female_applicants, event.female_slots)
+        
+        winners.extend(male_winners)
+        winners.extend(female_winners)
     
     else:
         # --- 성비 없는 전체 추첨 ---
-        applicant_weights = [app.participant.weight for app in all_applicants]
-        num_to_select = min(event.total_slots, all_applicants.count())
-        if num_to_select > 0:
-            winners = random.choices(
-                population=list(all_applicants),
-                weights=applicant_weights,
-                k=num_to_select
-            )
-
-    # ▲▲▲ 추첨 로직 수정 끝 ▲▲▲
-
+        winners = _perform_tiered_lottery(all_applicants, event.total_slots)
 
     if winners:
-        # 1. 당첨된 '신청'의 상태를 업데이트
+        # 당첨/탈락자 처리 로직은 기존과 동일
         selected_ids = [winner.id for winner in winners]
         Application.objects.filter(id__in=selected_ids).update(selected=True)
 
-        # 2. 당첨된 '사용자'의 가중치를 1로 초기화
         winner_user_ids = [winner.participant.id for winner in winners]
         User.objects.filter(id__in=winner_user_ids).update(weight=1)
 
-        # 3. 떨어진 '사용자'의 가중치를 1씩 올림
         from django.db.models import F
         loser_user_ids = Application.objects.filter(event=event, selected=False).values_list('participant_id', flat=True)
         User.objects.filter(id__in=loser_user_ids).update(weight=F('weight') + 1)
@@ -329,3 +344,23 @@ def event_update(request, event_id):
         'event': event,
     }
     return render(request, 'applications/event_update.html', context)
+
+@staff_member_required
+def update_user_gender(request, user_id):
+    """관리자가 사용자의 성별을 수정하는 뷰"""
+    user_to_update = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        form = UserGenderUpdateForm(request.POST, instance=user_to_update)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"'{user_to_update.name}' 님의 성별이 성공적으로 수정되었습니다.")
+            return redirect('applications:admin_page')
+    else:
+        form = UserGenderUpdateForm(instance=user_to_update)
+        
+    context = {
+        'form': form,
+        'user_to_update': user_to_update,
+    }
+    return render(request, 'applications/update_user_gender.html', context)

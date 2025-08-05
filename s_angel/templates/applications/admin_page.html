@@ -46,6 +46,16 @@
     .btn-delete-second:hover { background-color: var(--danger-red); color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
     .ms-auto { margin-left: auto; }
 
+    /* admin_page.html의 style 태그 안 */
+.user-details-link {
+    text-decoration: none;
+    color: inherit;
+}
+.user-details-link:hover strong {
+    color: var(--gradient-start);
+    text-decoration: underline;
+}
+
     /* ▼▼▼ 검색창 스타일 추가 ▼▼▼ */
     .search-form {
         position: relative;
@@ -141,7 +151,9 @@
                         {% for a_user in active_users %}
                             <div class="user-item">
                                 <div>
-                                    <div class="user-details"><strong>{{ a_user.name }}</strong> ({{ a_user.username }}){% if a_user.is_staff %}<span class="badge bg-primary-subtle text-primary-emphasis rounded-pill ms-2">Admin</span>{% endif %}</div>
+                                    <div class="user-details"><a href="{% url 'applications:update_user_gender' a_user.id %}" class="user-details-link">
+                                        <strong>{{ a_user.name }}</strong>
+                                    </a> ({{ a_user.username }}){% if a_user.is_staff %}<span class="badge bg-primary-subtle text-primary-emphasis rounded-pill ms-2">Admin</span>{% endif %}</div>
                                     <form action="{% url 'applications:update_user_weight' a_user.id %}" method="post" class="weight-form-v2">
                                         {% csrf_token %}<label for="weight-{{ a_user.id }}" class="form-label mb-0 small text-light">가중치:</label><input type="number" name="weight" value="{{ a_user.weight }}" class="form-control form-control-sm" min="1" id="weight-{{ a_user.id }}"><button type="submit" class="btn-action btn-action-outline"><i class="fas fa-pencil-alt"></i>수정</button>
                                     </form>

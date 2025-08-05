@@ -24,4 +24,7 @@ urlpatterns = [
     # applications/urls.py 에 추가
 
     path('event/<int:event_id>/update/', views.event_update, name='event_update'),
+
+    path('user/<int:user_id>/update_gender/', views.update_user_gender, name='update_user_gender'),
+
 ]
