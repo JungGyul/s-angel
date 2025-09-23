@@ -71,45 +71,57 @@ def event_statistics(request):
     return render(request, 'applications/statistics.html', {'event_data': event_data})
 
 def _perform_tiered_lottery(applicants_qs, slots_to_fill):
-    """우선 선발 및 경쟁 추첨을 수행하는 도우미 함수"""
+    """(버그 수정) 우선 선발 및 경쟁 추첨을 수행하는 도우미 함수"""
     
-    # QuerySet을 리스트로 변환하여 작업 (DB 재조회 방지)
     applicants_list = list(applicants_qs)
 
     if not applicants_list or slots_to_fill <= 0:
         return []
 
-    # 1. 지원자를 두 그룹으로 나눕니다.
     priority_applicants = [app for app in applicants_list if app.participant.weight >= 3]
     regular_applicants = [app for app in applicants_list if app.participant.weight < 3]
 
-    # 2. 우선 선발 그룹을 정렬합니다.
-    random.shuffle(priority_applicants) # 동일 가중치 내 무작위성 보장
-    priority_applicants.sort(key=lambda app: app.participant.weight, reverse=True) # 가중치 높은 순
+    random.shuffle(priority_applicants)
+    priority_applicants.sort(key=lambda app: app.participant.weight, reverse=True)
 
     winners = []
     slots_remaining = slots_to_fill
 
-    # 3. 우선 선발 그룹에서 당첨자를 먼저 확정합니다.
     num_priority_to_select = min(slots_remaining, len(priority_applicants))
     if num_priority_to_select > 0:
         priority_winners = priority_applicants[:num_priority_to_select]
         winners.extend(priority_winners)
         slots_remaining -= len(priority_winners)
 
-    # 4. 남은 T/O가 있다면, 나머지 인원으로 경쟁 추첨을 진행합니다.
     remaining_applicants = priority_applicants[num_priority_to_select:] + regular_applicants
     
     if slots_remaining > 0 and remaining_applicants:
-        remaining_weights = [app.participant.weight for app in remaining_applicants]
+        # ▼▼▼ 여기가 핵심 수정 부분입니다 ▼▼▼
+        # random.choices는 중복 당첨을 허용하므로, 중복 없는 가중치 추첨 로직으로 변경합니다.
         num_regular_to_select = min(slots_remaining, len(remaining_applicants))
         
-        regular_winners = random.choices(
-            population=remaining_applicants,
-            weights=remaining_weights,
-            k=num_regular_to_select
-        )
+        # 가중치 추첨을 위해 인원과 가중치를 별도 리스트로 복사합니다.
+        population = list(remaining_applicants)
+        weights = [app.participant.weight for app in population]
+
+        regular_winners = []
+        # 뽑아야 하는 인원수만큼 반복합니다.
+        for _ in range(num_regular_to_select):
+            # 더 이상 뽑을 사람이 없으면 중단합니다.
+            if not population:
+                break
+            
+            # 1. 가중치 기반으로 1명을 뽑습니다.
+            chosen_one = random.choices(population, weights=weights, k=1)[0]
+            regular_winners.append(chosen_one)
+            
+            # 2. 뽑힌 사람을 다음 추첨 인원에서 제외합니다.
+            chosen_index = population.index(chosen_one)
+            population.pop(chosen_index)
+            weights.pop(chosen_index)
+            
         winners.extend(regular_winners)
+        # ▲▲▲ 여기까지가 핵심 수정 부분입니다 ▲▲▲
         
     return winners
 
@@ -136,22 +148,31 @@ def draw_event(request, event_id):
         male_applicants = all_applicants.filter(participant__gender='M')
         female_applicants = all_applicants.filter(participant__gender='F')
 
-        male_winners = _perform_tiered_lottery(male_applicants, event.male_slots)
-        female_winners = _perform_tiered_lottery(female_applicants, event.female_slots)
+        # 각 성별 슬롯만큼 '예비' 당첨자를 먼저 뽑습니다.
+        male_potential_winners = _perform_tiered_lottery(male_applicants, event.male_slots)
+        female_potential_winners = _perform_tiered_lottery(female_applicants, event.female_slots)
         
-        winners.extend(male_winners)
-        winners.extend(female_winners)
-    
+        combined_potential_winners = male_potential_winners + female_potential_winners
+
+        # ▼▼▼ 여기가 핵심 수정 부분입니다 ▼▼▼
+        # 예비 당첨자 수가 이벤트의 총 T/O를 초과하는지 확인합니다.
+        if len(combined_potential_winners) > event.total_slots:
+            # 초과했다면, 예비 당첨자들 중에서 총 T/O만큼만 무작위로 다시 뽑습니다.
+            winners = random.sample(combined_potential_winners, event.total_slots)
+        else:
+            # 초과하지 않으면 예비 당첨자가 그대로 최종 당첨자가 됩니다.
+            winners = combined_potential_winners
     else:
-        # --- 성비 없는 전체 추첨 ---
+        # --- 성비 없는 전체 추첨 (기존 로직과 동일) ---
         winners = _perform_tiered_lottery(all_applicants, event.total_slots)
 
     if winners:
         # 당첨/탈락자 처리 로직은 기존과 동일
-        selected_ids = [winner.id for winner in winners]
+        unique_winners = list(set(winners))
+        selected_ids = [winner.id for winner in unique_winners]
         Application.objects.filter(id__in=selected_ids).update(selected=True)
 
-        winner_user_ids = [winner.participant.id for winner in winners]
+        winner_user_ids = [winner.participant.id for winner in unique_winners]
         User.objects.filter(id__in=winner_user_ids).update(weight=1)
 
         from django.db.models import F
