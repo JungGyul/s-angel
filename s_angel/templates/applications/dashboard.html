@@ -371,25 +371,13 @@
 
                         <div class="action-links">
                             {% if request.user.is_staff %}
-                                <div class="action-links">
-                                    {% if not item.is_drawn %}
-                                        <a href="{% url 'applications:draw_event' event.id %}" 
-                                        onclick="return confirm('추첨을 진행하시겠습니까?');" 
-                                        class="action-btn primary">🎯 추첨 실행</a>
-                                        
-                                    {% elif item.is_drawn and not item.is_finalized %}
-                                        <a href="{% url 'applications:review_winners' event.id %}" 
-                                        class="action-btn third" style="background-color: #4F46E5;">🔍 명단 검토</a>
-                                        
-                                    {% else %}
-                                        <span class="action-btn disabled">✅ 최종 확정</span>
-                                    {% endif %}
-                                    
-                                    <a href="{% url 'applications:event_winners' event.id %}" class="action-btn secondary">🏆 당첨자 보기</a>
-                                    <a href="{% url 'applications:delete_event' event.id %}" 
-                                    onclick="return confirm('정말로 삭제하시겠습니까?');" 
-                                    class="action-btn secondary">🗑️ 삭제하기</a>
-                                </div>
+                                {% if not item.is_drawn %}
+                                    <a href="{% url 'applications:draw_event' event.id %}" onclick="return confirm('정말 추첨을 진행하시겠습니까?');" class="action-btn primary">🎯 추첨 실행</a>
+                                {% else %}
+                                    <span class="action-btn disabled">추첨 완료</span>
+                                {% endif %}
+                                <a href="{% url 'applications:event_winners' event.id %}" class="action-btn secondary">🏆 당첨자 보기</a>
+                                <a href="{% url 'applications:delete_event' event.id %}" onclick="return confirm('정말로 삭제하시겠습니까?');" class="action-btn secondary">🗑️ 삭제하기</a>
                             {% else %}
                                 {% if event.id in applied_event_ids %}
                                     {% if event.end_date >= today and not item.is_drawn %}
@@ -421,14 +409,14 @@
                 <div class="my-application-item d-flex justify-content-between">
                     <span>{{ app.event.title }}</span>
                     <span>
-                        {% if event_status_list|get_finalized_status:app.event.id %}
-                            {% if app.selected %}
-                                <span class="badge bg-success">🎉 당첨</span>
-                            {% else %}
-                                <span class="badge bg-danger">❌ 미당첨</span>
-                            {% endif %}
+                        {% if app.selected %}
+                            <span class="badge bg-success">🎉 당첨</span>
                         {% else %}
-                            <span class="badge bg-secondary">⏳ 대기중</span>
+                            {% if event_status_list|get_draw_status:app.event.id %}
+                                <span class="badge bg-danger">❌ 미당첨</span>
+                            {% else %}
+                                <span class="badge bg-secondary">⏳ 대기중</span>
+                            {% endif %}
                         {% endif %}
                     </span>
                 </div>

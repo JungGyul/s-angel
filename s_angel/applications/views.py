@@ -37,16 +37,7 @@ def delete_event(request, event_id):
 @login_required
 def event_winners(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    
-    # ▼▼▼ 수정: 최종 확정(is_finalized)이 안 된 경우 빈 목록을 보여주거나 메시지 처리 ▼▼▼
-    if not event.is_finalized:
-        winners = []
-        # (선택 사항) 관리자가 아닌 유저가 들어왔을 때 메시지를 띄우고 싶다면 아래 주석 해제
-        # if not request.user.is_staff:
-        #     messages.info(request, "아직 당첨자 발표 전입니다.")
-        #     return redirect('applications:dashboard')
-    else:
-        winners = Application.objects.filter(event=event, selected=True)
+    winners = Application.objects.filter(event=event, selected=True)
 
     return render(request, 'applications/winners.html', {'event': event, 'winners': winners})
 
@@ -137,102 +128,62 @@ def _perform_tiered_lottery(applicants_qs, slots_to_fill):
 
 @staff_member_required
 def draw_event(request, event_id):
-    """[수정] 1단계: 임시 추첨 (가중치 업데이트 안함)"""
+    """추첨 실행 뷰 (성비 맞춤 + 우선선발 로직 결합)"""
     event = get_object_or_404(Event, id=event_id)
-    if event.is_finalized: # 최종 확정 필드 체크
-        messages.info(request, "이미 확정된 활동입니다.")
+
+    if Application.objects.filter(event=event, selected=True).exists():
+        messages.info(request, "이미 추첨이 완료된 이벤트입니다.")
         return redirect('applications:dashboard')
 
     all_applicants = Application.objects.filter(event=event).select_related('participant')
-    all_applicants.update(selected=False) # 기존 당첨 정보 초기화
+
+    if not all_applicants.exists():
+        messages.info(request, "지원자가 없어 추첨을 진행할 수 없습니다.")
+        return redirect('applications:dashboard')
 
     winners = []
+    # 1. 이벤트에 성비 인원이 설정되었는지 확인
     if event.male_slots > 0 or event.female_slots > 0:
-        # 성비 맞춤 로직 실행
-        male_apps = all_applicants.filter(participant__gender='M')
-        female_apps = all_applicants.filter(participant__gender='F')
+        # --- 성비 맞춤 추첨 ---
+        male_applicants = all_applicants.filter(participant__gender='M')
+        female_applicants = all_applicants.filter(participant__gender='F')
+
+        # 각 성별 슬롯만큼 '예비' 당첨자를 먼저 뽑습니다.
+        male_potential_winners = _perform_tiered_lottery(male_applicants, event.male_slots)
+        female_potential_winners = _perform_tiered_lottery(female_applicants, event.female_slots)
         
-        m_winners = _perform_tiered_lottery(male_apps, event.male_slots)
-        f_winners = _perform_tiered_lottery(female_apps, event.female_slots)
-        
-        combined = m_winners + f_winners
-        # 총 T/O가 성비 합보다 작을 경우를 대비해 최종 샘플링
-        winners = random.sample(combined, min(len(combined), event.total_slots))
+        combined_potential_winners = male_potential_winners + female_potential_winners
+
+        # ▼▼▼ 여기가 핵심 수정 부분입니다 ▼▼▼
+        # 예비 당첨자 수가 이벤트의 총 T/O를 초과하는지 확인합니다.
+        if len(combined_potential_winners) > event.total_slots:
+            # 초과했다면, 예비 당첨자들 중에서 총 T/O만큼만 무작위로 다시 뽑습니다.
+            winners = random.sample(combined_potential_winners, event.total_slots)
+        else:
+            # 초과하지 않으면 예비 당첨자가 그대로 최종 당첨자가 됩니다.
+            winners = combined_potential_winners
     else:
-        # 성비 없는 전체 추첨 실행
+        # --- 성비 없는 전체 추첨 (기존 로직과 동일) ---
         winners = _perform_tiered_lottery(all_applicants, event.total_slots)
 
     if winners:
-        selected_ids = [w.id for w in winners]
-        Application.objects.filter(id__in=selected_ids).update(selected=True)
-        messages.success(request, "임시 추첨 결과가 생성되었습니다. 명단을 검토해주세요.")
-    
-    return redirect('applications:dashboard')
-
-@staff_member_required
-def review_winners(request, event_id):
-    
-    """2단계: 관리자가 명단을 확인하고 수동으로 변경하는 페이지"""
-    event = get_object_or_404(Event, id=event_id)
-    
-    # 당첨자와 탈락자를 나누어 가져옴
-    applicants = Application.objects.filter(event=event).select_related('participant').order_by('participant__name')
-    
-    if request.method == 'POST':
-        # 체크박스 등으로 선택된 ID 목록을 가져와서 업데이트
-        selected_ids = request.POST.getlist('selected_applicants')
-        applicants.update(selected=False)
-        Application.objects.filter(id__in=selected_ids).update(selected=True)
-        return redirect('applications:review_winners', event_id=event.id)
-
-    context = {
-        'event': event,
-        'applicants': applicants,
-        'winners_count': applicants.filter(selected=True).count(),
-    }
-    return render(request, 'applications/review_winners.html', context)
-
-# applications/views.py
-
-# applications/views.py
-
-@staff_member_required
-def finalize_event(request, event_id):
-    event = get_object_or_404(Event, id=event_id)
-    
-    if event.is_finalized:
-        messages.warning(request, "이미 최종 확정된 활동입니다.")
-        return redirect('applications:dashboard')
-
-    if request.method == 'POST':
-        # 전송된 체크박스 데이터를 가져옵니다.
-        selected_ids = request.POST.getlist('selected_applicants')
-        winner_count = len(selected_ids)
-        
-        if winner_count != event.total_slots:
-            messages.error(request, f"인원수가 맞지 않습니다. (목표: {event.total_slots}명 / 선택: {winner_count}명)")
-            return redirect('applications:review_winners', event_id=event.id)
-
-        # 1. 마지막으로 전송된 명단대로 DB 업데이트
-        Application.objects.filter(event=event).update(selected=False)
+        # 당첨/탈락자 처리 로직은 기존과 동일
+        unique_winners = list(set(winners))
+        selected_ids = [winner.id for winner in unique_winners]
         Application.objects.filter(id__in=selected_ids).update(selected=True)
 
-        # 2. 가중치 로직 실행
-        winner_user_ids = Application.objects.filter(event=event, selected=True).values_list('participant_id', flat=True)
+        winner_user_ids = [winner.participant.id for winner in unique_winners]
         User.objects.filter(id__in=winner_user_ids).update(weight=1)
 
         from django.db.models import F
         loser_user_ids = Application.objects.filter(event=event, selected=False).values_list('participant_id', flat=True)
         User.objects.filter(id__in=loser_user_ids).update(weight=F('weight') + 1)
+        
+        messages.success(request, f"'{event.title}' 이벤트 추첨이 완료되었습니다.")
+    else:
+        messages.info(request, "추첨 조건에 맞는 지원자가 없어 당첨자를 선정하지 못했습니다.")
 
-        event.is_finalized = True
-        event.save()
-
-        messages.success(request, f"'{event.title}' 명단이 확정되었습니다.")
-        return redirect('applications:dashboard')
-
-    # POST가 아닌 접근에 대한 기본 리턴 (중요!)
-    return redirect('applications:review_winners', event_id=event.id)
+    return redirect('applications:dashboard')
 
 @login_required
 def apply_event(request, event_id):
@@ -283,15 +234,10 @@ def dashboard(request):
 
     event_status_list = []
     for event in events:
-        # 1. 임시 당첨자가 한 명이라도 있는지 확인
         is_drawn = Application.objects.filter(event=event, selected=True).exists()
-        # 2. 모델에 추가한 is_finalized 필드 확인
-        is_finalized = event.is_finalized 
-        
         event_status_list.append({
             'event': event,
             'is_drawn': is_drawn,
-            'is_finalized': is_finalized,
         })
 
     context = {

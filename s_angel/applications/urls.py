@@ -27,7 +27,4 @@ urlpatterns = [
 
     path('user/<int:user_id>/update_gender/', views.update_user_gender, name='update_user_gender'),
 
-    path('event/<int:event_id>/review/', views.review_winners, name='review_winners'),
-    path('event/<int:event_id>/finalize/', views.finalize_event, name='finalize_event'),
-
 ]
