@@ -369,20 +369,27 @@
     }
 
     function checkAndFinalize() {
-      const form = document.getElementById('lotteryForm');
-      const selectedCount = document.querySelectorAll('.winner-checkbox:checked').length;
-      const totalSlots = {{ event.total_slots }};
+        const form = document.getElementById('lotteryForm');
+        const selectedCount = document.querySelectorAll('.winner-checkbox:checked').length;
+        const totalSlots = {{ event.total_slots }};
 
-      if (selectedCount !== totalSlots) {
-        alert(`인원수를 정확히 맞춰주세요! (목표: ${totalSlots}명 / 현재: ${selectedCount}명)`);
+        // ✅ 0명은 프론트에서도 즉시 차단
+        if (selectedCount === 0) {
+        alert('최소 1명 이상 선택해야 합니다.');
         return;
-      }
+        }
 
-      if (confirm(`최종 확정하시겠습니까?\n가중치가 즉시 반영되며 이후에는 수정이 불가능합니다.`)) {
+        let warningText = '';
+        if (selectedCount !== totalSlots) {
+        warningText = `\n\n⚠️ 목표 인원(${totalSlots}명)과 다릅니다. (현재: ${selectedCount}명)\n그래도 최종 확정할까요?`;
+        }
+
+        if (confirm(`최종 확정하시겠습니까?\n가중치가 즉시 반영되며 이후에는 수정이 불가능합니다.${warningText}`)) {
         form.action = "{% url 'applications:finalize_event' event.id %}";
         form.submit();
-      }
+        }
     }
+
   </script>
 </body>
 </html>

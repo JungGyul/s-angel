@@ -199,25 +199,32 @@ def review_winners(request, event_id):
 @staff_member_required
 def finalize_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    
+
     if event.is_finalized:
         messages.warning(request, "이미 최종 확정된 활동입니다.")
         return redirect('applications:dashboard')
 
     if request.method == 'POST':
-        # 전송된 체크박스 데이터를 가져옵니다.
         selected_ids = request.POST.getlist('selected_applicants')
         winner_count = len(selected_ids)
-        
-        if winner_count != event.total_slots:
-            messages.error(request, f"인원수가 맞지 않습니다. (목표: {event.total_slots}명 / 선택: {winner_count}명)")
+
+        # ✅ 0명 선택은 절대 불가 (서버에서 강제)
+        if winner_count == 0:
+            messages.error(request, "최소 1명 이상 선택해야 최종 확정할 수 있습니다.")
             return redirect('applications:review_winners', event_id=event.id)
 
-        # 1. 마지막으로 전송된 명단대로 DB 업데이트
+        # ✅ 목표 인원과 달라도 막지 않고 경고만
+        if winner_count != event.total_slots:
+            messages.warning(
+                request,
+                f"목표 인원({event.total_slots}명)과 다르게 확정됩니다. (선택: {winner_count}명)"
+            )
+
+        # 1) 마지막 명단대로 DB 업데이트
         Application.objects.filter(event=event).update(selected=False)
         Application.objects.filter(id__in=selected_ids).update(selected=True)
 
-        # 2. 가중치 로직 실행
+        # 2) 가중치 로직 실행
         winner_user_ids = Application.objects.filter(event=event, selected=True).values_list('participant_id', flat=True)
         User.objects.filter(id__in=winner_user_ids).update(weight=1)
 
@@ -231,8 +238,8 @@ def finalize_event(request, event_id):
         messages.success(request, f"'{event.title}' 명단이 확정되었습니다.")
         return redirect('applications:dashboard')
 
-    # POST가 아닌 접근에 대한 기본 리턴 (중요!)
     return redirect('applications:review_winners', event_id=event.id)
+
 
 @login_required
 def apply_event(request, event_id):
