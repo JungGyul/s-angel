@@ -65,11 +65,16 @@
   .form-grid{
     padding: 1.1rem 1rem;
     display:grid;
-    grid-template-columns: repeat(12, 1fr);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: .85rem;
   }
 
-  .field{ display:flex; flex-direction:column; gap:.45rem; }
+  .field{
+  display:flex;
+  flex-direction:column;
+  gap:.45rem;
+  min-width: 0; /* ✅ 추가 */
+}
   .label{
     font-weight: 900;
     color: var(--muted);
@@ -139,6 +144,20 @@
   .btn-save:hover{ filter: brightness(.97); }
 
   .btn-pill i{ margin: 0 !important; }
+  /* ✅ iOS Safari date input overflow 방지 */
+input[type="date"].form-control{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* (선택) iOS에서 날짜 표시 영역 정렬 깨질 때 */
+input[type="date"].form-control::-webkit-date-and-time-value{
+  text-align: left;
+}
+
 
   /* ✅ 컬럼 배치 */
   .col-12{ grid-column: span 12; }

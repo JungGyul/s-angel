@@ -160,6 +160,30 @@
         width: 100%;
     }
 }
+
+/* ✅ (추가) iOS Safari date input 튐 방지 */
+.form-control[type="date"]{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block;
+}
+.form-control[type="date"]::-webkit-date-and-time-value{
+  text-align: left;
+}
+
+/* ✅ (추가) bootstrap row/col(flex)에서 내용 때문에 안 줄어드는 문제 해결 */
+.row > [class*="col-"]{
+  min-width: 0;
+}
+
+/* ✅ (추가) 카드 밖으로 삐져나온 요소 숨김(안전장치) */
+.form-card{
+  overflow: hidden;
+}
+
 </style>
 </head>
 <body class="form-body">
