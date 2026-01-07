@@ -1,385 +1,388 @@
 {% load app_filters %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>명단 검토 및 조정</title>
 
-{% block content %}
-<style>
-  :root {
-    --navy-dark: #1E3A8A;
-    --background-light: #F9FAFB;
-    --card-bg: #FFFFFF;
-    --border-color: #E5E7EB;
-    --text-primary: #334155;
-    --text-secondary: #64748B;
-    --text-medium: #475569;
-    --text-dark: #1e293b;
-    --white-color: #FFFFFF;
-    --success-green: #10B981;
-    --danger-red: #EF4444;
-    --highlight-blue: #F0F7FF;
-  }
+  <style>
+    /* ✅ CSS는 전부 여기 그대로 */
+    :root {
+      --navy-dark: #1E3A8A;
+      --background-light: #F9FAFB;
+      --card-bg: #FFFFFF;
+      --border-color: #E5E7EB;
+      --text-primary: #334155;
+      --text-secondary: #64748B;
+      --text-medium: #475569;
+      --text-dark: #1e293b;
+      --white-color: #FFFFFF;
+      --success-green: #10B981;
+      --danger-red: #EF4444;
+      --highlight-blue: #F0F7FF;
+    }
 
-  .review-body {
-    background-color: var(--background-light);
-    font-family: 'Pretendard', sans-serif;
-    color: var(--text-primary);
-    min-height: 100vh;
-  }
+    .review-body {
+      background-color: var(--background-light);
+      font-family: 'Pretendard', sans-serif;
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
 
-  .review-container {
-    max-width: 960px;
-    margin: auto;
-    padding: 2.5rem 1.5rem;
-  }
+    .review-container {
+      max-width: 960px;
+      margin: auto;
+      padding: 2.5rem 1.5rem;
+    }
 
-  /* ✅ 헤더: 제목 왼쪽 / 버튼 오른쪽 (모바일도 동일 배치 유지) */
-  .header-flex{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
+    .header-flex{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
 
-  .section-title{
-    flex: 1;
-    min-width: 0;
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    border-left: 4px solid var(--navy-dark);
-    padding-left: 0.75rem;
-    margin: 0;
-    line-height: 1.15;
-  }
+    .section-title{
+      flex: 1;
+      min-width: 0;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      border-left: 4px solid var(--navy-dark);
+      padding-left: 0.75rem;
+      margin: 0;
+      line-height: 1.15;
+    }
 
-  .btn-dashboard{
-    flex-shrink: 0;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    color: var(--text-medium);
-    font-weight: 800;
-    padding: 0.55rem 0.9rem;
-    border-radius: 0.6rem;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    font-size: 0.95rem;
-    white-space: nowrap;
-  }
+    .btn-dashboard{
+      flex-shrink: 0;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-medium);
+      font-weight: 800;
+      padding: 0.55rem 0.9rem;
+      border-radius: 0.6rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
 
-  .btn-dashboard:hover{
-    background-color: var(--text-dark);
-    color: var(--white-color);
-  }
+    .btn-dashboard:hover{
+      background-color: var(--text-dark);
+      color: var(--white-color);
+    }
 
-  .section-subtitle {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    margin-bottom: 1.75rem;
-    padding-left: 1rem;
-    line-height: 1.4;
-  }
+    .section-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.75rem;
+      padding-left: 1rem;
+      line-height: 1.4;
+    }
 
-  .review-card{
-    background-color: var(--white-color);
-    border: 1px solid var(--border-color);
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    overflow: hidden;
-    margin-bottom: 1.25rem;
-  }
+    .review-card{
+      background-color: var(--white-color);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
 
-  .table-responsive{
-    width: 100%;
-    overflow-x: auto; /* 데스크탑/태블릿 */
-    -webkit-overflow-scrolling: touch;
-  }
+    .table-responsive{
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
 
-  .review-table{
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    min-width: 640px; /* 데스크탑에서 안정 */
-  }
+    .review-table{
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      min-width: 640px;
+    }
 
-  .review-table th{
-    background-color: #F8FAFC;
-    padding: 1rem;
-    font-weight: 800;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    border-bottom: 1px solid var(--border-color);
-    white-space: nowrap;
-    vertical-align: middle;
-  }
-
-  .review-table td{
-    padding: 1rem;
-    border-bottom: 1px solid #F1F5F9;
-    vertical-align: middle;
-  }
-
-  .row-selected{ background-color: var(--highlight-blue) !important; }
-
-  .status-badge{
-    font-weight: 800;
-    padding: 0.32em 0.8em;
-    border-radius: 10rem;
-    font-size: 0.85rem;
-    display: inline-block;
-  }
-  .status-badge.win{ background-color: var(--success-green); color: white; }
-  .status-badge.wait{ background-color: #E2E8F0; color: var(--text-secondary); }
-
-  .action-bar{
-    display:flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--border-color);
-  }
-
-  .action-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding: 0.85rem 1.25rem;
-    border-radius: 0.65rem;
-    font-weight: 900;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .btn-save{
-    background-color: var(--white-color);
-    color: var(--navy-dark);
-    border-color: var(--navy-dark);
-  }
-  .btn-save:hover{ background-color: #F8FAFC; }
-
-  .btn-finalize{
-    background-color: var(--danger-red);
-    color: white;
-  }
-  .btn-finalize:hover{ filter: brightness(0.95); }
-
-  /* ✅ 부트스트랩 체크박스 기본값이 정렬 깨는 거 제거 */
-  .form-check-input{ margin: 0 !important; position: static !important; }
-  .winner-checkbox{ margin: 0 !important; }
-
-  /* ✅ 선택 컬럼: 헤더/셀 중앙정렬 고정 */
-  .review-table th.select-col,
-  .review-table td.select-cell{
-    width: 70px;
-    text-align: center;
-    vertical-align: middle;
-  }
-
-  .review-table td.select-cell .cell-value{
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-  }
-
-  /* 태블릿 이하 */
-  @media (max-width: 768px){
-    .review-container{ padding: 1.75rem 1rem; }
-    .section-title{ font-size: 1.25rem; }
-    .btn-dashboard{ padding: 0.45rem 0.8rem; font-size: 0.9rem; }
-
-    .action-bar{ flex-direction: column; align-items: stretch; }
-    .action-btn{ width: 100%; }
-    .review-table{ min-width: 0; }
-  }
-
-  /* ✅ 모바일 카드형: 화면에 딱 맞게 + 간격 예쁘게 */
-  @media (max-width: 640px){
-    .table-responsive{ overflow-x: hidden !important; }
-    .review-table{ min-width: 0 !important; width: 100% !important; }
-    .review-table thead{ display:none; }
-
-    .review-table,
-    .review-table tbody,
-    .review-table tr{ display:block; width:100%; }
-
-    .review-table tr{
-      padding: 0.85rem 0.9rem;
+    .review-table th{
+      background-color: #F8FAFC;
+      padding: 1rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
       border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+      vertical-align: middle;
     }
 
     .review-table td{
-      border: 0;
-      padding: 0.35rem 0;
-      display: grid;
-      grid-template-columns: 56px 1fr;
-      column-gap: 0.6rem;
+      padding: 1rem;
+      border-bottom: 1px solid #F1F5F9;
+      vertical-align: middle;
+    }
+
+    .row-selected{ background-color: var(--highlight-blue) !important; }
+
+    .status-badge{
+      font-weight: 800;
+      padding: 0.32em 0.8em;
+      border-radius: 10rem;
+      font-size: 0.85rem;
+      display: inline-block;
+    }
+    .status-badge.win{ background-color: var(--success-green); color: white; }
+    .status-badge.wait{ background-color: #E2E8F0; color: var(--text-secondary); }
+
+    .action-bar{
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .action-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0.85rem 1.25rem;
+      border-radius: 0.65rem;
+      font-weight: 900;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-save{
+      background-color: var(--white-color);
+      color: var(--navy-dark);
+      border-color: var(--navy-dark);
+    }
+    .btn-save:hover{ background-color: #F8FAFC; }
+
+    .btn-finalize{
+      background-color: var(--danger-red);
+      color: white;
+    }
+    .btn-finalize:hover{ filter: brightness(0.95); }
+
+    .form-check-input{ margin: 0 !important; position: static !important; }
+    .winner-checkbox{ margin: 0 !important; }
+
+    .review-table th.select-col,
+    .review-table td.select-cell{
+      width: 70px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .review-table td.select-cell .cell-value{
+      display: inline-flex;
+      justify-content: center;
       align-items: center;
       width: 100%;
     }
 
-    .review-table td::before{
-      content: attr(data-label);
-      font-weight: 900;
-      color: var(--text-secondary);
-      font-size: 0.92rem;
-      line-height: 1.2;
+    @media (max-width: 768px){
+      .review-container{ padding: 1.75rem 1rem; }
+      .section-title{ font-size: 1.25rem; }
+      .btn-dashboard{ padding: 0.45rem 0.8rem; font-size: 0.9rem; }
+
+      .action-bar{ flex-direction: column; align-items: stretch; }
+      .action-btn{ width: 100%; }
+      .review-table{ min-width: 0; }
     }
 
-    .review-table td .cell-value{
-      min-width: 0;
-      word-break: break-word;
-      text-align: left; /* ✅ 휑한 간격 방지 */
-      line-height: 1.25;
+    @media (max-width: 640px){
+      .table-responsive{ overflow-x: hidden !important; }
+      .review-table{ min-width: 0 !important; width: 100% !important; }
+      .review-table thead{ display:none; }
+
+      .review-table,
+      .review-table tbody,
+      .review-table tr{ display:block; width:100%; }
+
+      .review-table tr{
+        padding: 0.85rem 0.9rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .review-table td{
+        border: 0;
+        padding: 0.35rem 0;
+        display: grid;
+        grid-template-columns: 56px 1fr;
+        column-gap: 0.6rem;
+        align-items: center;
+        width: 100%;
+      }
+
+      .review-table td::before{
+        content: attr(data-label);
+        font-weight: 900;
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+        line-height: 1.2;
+      }
+
+      .review-table td .cell-value{
+        min-width: 0;
+        word-break: break-word;
+        text-align: left;
+        line-height: 1.25;
+      }
+
+      .review-table td.select-cell{
+        text-align: left;
+        width: auto;
+        grid-template-columns: 56px 1fr;
+        padding-top: 0.15rem;
+        padding-bottom: 0.55rem;
+      }
+      .review-table td.select-cell .cell-value{
+        width: auto;
+        justify-content: flex-start;
+      }
+
+      .winner-checkbox{ transform: scale(1.2); }
+      .status-badge{ font-size: 0.85rem; padding: 0.32em 0.75em; }
     }
+  </style>
+</head>
 
-    /* 카드 모드에서는 '선택'도 라벨 옆 자연스럽게 */
-    .review-table td.select-cell{
-      text-align: left;
-      width: auto;
-      grid-template-columns: 56px 1fr;
-      padding-top: 0.15rem;
-      padding-bottom: 0.55rem;
-    }
-    .review-table td.select-cell .cell-value{
-      width: auto;
-      justify-content: flex-start;
-    }
+<body>
+  <div class="review-body">
+    <div class="review-container">
+      <div class="header-flex">
+        <h2 class="section-title">명단 검토 및 조정</h2>
+        <a href="{% url 'applications:dashboard' %}" class="btn-dashboard">
+          <i class="fas fa-arrow-left me-2"></i>대시보드
+        </a>
+      </div>
 
-    .winner-checkbox{ transform: scale(1.2); }
-    .status-badge{ font-size: 0.85rem; padding: 0.32em 0.75em; }
-  }
-</style>
+      <p class="section-subtitle">
+        <i class="fas fa-info-circle me-1"></i> {{ event.title }} |
+        <strong>현재 선택: <span id="current-count">{{ winners_count }}</span>명</strong>
+        (목표: {{ event.total_slots }}명)
+      </p>
 
-<div class="review-body">
-  <div class="review-container">
-    <div class="header-flex">
-      <h2 class="section-title">명단 검토 및 조정</h2>
-      <a href="{% url 'applications:dashboard' %}" class="btn-dashboard">
-        <i class="fas fa-arrow-left me-2"></i>대시보드
-      </a>
-    </div>
+      <form id="lotteryForm" method="post" action="{% url 'applications:review_winners' event.id %}">
+        {% csrf_token %}
 
-    <p class="section-subtitle">
-      <i class="fas fa-info-circle me-1"></i> {{ event.title }} |
-      <strong>현재 선택: <span id="current-count">{{ winners_count }}</span>명</strong>
-      (목표: {{ event.total_slots }}명)
-    </p>
+        <div class="review-card">
+          <div class="table-responsive">
+            <table class="review-table">
+              <thead>
+                <tr>
+                  <th class="select-col">선택</th>
+                  <th>이름</th>
+                  <th>성별</th>
+                  <th>가중치</th>
+                  <th>현재 상태</th>
+                </tr>
+              </thead>
 
-    <form id="lotteryForm" method="post" action="{% url 'applications:review_winners' event.id %}">
-      {% csrf_token %}
+              <tbody>
+                {% for app in applicants %}
+                <tr class="{% if app.selected %}row-selected{% endif %}">
+                  <td class="select-cell" data-label="선택">
+                    <span class="cell-value">
+                      <input
+                        type="checkbox"
+                        name="selected_applicants"
+                        value="{{ app.id }}"
+                        class="winner-checkbox form-check-input"
+                        {% if app.selected %}checked{% endif %}
+                        onchange="updateRowStyle(this)"
+                      >
+                    </span>
+                  </td>
 
-      <div class="review-card">
-        <div class="table-responsive">
-          <table class="review-table">
-            <thead>
-              <tr>
-                <th class="select-col">선택</th>
-                <th>이름</th>
-                <th>성별</th>
-                <th>가중치</th>
-                <th>현재 상태</th>
-              </tr>
-            </thead>
+                  <td data-label="이름">
+                    <span class="cell-value"><strong>{{ app.participant.name }}</strong></span>
+                  </td>
 
-            <tbody>
-              {% for app in applicants %}
-              <tr class="{% if app.selected %}row-selected{% endif %}">
-                <td class="select-cell" data-label="선택">
-                  <span class="cell-value">
-                    <input
-                      type="checkbox"
-                      name="selected_applicants"
-                      value="{{ app.id }}"
-                      class="winner-checkbox form-check-input"
-                      {% if app.selected %}checked{% endif %}
-                      onchange="updateRowStyle(this)"
-                    >
-                  </span>
-                </td>
+                  <td data-label="성별">
+                    <span class="cell-value">
+                      {% with gd=app.participant.get_gender_display %}
+                        {% if gd == "Male" or gd == "M" %}남
+                        {% elif gd == "Female" or gd == "F" %}녀
+                        {% else %}{{ gd }}{% endif %}
+                      {% endwith %}
+                    </span>
+                  </td>
 
-                <td data-label="이름">
-                  <span class="cell-value"><strong>{{ app.participant.name }}</strong></span>
-                </td>
+                  <td data-label="가중치">
+                    <span class="cell-value text-secondary">{{ app.participant.weight }}</span>
+                  </td>
 
-                <td data-label="성별">
-                  <span class="cell-value">
-                    {% with gd=app.participant.get_gender_display %}
-                      {% if gd == "Male" or gd == "M" %}남
-                      {% elif gd == "Female" or gd == "F" %}녀
-                      {% else %}{{ gd }}{% endif %}
-                    {% endwith %}
-                  </span>
-                </td>
-
-                <td data-label="가중치">
-                  <span class="cell-value text-secondary">{{ app.participant.weight }}</span>
-                </td>
-
-                <td class="status-cell" data-label="현재 상태">
-                  <span class="cell-value">
-                    {% if app.selected %}
-                      <span class="status-badge win">당첨</span>
-                    {% else %}
-                      <span class="status-badge wait">대기</span>
-                    {% endif %}
-                  </span>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+                  <td class="status-cell" data-label="현재 상태">
+                    <span class="cell-value">
+                      {% if app.selected %}
+                        <span class="status-badge win">당첨</span>
+                      {% else %}
+                        <span class="status-badge wait">대기</span>
+                      {% endif %}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <div class="action-bar">
-        <button type="submit" class="action-btn btn-save">
-          <i class="fas fa-save me-2"></i>조정 사항 임시저장
-        </button>
+        <div class="action-bar">
+          <button type="submit" class="action-btn btn-save">
+            <i class="fas fa-save me-2"></i>조정 사항 임시저장
+          </button>
 
-        <button type="button" class="action-btn btn-finalize" onclick="checkAndFinalize()">
-          <i class="fas fa-check-double me-2"></i>최종 확정
-        </button>
-      </div>
-    </form>
+          <button type="button" class="action-btn btn-finalize" onclick="checkAndFinalize()">
+            <i class="fas fa-check-double me-2"></i>최종 확정
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
-<script>
-  function updateRowStyle(checkbox) {
-    const row = checkbox.closest('tr');
-    const statusCell = row.querySelector('.status-cell');
-    const cellValue = statusCell ? statusCell.querySelector('.cell-value') : null;
+  <script>
+    function updateRowStyle(checkbox) {
+      const row = checkbox.closest('tr');
+      const statusCell = row.querySelector('.status-cell');
+      const cellValue = statusCell ? statusCell.querySelector('.cell-value') : null;
 
-    if (checkbox.checked) {
-      row.classList.add('row-selected');
-      if (cellValue) cellValue.innerHTML = '<span class="status-badge win">당첨</span>';
-    } else {
-      row.classList.remove('row-selected');
-      if (cellValue) cellValue.innerHTML = '<span class="status-badge wait">대기</span>';
+      if (checkbox.checked) {
+        row.classList.add('row-selected');
+        if (cellValue) cellValue.innerHTML = '<span class="status-badge win">당첨</span>';
+      } else {
+        row.classList.remove('row-selected');
+        if (cellValue) cellValue.innerHTML = '<span class="status-badge wait">대기</span>';
+      }
+
+      const countEl = document.getElementById('current-count');
+      const selectedCount = document.querySelectorAll('.winner-checkbox:checked').length;
+      if (countEl) countEl.textContent = selectedCount;
     }
 
-    const countEl = document.getElementById('current-count');
-    const selectedCount = document.querySelectorAll('.winner-checkbox:checked').length;
-    if (countEl) countEl.textContent = selectedCount;
-  }
+    function checkAndFinalize() {
+      const form = document.getElementById('lotteryForm');
+      const selectedCount = document.querySelectorAll('.winner-checkbox:checked').length;
+      const totalSlots = {{ event.total_slots }};
 
-  function checkAndFinalize() {
-    const form = document.getElementById('lotteryForm');
-    const selectedCount = document.querySelectorAll('.winner-checkbox:checked').length;
-    const totalSlots = {{ event.total_slots }};
+      if (selectedCount !== totalSlots) {
+        alert(`인원수를 정확히 맞춰주세요! (목표: ${totalSlots}명 / 현재: ${selectedCount}명)`);
+        return;
+      }
 
-    if (selectedCount !== totalSlots) {
-      alert(`인원수를 정확히 맞춰주세요! (목표: ${totalSlots}명 / 현재: ${selectedCount}명)`);
-      return;
+      if (confirm(`최종 확정하시겠습니까?\n가중치가 즉시 반영되며 이후에는 수정이 불가능합니다.`)) {
+        form.action = "{% url 'applications:finalize_event' event.id %}";
+        form.submit();
+      }
     }
-
-    if (confirm(`최종 확정하시겠습니까?\n가중치가 즉시 반영되며 이후에는 수정이 불가능합니다.`)) {
-      form.action = "{% url 'applications:finalize_event' event.id %}";
-      form.submit();
-    }
-  }
-</script>
-{% endblock %}
+  </script>
+</body>
+</html>
