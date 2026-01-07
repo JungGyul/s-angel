@@ -24,4 +24,23 @@ class Application(models.Model):
 
     def __str__(self):
         return f"{self.participant.username} - {self.event.title} ({'당첨' if self.selected else '탈락'})"
+    
+    # applications/models.py
+
+class Transaction(models.Model):
+    TRANSACTION_TYPE = [
+        ('INCOME', '수입'),
+        ('EXPENSE', '지출'),
+    ]
+    
+    date = models.DateField(verbose_name="날짜")
+    item_name = models.CharField(max_length=100, verbose_name="항목명")
+    amount = models.PositiveIntegerField(verbose_name="금액") # 음수 방지를 위해 Positive 사용
+    category = models.CharField(max_length=50, verbose_name="카테고리") # 예: 회비, 비품, 간식비 등
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPE, verbose_name="구분")
+    description = models.TextField(blank=True, verbose_name="상세 내용")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"[{self.get_transaction_type_display()}] {self.item_name} ({self.amount}원)"
 

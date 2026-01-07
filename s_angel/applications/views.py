@@ -12,6 +12,10 @@ import datetime
 from django.contrib.auth import get_user_model # <--- User를 직접 import하는 대신 이 함수를 가져옵니다.
 User = get_user_model() # <--- settings.py에 설정된 User 모델을 가져와 변수에 할당합니다.
 from django.db.models import Q
+from .models import Transaction
+from django.db.models import Sum
+import openpyxl
+from django.http import HttpResponse
 
 
 @login_required
@@ -446,3 +450,112 @@ def update_user_gender(request, user_id):
         'user_to_update': user_to_update,
     }
     return render(request, 'applications/update_user_gender.html', context)
+
+
+# applications/views.py
+
+@staff_member_required
+def accounting_list(request):
+    """회계 내역 목록 및 총액 계산 (나중에 넣은 것이 아래로 가도록 정렬 수정)"""
+    
+    # order_by에서 '-'를 제거하여 오름차순(과거->최신)으로 변경합니다.
+    transactions = Transaction.objects.all().order_by('date', 'id')
+    
+    # 총 수입/지출 계산 (이 부분은 기존과 동일)
+    total_income = transactions.filter(transaction_type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
+    total_expense = transactions.filter(transaction_type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
+    balance = total_income - total_expense
+
+    context = {
+        'transactions': transactions,
+        'total_income': total_income,
+        'total_expense': total_expense,
+        'balance': balance,
+    }
+    return render(request, 'applications/accounting_list.html', context)
+
+@staff_member_required
+def accounting_create(request):
+    if request.method == 'POST':
+        # 리스트 형식으로 넘어오는 데이터를 처리
+        dates = request.POST.getlist('date[]')
+        item_names = request.POST.getlist('item_name[]')
+        amounts = request.POST.getlist('amount[]')
+        categories = request.POST.getlist('category[]')
+        types = request.POST.getlist('transaction_type[]')
+        descriptions = request.POST.getlist('description[]')
+
+        transactions_to_create = []
+        for i in range(len(item_names)):
+            if item_names[i]: # 항목명이 있는 경우에만 생성
+                transactions_to_create.append(Transaction(
+                    date=dates[i],
+                    item_name=item_names[i],
+                    amount=amounts[i],
+                    category=categories[i],
+                    transaction_type=types[i],
+                    description=descriptions[i]
+                ))
+        
+        if transactions_to_create:
+            Transaction.objects.bulk_create(transactions_to_create)
+            messages.success(request, f"{len(transactions_to_create)}건의 내역이 추가되었습니다.")
+        
+        return redirect('applications:accounting_list')
+    
+    return render(request, 'applications/accounting_form.html')
+
+@staff_member_required
+def export_accounting_excel(request):
+    """회계 내역을 엑셀로 내보내기"""
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="s_angel_회계록.xlsx"'
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "회계장부"
+
+    # 헤더 작성
+    headers = ['날짜', '항목명', '카테고리', '구분', '금액', '상세내용']
+    ws.append(headers)
+
+    # 데이터 작성
+    transactions = Transaction.objects.all().order_by('-date')
+    for tx in transactions:
+        ws.append([
+            tx.date.strftime('%Y-%m-%d'),
+            tx.item_name,
+            tx.category,
+            tx.get_transaction_type_display(),
+            tx.amount,
+            tx.description
+        ])
+
+    wb.save(response)
+    return response
+
+@staff_member_required
+def accounting_update(request, pk):
+    """기존 회계 내역 수정"""
+    transaction = get_object_or_404(Transaction, pk=pk)
+    if request.method == 'POST':
+        transaction.date = request.POST.get('date')
+        transaction.item_name = request.POST.get('item_name')
+        transaction.amount = request.POST.get('amount')
+        transaction.category = request.POST.get('category')
+        transaction.transaction_type = request.POST.get('transaction_type')
+        transaction.description = request.POST.get('description')
+        transaction.save()
+        messages.success(request, "내역이 수정되었습니다.")
+        return redirect('applications:accounting_list')
+    
+    return render(request, 'applications/accounting_update_form.html', {'transaction': transaction})
+
+@staff_member_required
+def accounting_delete(request, pk):
+    """회계 내역 삭제"""
+    if request.method == 'POST':
+        transaction = get_object_or_404(Transaction, pk=pk)
+        transaction.delete()
+        messages.success(request, "내역이 삭제되었습니다.")
+    return redirect('applications:accounting_list')

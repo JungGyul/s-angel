@@ -1,0 +1,231 @@
+{% block content %}
+<style>
+  :root{
+    --navy:#1E3A8A;
+    --bg:#F9FAFB;
+    --card:#FFFFFF;
+    --border:#E5E7EB;
+    --text:#334155;
+    --muted:#64748B;
+    --shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+  }
+  *{ box-sizing:border-box; }
+
+  .acc-page{
+    background: var(--bg);
+    min-height: 100vh;
+    padding: 1.75rem 0;
+  }
+  .acc-wrap{
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .acc-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .acc-title{
+    margin:0;
+    font-size: 1.45rem;
+    font-weight: 900;
+    color: var(--text);
+    border-left: 4px solid var(--navy);
+    padding-left: .85rem;
+    line-height: 1.15;
+  }
+  .acc-sub{
+    margin-top: .35rem;
+    color: var(--muted);
+    font-size: .95rem;
+    padding-left: .95rem;
+    line-height: 1.4;
+  }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  /* ✅ 폼 레이아웃(추가 페이지 느낌) */
+  .form-grid{
+    padding: 1.1rem 1rem;
+    display:grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: .85rem;
+  }
+
+  .field{ display:flex; flex-direction:column; gap:.45rem; }
+  .label{
+    font-weight: 900;
+    color: var(--muted);
+    font-size: .85rem;
+  }
+
+  /* ✅ 입력 컨트롤 */
+  .form-control, .form-select, textarea.form-control{
+    border-radius: 12px;
+    border: 1px solid rgba(203,213,225,.95);
+    padding: .72rem .85rem;
+    font-weight: 800;
+    color: #0F172A;
+    width: 100%;
+    min-width: 0;
+  }
+  .form-control:focus, .form-select:focus, textarea.form-control:focus{
+    outline: none;
+    border-color: rgba(30,58,138,.55);
+    box-shadow: 0 0 0 3px rgba(30,58,138,.18);
+  }
+  textarea.form-control{ resize: vertical; min-height: 110px; }
+
+  /* ✅ 하단 액션 바 (대량추가 페이지랑 동일) */
+  .actions{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap: .75rem;
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    background: #fff;
+  }
+  .left-actions, .right-actions{
+    display:flex;
+    gap: .6rem;
+    flex-wrap: wrap;
+  }
+  .btn-pill{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.45rem;
+    padding: .65rem 1rem;
+    border-radius: .75rem;
+    font-weight: 900;
+    text-decoration:none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1;
+    user-select: none;
+  }
+  .btn-cancel{
+    background:#fff;
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .btn-cancel:hover{ background:#F1F5F9; }
+
+  .btn-save{
+    background: var(--navy);
+    color:#fff;
+    border: none;
+    box-shadow: 0 10px 18px rgba(30,58,138,.18);
+  }
+  .btn-save:hover{ filter: brightness(.97); }
+
+  .btn-pill i{ margin: 0 !important; }
+
+  /* ✅ 컬럼 배치 */
+  .col-12{ grid-column: span 12; }
+  .col-6{ grid-column: span 6; }
+  .col-4{ grid-column: span 4; }
+  .col-8{ grid-column: span 8; }
+  .col-3{ grid-column: span 3; }
+  .col-9{ grid-column: span 9; }
+
+  /* ✅ 모바일 */
+  @media (max-width: 768px){
+    .acc-page{ padding: 1.1rem 0; }
+    .acc-title{ font-size: 1.25rem; }
+
+    .form-grid{ gap: .75rem; }
+
+    .col-6, .col-4, .col-8, .col-3, .col-9{ grid-column: span 12; }
+
+    .actions{
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .left-actions, .right-actions{ width: 100%; }
+    .btn-pill{
+      width: 100%;
+      padding: .8rem 1rem;
+    }
+  }
+</style>
+
+<div class="acc-page">
+  <div class="acc-wrap">
+    <div class="acc-head">
+      <div>
+        <h2 class="acc-title">회계 내역 수정</h2>
+        <div class="acc-sub">기록을 수정하고 저장할 수 있어요.</div>
+      </div>
+    </div>
+
+    <form method="post" class="card">
+      {% csrf_token %}
+
+      <div class="form-grid">
+        <div class="field col-4">
+          <div class="label">날짜</div>
+          <input type="date" name="date" class="form-control"
+                 value="{{ transaction.date|date:'Y-m-d' }}" required>
+        </div>
+
+        <div class="field col-8">
+          <div class="label">항목명</div>
+          <input type="text" name="item_name" class="form-control"
+                 value="{{ transaction.item_name }}" placeholder="예: 간식 구매" required>
+        </div>
+
+        <div class="field col-4">
+          <div class="label">금액 (원)</div>
+          <input type="number" name="amount" class="form-control"
+                 value="{{ transaction.amount }}" placeholder="0" required>
+        </div>
+
+        <div class="field col-4">
+          <div class="label">카테고리</div>
+          <input type="text" name="category" class="form-control"
+                 value="{{ transaction.category }}" placeholder="예: 식비">
+        </div>
+
+        <div class="field col-4">
+          <div class="label">구분</div>
+          <select name="transaction_type" class="form-select">
+            <option value="EXPENSE" {% if transaction.transaction_type == 'EXPENSE' %}selected{% endif %}>지출</option>
+            <option value="INCOME" {% if transaction.transaction_type == 'INCOME' %}selected{% endif %}>수입</option>
+          </select>
+        </div>
+
+        <div class="field col-12">
+          <div class="label">상세 내용</div>
+          <textarea name="description" class="form-control" rows="4" placeholder="(선택)">{{ transaction.description }}</textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <div class="left-actions">
+          <!-- (수정 페이지는 입력줄 추가가 없으니 비워둠. 필요하면 도움말/초기화 같은 버튼 넣을 수 있어) -->
+        </div>
+
+        <div class="right-actions">
+          <a href="{% url 'applications:accounting_list' %}" class="btn-pill btn-cancel">취소</a>
+          <button type="submit" class="btn-pill btn-save">
+            <i class="fas fa-save"></i>저장하기
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

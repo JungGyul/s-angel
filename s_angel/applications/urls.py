@@ -30,4 +30,10 @@ urlpatterns = [
     path('event/<int:event_id>/review/', views.review_winners, name='review_winners'),
     path('event/<int:event_id>/finalize/', views.finalize_event, name='finalize_event'),
 
+    path('accounting/', views.accounting_list, name='accounting_list'),
+    path('accounting/add/', views.accounting_create, name='accounting_create'),
+    path('accounting/export/', views.export_accounting_excel, name='export_accounting_excel'),
+    path('accounting/<int:pk>/update/', views.accounting_update, name='accounting_update'),
+    path('accounting/<int:pk>/delete/', views.accounting_delete, name='accounting_delete'),
+
 ]

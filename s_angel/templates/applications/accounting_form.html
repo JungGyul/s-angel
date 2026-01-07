@@ -1,0 +1,454 @@
+{% block content %}
+<style>
+  :root{
+    --navy:#1E3A8A;
+    --navy2:#312E81;
+    --bg:#F7F9FC;
+    --card:#FFFFFF;
+    --border:#E5E7EB;
+    --text:#0F172A;
+    --muted:#64748B;
+    --shadow: 0 12px 22px rgba(15, 23, 42, 0.06);
+    --shadow2: 0 6px 14px rgba(15, 23, 42, 0.06);
+    --ring: 0 0 0 3px rgba(30,58,138,.18);
+    --red:#EF4444;
+    --red-bg: rgba(239,68,68,.08);
+    --green:#10B981;
+    --radius: 16px;
+  }
+
+  *{ box-sizing:border-box; }
+
+  .acc-page{
+    background: radial-gradient(1200px 500px at 25% -10%, rgba(30,58,138,.08), transparent 60%),
+                radial-gradient(900px 400px at 90% 0%, rgba(49,46,129,.06), transparent 55%),
+                var(--bg);
+    min-height: 100vh;
+    padding: 1.8rem 0;
+  }
+
+  .acc-wrap{
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  /* 헤더 */
+  .acc-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .acc-title{
+    margin:0;
+    font-size: 1.55rem;
+    font-weight: 1000;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    border-left: 5px solid var(--navy);
+    padding-left: .95rem;
+    line-height: 1.15;
+  }
+
+  .acc-sub{
+    margin-top: .4rem;
+    color: var(--muted);
+    font-size: .95rem;
+    padding-left: 1.05rem;
+    line-height: 1.45;
+  }
+
+  /* 카드 */
+  .card{
+    background: var(--card);
+    border: 1px solid rgba(226,232,240,.9);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  /* 상단 인포바(선택): 폼 안내 */
+  .hint-bar{
+    padding: .95rem 1rem;
+    border-bottom: 1px solid rgba(226,232,240,.9);
+    background: linear-gradient(180deg, #FFFFFF, #FBFCFF);
+    display:flex;
+    align-items:center;
+    gap:.65rem;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: .92rem;
+  }
+  .hint-dot{
+    width: 9px; height: 9px; border-radius: 999px;
+    background: linear-gradient(135deg, var(--navy), var(--navy2));
+    box-shadow: 0 0 0 3px rgba(30,58,138,.12);
+    flex: 0 0 auto;
+  }
+
+  /* 표 래퍼 */
+  .table-wrap{
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #tx-table{
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    min-width: 920px;
+  }
+
+  #tx-table thead th{
+    background: #F8FAFC;
+    color: #64748B;
+    font-weight: 900;
+    font-size: .85rem;
+    padding: 1rem .9rem;
+    border-bottom: 1px solid rgba(226,232,240,.95);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  #tx-table td{
+    padding: .9rem .9rem;
+    border-bottom: 1px solid rgba(241,245,249,.95);
+    vertical-align: middle;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  /* 행 hover */
+  #tx-table tbody tr:hover td{
+    background: #FBFDFF;
+  }
+
+  /* 입력 컨트롤(부트스트랩 위에 덮어씀) */
+  #tx-table input,
+  #tx-table select,
+  #tx-table textarea{
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    display: block;
+  }
+
+  #tx-table .form-control,
+  #tx-table .form-select{
+    border-radius: 12px;
+    border: 1px solid rgba(203,213,225,.9);
+    background: #FFFFFF;
+    box-shadow: 0 1px 0 rgba(15,23,42,.02);
+    padding: .65rem .8rem;
+    font-weight: 700;
+    color: #0F172A;
+  }
+
+  #tx-table .form-control::placeholder{
+    color: #94A3B8;
+    font-weight: 700;
+  }
+
+  #tx-table .form-control:focus,
+  #tx-table .form-select:focus{
+    border-color: rgba(30,58,138,.55);
+    box-shadow: var(--ring);
+    outline: none;
+  }
+
+  /* iOS Safari date input */
+  #tx-table input[type="date"]{
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* 삭제 버튼 */
+  .btn-x{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width: 42px;
+    height: 38px;
+    border-radius: 12px;
+    border: 1px solid rgba(220,38,38,.25);
+    background: var(--red-bg);
+    color: #DC2626;
+    cursor: pointer;
+    transition: .15s ease;
+  }
+  .btn-x:hover{
+    background: rgba(239,68,68,.14);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow2);
+  }
+  .btn-x:active{ transform: translateY(0); }
+
+  /* 하단 액션바 */
+  .actions{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap: .75rem;
+    padding: 1rem;
+    border-top: 1px solid rgba(226,232,240,.95);
+    background: linear-gradient(180deg, #FFFFFF, #FBFCFF);
+  }
+
+  .left-actions, .right-actions{
+    display:flex;
+    gap: .6rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-pill{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: .5rem;
+    padding: .7rem 1.05rem;
+    border-radius: 14px;
+    font-weight: 1000;
+    text-decoration:none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    transition: .15s ease;
+    user-select: none;
+  }
+
+  .btn-addrow{
+    background: #fff;
+    border-color: rgba(203,213,225,.95);
+    color: #0F172A;
+  }
+  .btn-addrow:hover{
+    background:#F1F5F9;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow2);
+  }
+
+  .btn-cancel{
+    background:#fff;
+    border-color: rgba(203,213,225,.95);
+    color: #0F172A;
+  }
+  .btn-cancel:hover{
+    background:#F1F5F9;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow2);
+  }
+
+  .btn-save{
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+    color:#fff;
+    border: none;
+    box-shadow: 0 12px 20px rgba(30,58,138,.22);
+  }
+  .btn-save:hover{
+    filter: brightness(.985);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 24px rgba(30,58,138,.25);
+  }
+  .btn-save:active{ transform: translateY(0); }
+
+  /* 아이콘 정렬 */
+  .btn-pill i, .btn-x i{ margin: 0 !important; }
+
+  /* 모바일 카드형 */
+  @media (max-width: 768px){
+    .acc-page{ padding: 1.1rem 0; }
+    .acc-title{ font-size: 1.25rem; }
+
+    #tx-table{ min-width: 0; }
+    .table-wrap{ overflow-x: hidden; }
+
+    #tx-table thead{ display:none; }
+    #tx-table, #tx-table tbody, #tx-table tr{ display:block; width:100%; }
+    #tx-table tr{
+      padding: 1.05rem .95rem;
+      border-bottom: 1px solid rgba(226,232,240,.95);
+      background: #fff;
+    }
+    #tx-table tr:nth-child(even){
+      background: #FBFCFF;
+    }
+
+    #tx-table td{
+      display:grid;
+      grid-template-columns: 84px minmax(0, 1fr);
+      gap: .6rem;
+      padding: .48rem 0;
+      border: 0;
+      background: transparent;
+    }
+
+    #tx-table td::before{
+      content: attr(data-label);
+      color: var(--muted);
+      font-weight: 1000;
+      font-size: .9rem;
+      line-height: 1.2;
+      padding-top: .25rem;
+    }
+
+    /* 삭제 버튼 줄 */
+    #tx-table td[data-label="삭제"] .cell{
+      display:flex;
+      justify-content:flex-start;
+    }
+
+    /* 하단 버튼: 2줄 */
+    .actions{
+      flex-direction: column;
+      align-items: stretch;
+      gap: .65rem;
+    }
+    .left-actions, .right-actions{
+      width: 100%;
+    }
+    .btn-pill{
+      width: 100%;
+      padding: .85rem 1rem;
+      border-radius: 14px;
+    }
+  }
+</style>
+
+<div class="acc-page">
+  <div class="acc-wrap">
+    <div class="acc-head">
+      <div>
+        <h2 class="acc-title">회계 내역 추가</h2>
+        <div class="acc-sub">여러 건을 한 번에 입력하고 저장할 수 있어요.</div>
+      </div>
+    </div>
+
+    <form method="post" id="accounting-form" class="card">
+      {% csrf_token %}
+
+      <div class="hint-bar">
+        <span class="hint-dot"></span>
+        <span>필수 항목을 채운 뒤 <b>저장하기</b>를 눌러주세요. (삭제는 행 단위)</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table" id="tx-table">
+          <thead>
+            <tr>
+              <th style="width:140px;">날짜</th>
+              <th style="width:220px;">항목명</th>
+              <th style="width:140px;">금액</th>
+              <th style="width:160px;">카테고리</th>
+              <th style="width:130px;">구분</th>
+              <th>비고</th>
+              <th style="width:90px;">삭제</th>
+            </tr>
+          </thead>
+
+          <tbody id="tx-tbody">
+            <tr>
+              <td data-label="날짜"><div class="cell">
+                <input type="date" name="date[]" class="form-control" required>
+              </div></td>
+
+              <td data-label="항목명"><div class="cell">
+                <input type="text" name="item_name[]" class="form-control" placeholder="예: 간식 구매" required>
+              </div></td>
+
+              <td data-label="금액"><div class="cell">
+                <input type="number" name="amount[]" class="form-control" placeholder="0" required>
+              </div></td>
+
+              <td data-label="카테고리"><div class="cell">
+                <input type="text" name="category[]" class="form-control" placeholder="예: 식비">
+              </div></td>
+
+              <td data-label="구분"><div class="cell">
+                <select name="transaction_type[]" class="form-select">
+                  <option value="EXPENSE">지출</option>
+                  <option value="INCOME">수입</option>
+                </select>
+              </div></td>
+
+              <td data-label="비고"><div class="cell">
+                <input type="text" name="description[]" class="form-control" placeholder="(선택)">
+              </div></td>
+
+              <td data-label="삭제"><div class="cell"></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="actions">
+        <div class="left-actions">
+          <button type="button" class="btn-pill btn-addrow" onclick="addRow()">
+            <i class="fas fa-plus"></i>입력줄 추가
+          </button>
+        </div>
+
+        <div class="right-actions">
+          <a href="{% url 'applications:accounting_list' %}" class="btn-pill btn-cancel">취소</a>
+          <button type="submit" class="btn-pill btn-save">저장하기</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function addRow() {
+    const tbody = document.getElementById('tx-tbody');
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td data-label="날짜"><div class="cell">
+        <input type="date" name="date[]" class="form-control" required>
+      </div></td>
+
+      <td data-label="항목명"><div class="cell">
+        <input type="text" name="item_name[]" class="form-control" placeholder="예: 간식 구매" required>
+      </div></td>
+
+      <td data-label="금액"><div class="cell">
+        <input type="number" name="amount[]" class="form-control" placeholder="0" required>
+      </div></td>
+
+      <td data-label="카테고리"><div class="cell">
+        <input type="text" name="category[]" class="form-control" placeholder="예: 식비">
+      </div></td>
+
+      <td data-label="구분"><div class="cell">
+        <select name="transaction_type[]" class="form-select">
+          <option value="EXPENSE">지출</option>
+          <option value="INCOME">수입</option>
+        </select>
+      </div></td>
+
+      <td data-label="비고"><div class="cell">
+        <input type="text" name="description[]" class="form-control" placeholder="(선택)">
+      </div></td>
+
+      <td data-label="삭제"><div class="cell">
+        <button type="button" class="btn-x" onclick="this.closest('tr').remove()" aria-label="삭제">
+          <i class="fas fa-times"></i>
+        </button>
+      </div></td>
+    `;
+
+    tbody.appendChild(tr);
+
+    // (선택) 새로 추가된 행의 첫 입력칸에 포커스
+    const first = tr.querySelector('input, select, textarea');
+    if (first) first.focus();
+  }
+</script>
+{% endblock %}

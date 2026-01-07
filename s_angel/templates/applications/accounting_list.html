@@ -1,0 +1,416 @@
+{% load humanize %}
+{% block content %}
+<style>
+  :root{
+    --navy:#1E3A8A;
+    --bg:#F9FAFB;
+    --card:#FFFFFF;
+    --border:#E5E7EB;
+    --text:#334155;
+    --muted:#64748B;
+    --green:#10B981;
+    --red:#EF4444;
+
+    --shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+  }
+
+  .acc-page{
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 1.75rem 0;
+  }
+
+  .acc-wrap{
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .acc-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .acc-title{
+    margin:0;
+    font-size: 1.45rem;
+    font-weight: 900;
+    border-left: 4px solid var(--navy);
+    padding-left: .85rem;
+    line-height: 1.15;
+  }
+
+  .acc-subtitle{
+    margin-top: .35rem;
+    color: var(--muted);
+    font-size: .95rem;
+    padding-left: .95rem;
+    line-height: 1.4;
+  }
+
+  .btn-ghost{
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 800;
+    padding: .55rem .9rem;
+    border-radius: .65rem;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:.45rem;
+    transition: .15s ease;
+    white-space: nowrap;
+  }
+  .btn-ghost:hover{ background:#F1F5F9; }
+
+  .acc-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap: .6rem;
+    margin: 1rem 0 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-action{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5rem;
+    padding: .65rem 1rem;
+    border-radius: .7rem;
+    font-weight: 900;
+    text-decoration:none;
+    border: 1px solid transparent;
+    transition: .15s ease;
+  }
+  .btn-excel{
+    background: transparent;
+    border-color: #22C55E;
+    color: #166534;
+  }
+  .btn-excel:hover{ background: rgba(34,197,94,.08); }
+
+  .btn-add{
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    box-shadow: 0 10px 18px rgba(30,58,138,.18);
+  }
+  .btn-add:hover{ filter: brightness(.97); }
+
+  .sum-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .85rem;
+    margin-bottom: 1.25rem;
+  }
+  .sum-card{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.1rem 1.05rem;
+    box-shadow: var(--shadow);
+  }
+  .sum-label{
+    font-size: .88rem;
+    color: var(--muted);
+    margin-bottom: .35rem;
+    font-weight: 800;
+  }
+  .sum-value{
+    font-size: 1.35rem;
+    font-weight: 1000;
+    letter-spacing: -0.02em;
+  }
+  .sum-balance{ color: var(--navy); }
+  .sum-income{ color: var(--green); }
+  .sum-expense{ color: var(--red); }
+
+  .table-card{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .acc-table{
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  /* ✅ PC: 가운데 정렬 기본 */
+  .acc-table thead th{
+    background: #F8FAFC;
+    color: var(--muted);
+    font-size: .85rem;
+    font-weight: 900;
+    padding: .95rem .9rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .acc-table td{
+    padding: .9rem .9rem;
+    border-bottom: 1px solid #F1F5F9;
+    vertical-align: middle;
+    text-align: center; /* ✅ PC: 모든 항목 가운데 */
+  }
+
+  /* ✅ PC: 금액만 오른쪽 정렬 */
+  .acc-table td[data-label="금액"]{
+    text-align: right;
+  }
+
+  .acc-table tbody tr:hover{
+    background: #FBFDFF;
+  }
+
+  .badge-cat{
+    display:inline-flex;
+    align-items:center;
+    padding: .28rem .55rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #F8FAFC;
+    color: #334155;
+    font-weight: 800;
+    font-size: .82rem;
+  }
+
+  .money{
+    font-weight: 1000;
+    white-space: nowrap;
+  }
+  .money.income{ color: var(--green); }
+  .money.expense{ color: var(--red); }
+
+  .manage-wrap{
+    display:flex;
+    justify-content:center;
+    gap:.5rem;
+    flex-wrap:nowrap;
+  }
+
+  /* ✅ 수정/삭제: 텍스트 있는 버튼 */
+  .action-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:.45rem;
+    padding:.48rem .8rem;
+    border-radius:.8rem;
+    font-weight: 900;
+    font-size: .9rem;
+    border: 1px solid var(--border);
+    background: #fff;
+    text-decoration:none;
+    transition: .15s ease;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .action-pill:hover{ background:#F1F5F9; }
+
+  .action-pill.edit{
+    border-color: rgba(37,99,235,.25);
+    background: rgba(37,99,235,.06);
+    color:#1D4ED8;
+  }
+  .action-pill.edit:hover{ background: rgba(37,99,235,.10); }
+
+  .action-pill.del{
+    border-color: rgba(220,38,38,.25);
+    background: rgba(239,68,68,.07);
+    color:#DC2626;
+  }
+  .action-pill.del:hover{ background: rgba(239,68,68,.12); }
+
+  .empty{
+    padding: 3.5rem 1rem;
+    text-align:center;
+    color: var(--muted);
+    font-weight: 800;
+  }
+
+  /* ✅ 모바일: 카드형 + 왼쪽 정렬(추천) */
+  @media (max-width: 768px){
+    .acc-page{ padding: 1.1rem 0; }
+    .acc-title{ font-size: 1.25rem; }
+
+    .acc-actions{
+      justify-content: stretch;
+      gap: .6rem;
+    }
+    .btn-action{ flex: 1 1 auto; }
+
+    .sum-grid{
+      grid-template-columns: 1fr;
+      gap: .75rem;
+    }
+
+    /* table -> cards */
+    .acc-table thead{ display:none; }
+    .acc-table, .acc-table tbody, .acc-table tr{ display:block; width:100%; }
+    .acc-table tr{
+      padding: .95rem .95rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .acc-table td{
+      display:grid;
+      grid-template-columns: 86px 1fr;
+      gap: .5rem;
+      padding: .35rem 0;
+      border: 0;
+      text-align: left;            /* ✅ 모바일: 값 왼쪽 */
+    }
+    .acc-table td::before{
+      content: attr(data-label);
+      color: var(--muted);
+      font-weight: 1000;
+      font-size: .9rem;
+    }
+
+    /* ✅ 모바일: 카드형에서는 금액도 왼쪽이 자연스럽게 */
+    .acc-table td[data-label="금액"]{
+      text-align: left;
+    }
+
+    .manage-wrap{
+      justify-content:flex-start;  /* ✅ 모바일: 버튼 왼쪽 */
+      flex-wrap: wrap;
+      gap: .55rem;
+    }
+    .action-pill{
+      padding: .55rem .9rem;
+      font-size: .92rem;
+    }
+  }
+  /* ✅ 버튼 "안의 내용"만 가운데 정렬 (버튼 위치는 그대로) */
+.btn-ghost,
+.btn-action,
+.action-pill{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center; /* 핵심 */
+  text-align: center;
+}
+
+/* iOS Safari에서 button 기본 appearance 때문에 미세하게 어긋나는 것 방지 */
+button.action-pill{
+  -webkit-appearance: none;
+  appearance: none;
+}
+.badge-cat{
+  display: inline-flex;
+  justify-self: start;
+  max-width: 100%;
+  width: auto;            /* fallback */
+}
+
+</style>
+
+<div class="acc-page">
+  <div class="acc-wrap">
+
+    <div class="acc-header">
+      <div>
+        <h2 class="acc-title">S-ANGEL 회계 장부</h2>
+      </div>
+
+      <a href="{% url 'applications:dashboard' %}" class="btn-ghost">
+        <i class="fas fa-arrow-left"></i>대시보드
+      </a>
+    </div>
+
+    <div class="acc-actions">
+      <a href="{% url 'applications:export_accounting_excel' %}" class="btn-action btn-excel">
+        <i class="fas fa-file-excel"></i>엑셀 다운로드
+      </a>
+      <a href="{% url 'applications:accounting_create' %}" class="btn-action btn-add">
+        <i class="fas fa-plus"></i>내역 추가
+      </a>
+    </div>
+
+    <div class="sum-grid">
+      <div class="sum-card">
+        <div class="sum-label">현재 잔액</div>
+        <div class="sum-value sum-balance">{{ balance|intcomma }}원</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">총 수입</div>
+        <div class="sum-value sum-income">+ {{ total_income|intcomma }}원</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">총 지출</div>
+        <div class="sum-value sum-expense">- {{ total_expense|intcomma }}원</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <table class="acc-table">
+        <thead>
+          <tr>
+            <th style="width: 120px;">날짜</th>
+            <th>항목</th>
+            <th style="width: 140px;">카테고리</th>
+            <th style="width: 150px;">금액</th>
+            <th style="width: 160px;">관리</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for tx in transactions %}
+          <tr>
+            <td data-label="날짜">{{ tx.date|date:"Y-m-d" }}</td>
+
+            <td data-label="항목">
+              <strong>{{ tx.item_name }}</strong>
+            </td>
+
+            <td data-label="카테고리">
+              <span class="badge-cat">{{ tx.category }}</span>
+            </td>
+
+            <td data-label="금액">
+              {% if tx.transaction_type == 'INCOME' %}
+                <span class="money income">+ {{ tx.amount|intcomma }}원</span>
+              {% else %}
+                <span class="money expense">- {{ tx.amount|intcomma }}원</span>
+              {% endif %}
+            </td>
+
+            <td data-label="관리">
+              <div class="manage-wrap">
+                <a href="{% url 'applications:accounting_update' tx.id %}" class="action-pill edit" title="수정">
+                  <i class="fas fa-pen"></i>수정
+                </a>
+
+                <form action="{% url 'applications:accounting_delete' tx.id %}" method="post"
+                      onsubmit="return confirm('정말 삭제하시겠습니까?');" style="margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" class="action-pill del" title="삭제">
+                    <i class="fas fa-trash"></i>삭제
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+
+          {% empty %}
+          <tr>
+            <td colspan="5" class="empty">기록된 회계 내역이 없습니다.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
