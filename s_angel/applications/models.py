@@ -9,6 +9,7 @@ class Event(models.Model):
     total_slots = models.PositiveIntegerField()
     male_slots = models.PositiveIntegerField()
     female_slots = models.PositiveIntegerField()
+    is_finalized = models.BooleanField(default=False) # 최종 확정 여부 추가
 
     def __str__(self):
         return self.title
