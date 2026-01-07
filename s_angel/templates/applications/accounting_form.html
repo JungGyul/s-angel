@@ -1,4 +1,13 @@
-{% block content %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>회계 내역 추가</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+
 <style>
   :root{
     --navy:#1E3A8A;
@@ -321,7 +330,9 @@
     }
   }
 </style>
+</head>
 
+<body>
 <div class="acc-page">
   <div class="acc-wrap">
     <div class="acc-head">
@@ -451,4 +462,5 @@
     if (first) first.focus();
   }
 </script>
-{% endblock %}
+</body>
+</html>
