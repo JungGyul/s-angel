@@ -290,7 +290,40 @@
         justify-content: center;
     }
 }
+/* 캘린더 버튼 전용 디자인 */
+.action-btn.calendar-btn {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
+.action-btn.calendar-btn i {
+    color: var(--navy-dark); /* 아이콘에만 네이비 포인트 */
+    transition: transform 0.3s ease;
+}
+
+.action-btn.calendar-btn:hover {
+    background-color: #F1F5F9;
+    border-color: var(--navy-dark);
+    color: var(--navy-dark);
+    transform: translateY(-3px); /* 위로 살짝 떠오르는 효과 */
+    box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.1);
+}
+
+.action-btn.calendar-btn:hover i {
+    transform: scale(1.2); /* 호버 시 아이콘만 살짝 커짐 */
+}
+
+/* 모바일 대응 (이전 대시보드 스타일과 호환) */
+@media (max-width: 768px) {
+    .action-btn.calendar-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.8rem;
+    }
+}
 </style>
 </head>
 <body class="dashboard-body">
@@ -322,7 +355,6 @@
             </div>
             {% endfor %}
         {% endif %}
-        {% if request.user.is_staff or request.user.can_view_accounting %}
         <div class="mb-5">
         <h2 class="section-title">서비스 메뉴</h2>
         <div class="d-flex flex-wrap gap-3">
@@ -333,7 +365,7 @@
             {% endif %}
 
             {% if request.user.can_view_accounting %}
-                <a class="action-btn secondary" href="{% url 'applications:accounting_list' %}" style="background-color: #f1f5f9; border: 1px solid #cbd5e1;">
+                <a class="action-btn secondary calendar-btn" href="{% url 'applications:accounting_list' %}" style="background-color: #f1f5f9; border: 1px solid #cbd5e1;">
                     <i class="fas fa-calculator me-2"></i>회계 장부 열람
                 </a>
             {% endif %}
@@ -343,9 +375,11 @@
                     <i class="fas fa-chart-bar me-2"></i>통계 페이지로 가기
                 </a>
             {% endif %}
+            <a class="action-btn secondary calendar-btn" href="{% url 'applications:calendar' %}">
+                <i class="fas fa-calendar-alt me-2"></i>S-ANGEL 캘린더
+            </a>
         </div>
     </div>
-    {% endif %}
 
         <div>
             {% if request.user.is_staff %}

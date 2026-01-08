@@ -43,4 +43,17 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"[{self.get_transaction_type_display()}] {self.item_name} ({self.amount}원)"
+    
+        # applications/models.py 에 추가
+
+class ClubSchedule(models.Model):
+    title = models.CharField(max_length=200, verbose_name="일정 제목")
+    content = models.TextField(blank=True, verbose_name="상세 내용")
+    start_date = models.DateField(verbose_name="시작 날짜")
+    end_date = models.DateField(verbose_name="종료 날짜", null=True, blank=True)
+    color = models.CharField(max_length=20, default="#1E3A8A", verbose_name="색상") # 네이비 기본값
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
 

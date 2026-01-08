@@ -9,6 +9,7 @@ from django.contrib import messages  # messages 프레임워크 import
 
 
 
+
 User = get_user_model()
 from .forms import SimpleUserSignupForm, UserProfileChangeForm
 from django.contrib.auth.decorators import login_required
@@ -84,3 +85,5 @@ def profile_update(request):
         form = UserProfileChangeForm(instance=request.user)
         
     return render(request, 'users/profile_update.html', {'form': form})
+
+

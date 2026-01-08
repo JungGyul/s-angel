@@ -39,5 +39,9 @@ urlpatterns = [
     
     # 회계 열람 권한 토글
     path('user/<int:user_id>/toggle_permission/', views.toggle_accounting_permission, name='toggle_accounting_permission'),
+    path("calendar/", views.calendar_view, name="calendar"),
+    path("calendar/add/", views.add_schedule, name="add_schedule"),
+    path("calendar/update/<int:pk>/", views.update_schedule, name="update_schedule"),
+    path("calendar/delete/<int:pk>/", views.delete_schedule, name="delete_schedule"),
 
 ]

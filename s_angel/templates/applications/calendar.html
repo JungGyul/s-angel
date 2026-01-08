@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>캘린더 페이지</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+
+  <!-- Pretendard -->
+  <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/static/pretendard.css" />
+
+  <style>
+    :root{
+      --navy:#1E3A8A; --navy2:#312E81; --bg:#F8FAFC; --card:#FFFFFF; --border:#E5E7EB;
+      --text:#0F172A; --muted:#64748B; --shadow:0 14px 28px rgba(15,23,42,.08);
+      --shadow-sm:0 8px 18px rgba(15,23,42,.06); --ring:0 0 0 3px rgba(30,58,138,.16);
+      --radius:16px;
+    }
+    html,body{max-width:100%;overflow-x:hidden;}
+    body{
+      font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",Arial,sans-serif;
+      background:
+        radial-gradient(1200px 500px at 20% -10%, rgba(30,58,138,.10), transparent 60%),
+        radial-gradient(900px 400px at 95% 0%, rgba(49,46,129,.08), transparent 55%),
+        var(--bg);
+      color:var(--text);
+    }
+    .page-wrap{max-width:1050px;margin:0 auto;padding:2.2rem 1rem 3rem;}
+    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1rem;}
+    .title-block h2{margin:0;font-weight:900;font-size:1.65rem;letter-spacing:-.02em;line-height:1.2;}
+    .title-block p{margin:.35rem 0 0;color:var(--muted);font-weight:500;font-size:.95rem;}
+    .btn-back{
+      display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1rem;border-radius:14px;
+      background:rgba(255,255,255,.85);border:1px solid var(--border);color:var(--text);
+      text-decoration:none;font-weight:700;transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+      box-shadow:var(--shadow-sm);white-space:nowrap;user-select:none;
+    }
+    .btn-back:hover{transform:translateY(-1px);background:#fff;box-shadow:var(--shadow);}
+
+    .calendar-card{
+      background:rgba(255,255,255,.88);backdrop-filter:blur(10px);
+      border:1px solid rgba(229,231,235,.92);border-radius:var(--radius);
+      box-shadow:var(--shadow);overflow:hidden;
+    }
+    .calendar-head{
+      padding:1rem 1.25rem;border-bottom:1px solid var(--border);
+      background:linear-gradient(135deg, rgba(30,58,138,.06), rgba(49,46,129,.04));
+      display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;
+    }
+    .calendar-head .tag{
+      display:inline-flex;align-items:center;gap:.5rem;padding:.45rem .75rem;border-radius:999px;
+      font-weight:800;font-size:.9rem;border:1px solid rgba(30,58,138,.20);
+      background:rgba(30,58,138,.06);color:var(--navy);
+    }
+    .calendar-body{padding:1rem 1.25rem 1.25rem;}
+
+    /* FullCalendar */
+    .fc{--fc-border-color:rgba(226,232,240,.95);--fc-today-bg-color:rgba(30,58,138,.06);--fc-page-bg-color:transparent;font-weight:500;}
+    .fc .fc-toolbar-title{font-weight:900;letter-spacing:-.02em;color:var(--text);}
+    .fc .fc-button{
+      border:1px solid var(--border)!important;background:#fff!important;color:var(--text)!important;
+      border-radius:12px!important;padding:.55rem .8rem!important;font-weight:800!important;box-shadow:none!important;
+      transition:transform .12s ease, background .12s ease;
+    }
+    .fc .fc-button:hover{background:#F1F5F9!important;transform:translateY(-1px);}
+    .fc .fc-button-primary:not(:disabled).fc-button-active{
+      background:linear-gradient(135deg,var(--navy),var(--navy2))!important;border-color:transparent!important;color:#fff!important;
+    }
+    .fc .fc-button:focus{box-shadow:var(--ring)!important;outline:none!important;}
+    .fc .fc-col-header-cell-cushion{padding:.6rem 0;color:#334155;font-weight:800;text-decoration:none;}
+    .fc .fc-daygrid-day-number{color:#334155;font-weight:700;text-decoration:none;padding:.35rem .45rem;border-radius:10px;margin:.25rem;}
+    .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number{background:rgba(30,58,138,.10);color:var(--navy);}
+    .fc .fc-daygrid-day-frame{padding:.15rem;border-radius:14px;transition:background .12s ease;}
+    .fc .fc-daygrid-day:hover .fc-daygrid-day-frame{background:rgba(2,6,23,.02);}
+    .fc .fc-daygrid-event{
+      border:none!important;border-radius:10px!important;padding:2px 6px!important;margin:2px 4px!important;
+      cursor:pointer;box-shadow:0 6px 14px rgba(15,23,42,.10);
+    }
+    .fc .fc-event-title{font-weight:800;letter-spacing:-.01em;font-size:.86rem;}
+    .fc .fc-daygrid-more-link{font-weight:800;color:var(--navy);text-decoration:none;}
+
+    /* Modal */
+    .modal-content{border-radius:18px;border:1px solid rgba(226,232,240,.9);box-shadow:0 22px 50px rgba(0,0,0,.18);overflow:hidden;}
+    .modal-header{background:linear-gradient(135deg, rgba(30,58,138,.08), rgba(49,46,129,.05));border-bottom:1px solid rgba(226,232,240,.9);padding:1rem 1.25rem;}
+    .modal-title{font-weight:900;letter-spacing:-.02em;}
+    .modal-body{padding:1rem 1.25rem;}
+    .modal-body label{font-weight:800;color:#475569;}
+    .form-control,.form-control-color{border-radius:12px;border:1px solid rgba(203,213,225,.9);font-weight:600;}
+    .form-control:focus,.form-control-color:focus{border-color:rgba(30,58,138,.5);box-shadow:var(--ring);outline:none;}
+    .btn-primary-custom{
+      background:linear-gradient(135deg,var(--navy),var(--navy2));border:none;font-weight:900;border-radius:14px;padding:.7rem 1rem;
+      transition:transform .12s ease, filter .12s ease;
+    }
+    .btn-primary-custom:hover{transform:translateY(-1px);filter:brightness(.98);}
+    .btn-danger-soft{
+      background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.20);color:#B91C1C;font-weight:900;border-radius:14px;padding:.7rem 1rem;
+      transition:transform .12s ease, background .12s ease;
+    }
+    .btn-danger-soft:hover{transform:translateY(-1px);background:rgba(239,68,68,.12);}
+
+    @media(max-width:768px){
+      .topbar{flex-direction:column;align-items:stretch;}
+      .btn-back{width:100%;justify-content:center;}
+      .calendar-body{padding:1rem;}
+      .calendar-head{padding:1rem;}
+      .title-block h2{font-size:1.35rem;}
+      .fc .fc-toolbar-title {
+        font-size: 1.1rem !important;
+    }
+
+    /* 2. 요일 헤더 크기 (일, 월, 화...) */
+    .fc .fc-col-header-cell-cushion {
+        font-size: 0.75rem !important;
+        padding: 4px 0 !important;
+    }
+
+    /* 3. 날짜 숫자 크기 */
+    .fc .fc-daygrid-day-number {
+        font-size: 0.7rem !important;
+        padding: 2px 4px !important;
+        margin: 1px !important;
+    }
+
+    /* 4. 등록된 일정(이벤트) 글자 크기 */
+    .fc .fc-event-title {
+        font-size: 0.65rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.03em !important;
+    }
+
+    /* 5. 버튼(오늘, <, >, month) 크기 */
+    .fc .fc-button {
+        font-size: 0.7rem !important;
+        padding: 0.35rem 0.5rem !important;
+        border-radius: 8px !important;
+    }
+
+    /* 6. '더보기' 링크 크기 (+2개 더 보기 등) */
+    .fc .fc-daygrid-more-link {
+        font-size: 0.65rem !important;
+    }
+
+    /* 7. 상단 태그 및 버튼 바 간격 조절 */
+    .calendar-head {
+        padding: 0.75rem !important;
+    }
+    .calendar-head .tag {
+        font-size: 0.75rem !important;
+        padding: 0.3rem 0.6rem !important;
+    }
+    .btn-primary-custom {
+        padding: 0.4rem 0.8rem !important; /* 상하좌우 여백 축소 */
+        font-size: 0.8rem !important;      /* 글자 크기 축소 */
+        border-radius: 10px !important;    /* 둥근 정도를 모바일에 맞게 조절 */
+        height: auto !important;           /* 높이 자동 조절 */
+    }
+
+    /* 2. 버튼 내 플러스(+) 아이콘 크기 조절 */
+    .btn-primary-custom i {
+        font-size: 0.75rem !important;     /* 아이콘 크기 살짝 축소 */
+        margin-right: 0.3rem !important;   /* 아이콘과 텍스트 사이 간격 축소 */
+    }
+
+    /* 3. 버튼이 포함된 상단 영역(calendar-head) 정렬 보정 */
+    .calendar-head {
+        padding: 0.75rem 1rem !important;
+        justify-content: space-between !important; /* 양 끝 정렬 유지 */
+    }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-wrap">
+    <div class="topbar">
+      <div class="title-block">
+        <h2>📅 S-ANGEL 일정 캘린더</h2>
+        <p>S-ANGEL 전체 일정을 확인 할 수 있어요.</p>
+      </div>
+      <a href="{% url 'applications:dashboard' %}" class="btn-back">
+        <i class="fas fa-arrow-left"></i> 대시보드
+      </a>
+    </div>
+
+    <!-- ✅ calendar-card 래퍼 (네 코드에서 빠져 있었음) -->
+    <div class="calendar-card">
+      <div class="calendar-head">
+        <span class="tag"><i class="fas fa-calendar-check"></i> S-ANGEL SCHEDULE</span>
+
+        <div style="display:flex; gap:.5rem; align-items:center;">
+          {% if is_admin %}
+            <button type="button" class="btn btn-primary-custom text-white" onclick="openCreateModal()">
+              <i class="fas fa-plus"></i> 일정 추가
+            </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="calendar-body">
+        <div id="calendar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ CSRF 토큰을 확실히 생성/세팅(쿠키 발급 보조) -->
+  <form style="display:none">{% csrf_token %}</form>
+
+  <!-- Modal -->
+  <div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">일정 상세</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <form id="eventForm">
+            <input type="hidden" id="eventId">
+
+            <div class="mb-3">
+              <label class="small text-muted">일정 제목</label>
+              <input type="text" id="editTitle" class="form-control" {% if not is_admin %}readonly{% endif %}>
+            </div>
+
+            <div class="mb-3">
+              <label class="small text-muted">날짜</label>
+              <div class="d-flex gap-2">
+                <input type="date" id="editStart" class="form-control" {% if not is_admin %}readonly{% endif %}>
+                <input type="date" id="editEnd" class="form-control" {% if not is_admin %}readonly{% endif %}>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="small text-muted">상세 내용</label>
+              <textarea id="editContent" class="form-control" rows="3" {% if not is_admin %}readonly{% endif %}></textarea>
+            </div>
+
+            {% if is_admin %}
+            <div class="mb-1">
+              <label class="small text-muted">강조 색상</label>
+              <input type="color" id="editColor" class="form-control form-control-color w-100" value="#1E3A8A">
+            </div>
+            {% endif %}
+          </form>
+        </div>
+
+        <div class="modal-footer border-0 justify-content-between px-4 pb-4">
+          {% if is_admin %}
+            <button type="button" class="btn-danger-soft" onclick="deleteEvent()">
+              <i class="fas fa-trash-alt"></i> 삭제
+            </button>
+            <button type="button" class="btn btn-primary-custom text-white" onclick="saveEvent()">
+              저장
+            </button>
+          {% else %}
+            <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">닫기</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    let calendar;
+    let eventModal;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+      const calendarEl = document.getElementById('calendar');
+
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'ko',
+        fixedWeekCount: false,
+        dayMaxEvents: true,
+        events: {{ schedules_json|safe }},
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
+
+        eventClick: function (info) {
+          fillModalFromEvent(info.event);
+          eventModal.show();
+        }
+      });
+
+      calendar.render();
+    });
+
+    function fillModalFromEvent(event) {
+      document.getElementById('modalTitle').textContent = '일정 상세';
+      document.getElementById('eventId').value = event.id || '';
+      document.getElementById('editTitle').value = event.title || '';
+
+      const startStr = event.startStr;
+      const endStr = event.endStr || startStr;
+
+      document.getElementById('editStart').value = startStr;
+      document.getElementById('editEnd').value = endStr;
+
+      document.getElementById('editContent').value =
+        (event.extendedProps && event.extendedProps.content) ? event.extendedProps.content : '';
+
+      const colorEl = document.getElementById('editColor');
+      if (colorEl) colorEl.value = event.backgroundColor || event.color || '#1E3A8A';
+    }
+
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = '새 일정 추가';
+        document.getElementById('eventId').value = '';
+        document.getElementById('editTitle').value = '';
+        document.getElementById('editContent').value = '';
+
+        // ✅ 오늘 날짜를 YYYY-MM-DD 형식으로 가져오기
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000; // 시차 계산
+        const today = new Date(now - offset).toISOString().slice(0, 10);
+
+        // ✅ 입력창에 오늘 날짜 세팅
+        document.getElementById('editStart').value = today;
+        document.getElementById('editEnd').value = today;
+
+        const colorEl = document.getElementById('editColor');
+        if (colorEl) colorEl.value = '#1E3A8A';
+
+        eventModal.show();
+    }
+
+    // ✅ JSON이 아닐 때도(403/302/500 HTML) 원인을 보여주도록 개선
+    async function safeJson(res) {
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch { return { _raw: text }; }
+    }
+
+    // calendar.html 내부 스크립트 수정
+
+// ✅ 변경: 쿠키 대신 DOM에서 직접 토큰을 가져오는 함수 (더 확실함)
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+async function saveEvent() {
+    const id = document.getElementById('eventId').value;
+    const colorEl = document.getElementById('editColor');
+
+    const payload = {
+        title: document.getElementById('editTitle').value,
+        start: document.getElementById('editStart').value,
+        end: document.getElementById('editEnd').value,
+        content: document.getElementById('editContent').value,
+        color: colorEl ? colorEl.value : '#1E3A8A'
+    };
+
+    // id가 없으면 'add', 있으면 'update' 경로로 전송
+    const url = id ? `/applications/calendar/update/${id}/`
+                   : `/applications/calendar/add/`;
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken() // ✅ 호출 시점에 신선한 토큰을 가져옵니다.
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await safeJson(res);
+
+        if (!res.ok) {
+            // 403 에러 발생 시 상세 원인 출력
+            alert(`저장 실패 (HTTP ${res.status})\n\n관리자 권한이 없거나 보안 토큰(CSRF)이 만료되었습니다.`);
+            return;
+        }
+
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert(data.message || '저장에 실패했습니다.');
+        }
+    } catch (e) {
+        alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+}
+
+    async function deleteEvent() {
+    const id = document.getElementById('eventId').value;
+    
+    // 1. 저장되지 않은(ID가 없는) 일정인지 확인
+    if (!id) {
+        alert('아직 저장되지 않은 일정은 삭제할 수 없습니다.');
+        return;
+    }
+    
+    if (!confirm('정말로 이 일정을 삭제하시겠습니까?')) return;
+
+    // 2. 최신 CSRF 토큰 가져오기 (이전에 만든 함수 활용)
+    const token = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    try {
+        // 3. URL 끝에 슬래시(/)가 빠지지 않았는지 꼭 확인하세요!
+        const res = await fetch(`/applications/calendar/delete/${id}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': token,  // 보안 열쇠 전달
+                'Content-Type': 'application/json'
+            }
+        });
+
+        // 에러 상세 내용을 파악하기 위해 safeJson 활용
+        const data = await safeJson(res);
+
+        if (!res.ok) {
+            alert(`삭제 실패 (HTTP ${res.status})\n\n보안 토큰이 만료되었거나 관리자 권한이 없습니다.`);
+            return;
+        }
+
+        if (data.status === 'success') {
+            location.reload(); // 성공 시 새로고침
+        } else {
+            alert(data.message || '삭제에 실패했습니다.');
+        }
+    } catch (e) {
+        alert('네트워크 연결 문제로 삭제 요청을 보내지 못했습니다.');
+    }
+}
+  </script>
+</body>
+</html>

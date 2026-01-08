@@ -12,10 +12,18 @@ import datetime
 from django.contrib.auth import get_user_model # <--- User를 직접 import하는 대신 이 함수를 가져옵니다.
 User = get_user_model() # <--- settings.py에 설정된 User 모델을 가져와 변수에 할당합니다.
 from django.db.models import Q
-from .models import Transaction
+from .models import Transaction, ClubSchedule
 from django.db.models import Sum
 import openpyxl
 from django.http import HttpResponse
+import json
+from django.core.serializers.json import DjangoJSONEncoder
+# applications/views.py 맨 위에 추가
+
+from django.views.decorators.http import require_POST  # 👈 이 줄이 빠져서 에러가 났습니다!
+from django.http import JsonResponse # AJAX 처리를 위해 이것도 필요합니다.
+from datetime import date, timedelta
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 @login_required
@@ -579,3 +587,97 @@ def accounting_delete(request, pk):
         transaction.delete()
         messages.success(request, "내역이 삭제되었습니다.")
     return redirect('applications:accounting_list')
+
+@login_required
+@ensure_csrf_cookie
+def calendar_view(request):
+    schedules = ClubSchedule.objects.all().order_by("start_date")
+
+    schedule_list = []
+    for s in schedules:
+        item = {
+            "id": s.id,
+            "title": s.title,
+            "start": s.start_date.isoformat(),
+            "color": s.color or "#1E3A8A",
+            # FullCalendar는 extra field를 event.extendedProps로 넣어줌
+            "content": s.content or "",
+            "allDay": True,
+        }
+
+        # ✅ 핵심: end는 "exclusive"
+        # - 기간 일정이면 (end_date + 1일)로 보내야 정상 표시
+        # - 단일 일정이면 end를 아예 보내지 않는 게 가장 깔끔
+        if s.end_date and s.end_date > s.start_date:
+            item["end"] = (s.end_date + timedelta(days=1)).isoformat()
+
+        schedule_list.append(item)
+
+    context = {
+        "schedules_json": json.dumps(schedule_list, cls=DjangoJSONEncoder),
+        "is_admin": request.user.is_staff,
+    }
+    return render(request, "applications/calendar.html", context)
+
+
+@staff_member_required
+@require_POST
+def add_schedule(request):
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+
+        start = data.get("start")
+        end = data.get("end")
+
+        # ISO 형식(YYYY-MM-DD) 문자열을 파이썬 date 객체로 변환
+        start_date = date.fromisoformat(start) if start else None
+        end_date = date.fromisoformat(end) if end else None
+
+        # 종료일이 시작일보다 빠르면 단일 일정으로 취급 (None)
+        if end_date and start_date and end_date <= start_date:
+            end_date = None
+
+        ClubSchedule.objects.create(
+            title=data.get("title", "").strip(),
+            start_date=start_date,
+            end_date=end_date,
+            content=data.get("content", ""),
+            color=data.get("color", "#1E3A8A"),
+        )
+        return JsonResponse({"status": "success"})
+    except Exception as e:
+        # 에러 발생 시 400 에러와 함께 메시지 전송
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+
+@staff_member_required
+@require_POST
+def update_schedule(request, pk):
+    schedule = get_object_or_404(ClubSchedule, pk=pk)
+    data = json.loads(request.body.decode("utf-8"))
+
+    start = data.get("start")
+    end = data.get("end")
+
+    start_date = date.fromisoformat(start) if start else schedule.start_date
+    end_date = date.fromisoformat(end) if end else None
+
+    if end_date and end_date <= start_date:
+        end_date = None
+
+    schedule.title = data.get("title", schedule.title).strip()
+    schedule.content = data.get("content", schedule.content or "")
+    schedule.start_date = start_date
+    schedule.end_date = end_date
+    schedule.color = data.get("color", schedule.color or "#1E3A8A")
+    schedule.save()
+
+    return JsonResponse({"status": "success"})
+
+
+@staff_member_required
+@require_POST
+def delete_schedule(request, pk):
+    schedule = get_object_or_404(ClubSchedule, pk=pk)
+    schedule.delete()
+    return JsonResponse({"status": "success"})
