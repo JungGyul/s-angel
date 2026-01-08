@@ -25,7 +25,6 @@ urlpatterns = [
 
     path('event/<int:event_id>/update/', views.event_update, name='event_update'),
 
-    path('user/<int:user_id>/update_gender/', views.update_user_gender, name='update_user_gender'),
 
     path('event/<int:event_id>/review/', views.review_winners, name='review_winners'),
     path('event/<int:event_id>/finalize/', views.finalize_event, name='finalize_event'),
@@ -35,5 +34,10 @@ urlpatterns = [
     path('accounting/export/', views.export_accounting_excel, name='export_accounting_excel'),
     path('accounting/<int:pk>/update/', views.accounting_update, name='accounting_update'),
     path('accounting/<int:pk>/delete/', views.accounting_delete, name='accounting_delete'),
+
+    path('user/<int:user_id>/update_info/', views.update_user_info, name='update_user_info'),
+    
+    # 회계 열람 권한 토글
+    path('user/<int:user_id>/toggle_permission/', views.toggle_accounting_permission, name='toggle_accounting_permission'),
 
 ]

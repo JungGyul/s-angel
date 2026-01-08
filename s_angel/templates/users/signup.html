@@ -10,10 +10,9 @@
     <style>
         *, *::before, *::after { box-sizing: border-box; }
         
-        /* ▼▼▼ 그라데이션 색상을 더 진한 색으로 변경 ▼▼▼ */
         :root {
-            --gradient-start: #1E3A8A; /* 더 진한 네이비 */
-            --gradient-end: #312E81;   /* 더 진한 다크 인디고 */
+            --gradient-start: #1E3A8A; 
+            --gradient-end: #312E81;   
             --background-color: #F9FAFB;
             --card-bg: #FFFFFF;
             --border-color: #E5E7EB;
@@ -22,7 +21,6 @@
             --text-light: #6B7280;
             --danger-red: #EF4444;
         }
-        /* ▲▲▲ 여기까지 ▲▲▲ */
 
         body {
             background-color: var(--background-color);
@@ -52,7 +50,6 @@
             padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.5rem;
             font-size: 0.9rem; font-weight: 500;
         }
-        .error-box ul { margin: 0; padding-left: 1.25rem; }
         .form-group { position: relative; margin-bottom: 1.25rem; }
         .form-control {
             width: 100%; padding: 0.9rem 1rem 0.9rem 2.5rem;
@@ -60,7 +57,6 @@
             background-color: var(--background-color); font-size: 1rem;
             transition: all 0.2s ease;
         }
-        /* ▼▼▼ 포커스 색상도 함께 변경 ▼▼▼ */
         .form-control:focus {
             border-color: var(--gradient-start); background-color: var(--card-bg);
             box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.25);
@@ -83,31 +79,16 @@
             color: var(--text-light);
         }
         .bottom-link a { color: var(--gradient-end); font-weight: 600; text-decoration: none; }
+        
         select.form-control {
-        /* 브라우저 기본 화살표 디자인 제거 */
-        -webkit-appearance: none;
-        appearance: none;
-
-        /* 우리가 직접 만든 화살표 아이콘 추가 */
-        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236B7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M10%2012a1%201%200%2001-.707-.293l-3-3a1%201%200%20011.414-1.414L10%209.586l2.293-2.293a1%201%200%20011.414%201.414l-3%203A1%201%200%200110%2012z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E');
-        background-repeat: no-repeat;
-        background-position: right 0.75rem center;
-        background-size: 1.25em 1.25em;
-
-        /* 오른쪽 화살표 공간 확보를 위해 오른쪽 패딩 추가 */
-        padding-right: 2.5rem;
-    }
-    .message-box {
-            padding: 0.9rem 1.25rem;
-            margin-bottom: 1.5rem;
-            border-radius: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
+            -webkit-appearance: none; appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236B7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M10%2012a1%201%200%2001-.707-.293l-3-3a1%201%200%20011.414-1.414L10%209.586l2.293-2.293a1%201%200%20011.414%201.414l-3%203A1%201%200%200110%2012z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.25em 1.25em;
+            padding-right: 2.5rem;
         }
-        .message-box i { margin-right: 0.75rem; }
-        .info-box { background-color: #DBEAFE; color: var(--info-blue); }
+        .error-text { color: var(--danger-red); font-size: 0.8rem; margin-top: 0.25rem; margin-left: 0.5rem; }
     </style>
 </head>
 <body>
@@ -115,12 +96,7 @@
         <h1 class="site-title">S-ANGEL</h1>
         <div class="auth-card">
             <h2>회원가입</h2>
-            {% if info_message %}
-                <div class="message-box info-box">
-                    <i class="fas fa-info-circle"></i>
-                    <span>{{ info_message }}</span>
-                </div>
-            {% endif %}
+
             <form method="post">
                 {% csrf_token %}
 
@@ -163,6 +139,14 @@
                         <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>남자</option>
                         <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>여자</option>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <i class="fas fa-users form-icon"></i>
+                    <input type="number" name="generation" class="form-control" placeholder="기수 (예: 21)" required value="{{ form.generation.value|default_if_none:'' }}">
+                    {% if form.generation.errors %}
+                        <div class="error-text">{{ form.generation.errors|striptags }}</div>
+                    {% endif %}
                 </div>
 
                 <button type="submit" class="btn-gradient">가입 신청</button>

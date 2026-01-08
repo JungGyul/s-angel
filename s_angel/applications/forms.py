@@ -29,10 +29,12 @@ class EventCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['male_slots'].required = False
         self.fields['female_slots'].required = False
-class UserGenderUpdateForm(forms.ModelForm):
+
+class UserInfoUpdateForm(forms.ModelForm):
     class Meta:
         model = get_user_model()
-        fields = ['gender']
+        fields = ['gender', 'generation']
         labels = {
             'gender': '성별',
+            'generation': '기수',
         }

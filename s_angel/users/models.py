@@ -16,6 +16,8 @@ class User(AbstractUser):
     username = models.CharField(blank=True, max_length=255)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True)
     weight = models.IntegerField(_("User Weight"), default=1)
+    generation = models.PositiveIntegerField(default=21, verbose_name="기수")
+    can_view_accounting = models.BooleanField(default=False, verbose_name="회계 열람 권한")
 
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.

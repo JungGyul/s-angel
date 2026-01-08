@@ -1,244 +1,550 @@
-
-
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>관리자 페이지</title>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-{% block content %}
+ <head>
+ <meta charset="UTF-8"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>관리자 페이지</title> 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% load static %}
+
 <style>
-    /* ... (기존 스타일 상단은 동일) ... */
-    :root {
-        --gradient-start: #1E3A8A; --gradient-end: #312E81; --background-color: #F9FAFB;
-        --card-bg: #FFFFFF; --border-color: #E5E7EB; --text-dark: #111827;
-        --navy-dark: #1A2C5B; --text-medium: #374151; --text-light: #6B7280;
-        --danger-red: #EF4444; --danger-red-light: #FEF2F2;
-    }
-    *, *::before, *::after { box-sizing: border-box; }
-    .admin-body-v2 { background-color: var(--background-color); font-family: 'Inter', 'Pretendard', sans-serif; }
-    .admin-container-v2 { max-width: 1200px; margin: auto; padding: 3rem 1.5rem; }
-    .page-header-v2 { display: flex; align-items: center; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 2.5rem; }
-    .page-header-v2 h1 { font-weight: 800; font-size: 2.25rem; color: var(--navy-dark); margin: 0; }
-    .btn-dashboard { background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-medium); font-weight: 600; padding: 0.6rem 1.2rem; border-radius: 0.5rem; text-decoration: none; transition: all 0.2s ease; }
-    .btn-dashboard:hover { background-color: var(--text-dark); color: var(--card-bg); border-color: var(--text-dark); }
-    .section-card { background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05); overflow: hidden; }
-    .section-card-header { padding: 1rem 1.5rem; background-color: #F9FAFB; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; font-weight: 600; color: var(--text-medium); }
-    .section-card-body { padding: 1.5rem; } /* 내부 여백을 조금 더 줍니다. */
-    .user-item { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 0; border-bottom: 1px solid var(--border-color); }
-    .user-item:last-child { border: none; }
-    .user-details strong { font-size: 1.05rem; font-weight: 600; color: var(--text-dark); }
-    .user-details small { color: var(--text-light); font-size: 0.8rem; }
-    .weight-form-v2 { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
-    .weight-form-v2 .form-control { border-radius: 0.375rem; border-color: var(--border-color); width: 80px; }
-    .weight-form-v2 .form-control:focus { border-color: var(--gradient-start); box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.25); }
-    .btn-action { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; border-radius: 0.375rem; border: 2px solid transparent; transition: all 0.2s ease-in-out; padding: 0.25rem 0.75rem; }
-    .btn-action-outline { background-color: transparent; border-color: var(--border-color); color: var(--text-light); }
-    .btn-action-outline:hover { border-color: transparent; background-image: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-end) 100%); color: white; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); }
-    .btn-delete { background-color: var(--danger-red-light); color: var(--danger-red); border: none; padding: 0.5rem 1rem; font-weight: 600; border-radius: 0.5rem; transition: all 0.2s ease; }
-    .btn-delete:hover { background-color: var(--danger-red); color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
-    .custom-alert { padding: 1rem 1.5rem; margin-bottom: 2rem; border: 1px solid var(--border-color); border-left-width: 5px; border-left-color: var(--gradient-start); background-color: var(--card-bg); color: var(--text-medium); border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); display: flex; align-items: center; font-weight: 500; }
-    .custom-alert i { color: var(--gradient-start); margin-right: 1rem; font-size: 1.25rem; }
-    .btn-delete-second { background-color: var(--danger-red-light); color: var(--danger-red); border: none; padding: 0.375rem 1rem; font-weight: 600; border-radius: 0.5rem; transition: all 0.2s ease; }
-    .btn-delete-second:hover { background-color: var(--danger-red); color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
-    .ms-auto { margin-left: auto; }
+  :root{
+    --navy:#1E3A8A;
+    --navy2:#312E81;
+    --bg:#F9FAFB;
+    --card:#FFFFFF;
+    --border:#E5E7EB;
+    --text:#0F172A;
+    --muted:#64748B;
+    --danger:#EF4444;
+    --dangerBg:#FEF2F2;
+    --shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+    --ring: 0 0 0 3px rgba(30,58,138,.18);
+    --radius: 16px;
+  }
 
-    /* admin_page.html의 style 태그 안 */
-.user-details-link {
-    text-decoration: none;
-    color: inherit;
-}
-.user-details-link:hover strong {
-    color: var(--gradient-start);
-    text-decoration: underline;
-}
+  /* ✅ iOS Safari에서 가로 튐/줌/레이아웃 깨짐 방지 핵심 */
+  html, body { max-width: 100%; overflow-x: hidden; }
+  *{ box-sizing:border-box; }
+  img, svg{ max-width:100%; height:auto; }
+  input, select, textarea, button { font: inherit; }
+  input, select, textarea { min-width:0; }
+  /* iOS zoom 방지(폼 포커스 시 확대) - 필요하면 16px 이상 */
+  .search-input, .gen-select, .form-control, .form-select{ font-size:16px; }
 
-    /* ▼▼▼ 검색창 스타일 추가 ▼▼▼ */
-    .search-form {
-        position: relative;
-        margin-bottom: 1.5rem;
-    }
-    .search-input {
-        width: 100%;
-        padding: 0.75rem 1rem 0.75rem 2.5rem; /* 아이콘 공간 확보 */
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-    }
-    .search-icon {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--text-light);
-    }
-    @media (max-width: 768px) {
-    .admin-container-v2 {
-        padding: 1.5rem 1rem;
-    }
+  .admin-page{
+    background: radial-gradient(1200px 500px at 25% -10%, rgba(30,58,138,.08), transparent 60%),
+                radial-gradient(900px 400px at 90% 0%, rgba(49,46,129,.06), transparent 55%),
+                var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 1.8rem 0;
+  }
 
-    /* ▼▼▼ 헤더 관련 스타일을 '새 활동 만들기' 페이지와 동일하게 수정합니다 ▼▼▼ */
-    .page-header-v2 h1 {
-        font-size: 1.5rem; /* 제목 폰트 크기 축소 */
-    }
-    /* ▲▲▲ 여기까지 ▲▲▲ */
-    .page-header-v2 {
-        flex-direction: column; /* 모바일에서는 제목과 버튼을 세로로 */
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    .page-header-v2 .ms-auto {
-        margin-left: 0 !important; /* 왼쪽 여백 초기화 */
-        width: 100%;
-        display: flex;
-        flex-direction: column; /* 버튼들도 세로로 쌓기 */
-    }
-    .btn-dashboard {
-        width: 100%; /* 버튼이 가득 차도록 */
-        justify-content: center;
-    }
-    
-    .user-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    .user-item > div {
-        width: 100%;
-    }
-    .btn-delete {
-        width: 100%;
-    }
-}
-/* ✅ 제목-버튼 영역 사이 거리 확보 (붙어보이는 느낌 제거) */
-.page-header-v2{
-  justify-content: space-between;
-  gap: 1.5rem;          /* 제목과 버튼 그룹 사이 */
-}
+  .admin-wrap{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
 
-/* ✅ 그룹 박스 없애기: 배경/테두리/그림자 제거 */
-.header-actions{
-  display: inline-flex;
-  align-items: center;
-  gap: 0.85rem;         /* 버튼끼리 간격 */
-  padding: 0;           /* 그룹 패딩 제거 */
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-/* ✅ 버튼 자체를 조금 더 “독립된 컴포넌트”처럼 보이게 */
-.header-actions .btn-dashboard{
-  padding: 0.7rem 1.1rem;
-  border-radius: 0.7rem;
-}
-
-/* 모바일: 버튼은 세로로, 그룹 박스는 여전히 없음 */
-@media (max-width: 768px){
-  .page-header-v2{
-    flex-direction: column;
-    align-items: flex-start;
+  .page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
     gap: 1rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+
+  .page-title{
+    margin:0;
+    font-weight: 1000;
+    font-size: 1.9rem;
+    letter-spacing: -0.02em;
+    border-left: 5px solid var(--navy);
+    padding-left: .9rem;
+    line-height: 1.15;
   }
 
   .header-actions{
-    width: 100%;
-    display: flex;
-    flex-direction: column;
+    display:flex;
+    gap: .65rem;
+    flex-wrap: wrap;
+    align-items:center;
+  }
+
+  /* ✅ 버튼(부트스트랩 없어도 보기 유지) */
+  .btn-pill{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.45rem;
+    padding: .7rem 1rem;
+    border-radius: 14px;
+    font-weight: 600;
+    text-decoration:none;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+    transition: .15s ease;
+    white-space: nowrap;
+    user-select:none;
+    line-height: 1;
+  }
+  .btn-pill:hover{ background:#F1F5F9; }
+
+  /* ✅ (수정본) 회계 장부 버튼 hover 깜빡임 완화 */
+  .btn-primary{
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+    color:#fff;
+    border: none;
+    box-shadow: 0 12px 20px rgba(30,58,138,.22);
+    transition: filter .15s ease, transform .15s ease, box-shadow .15s ease; /* ✅ 명시 */
+    will-change: filter, transform; /* ✅ 사파리에서 깜빡임 완화 */
+  }
+  .btn-primary:hover{
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%); /* ✅ 유지 */
+    filter: brightness(.97);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 24px rgba(30,58,138,.26);
+  }
+
+  /* ✅ 알림(기존 누락된 custom-alert 복구) */
+  .custom-alert{
+    display:flex;
+    align-items:center;
+    gap:.75rem;
+    padding: .95rem 1rem;
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--navy);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    margin-bottom: 1rem;
+    color: #334155;
+    font-weight: 600;
+  }
+  .custom-alert i{
+    color: var(--navy);
+    font-size: 1.15rem;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 1rem;
+  }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+
+  .card-head{
+    padding: 1rem 1.25rem;
+    background: #F8FAFC;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    color: #334155;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.75rem;
+  }
+
+  .card-body{
+    padding: 1rem 1.25rem;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: .25rem .6rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: .82rem;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: #334155;
+    white-space: nowrap;
+  }
+  .badge-danger{
+    border-color: rgba(239,68,68,.25);
+    background: rgba(239,68,68,.08);
+    color: #B91C1C;
+  }
+  .badge-gray{
+    background: #fff;
+    color: #334155;
+  }
+
+  .user-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .user-item:last-child{ border-bottom: none; }
+
+  .user-details strong{
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: #0F172A;
+  }
+  .user-details small{
+    color: var(--muted);
+    font-weight: 600;
+    display:block;
+    margin-top: .25rem;
+  }
+
+  .user-details-link{
+    text-decoration:none;
+    color: inherit;
+  }
+  .user-details-link:hover strong{
+    color: var(--navy);
+    text-decoration: underline;
+  }
+
+  .btn-mini{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.4rem;
+    padding: .45rem .75rem;
+    border-radius: 10px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: #fff;
+    cursor:pointer;
+    transition:.15s ease;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .btn-mini:hover{ background:#F1F5F9; }
+
+  .btn-danger{
+    background: var(--dangerBg);
+    border: 1px solid rgba(239,68,68,.25);
+    color: #B91C1C;
+  }
+  .btn-danger:hover{
+    background: rgba(239,68,68,.12);
+  }
+
+  /* ✅ 검색/필터 */
+  .filter-bar{
+    display:flex;
+    gap: .75rem;
+    margin-bottom: 1rem;
     align-items: stretch;
-    gap: 0.6rem;
   }
 
-  .header-actions .btn-dashboard{
-    width: 100%;
-    justify-content: center;
+  .search-form{ position:relative; flex: 1 1 auto; }
+  .search-icon{
+    position:absolute;
+    left: .9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events:none;
   }
-}
+  .search-input{
+    width:100%;
+    padding: .75rem 1rem .75rem 2.5rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background:#fff;
+    font-weight: 500;
+    color:#0F172A;
+  }
+  .search-input:focus{
+    outline:none;
+    box-shadow: var(--ring);
+    border-color: rgba(30,58,138,.5);
+  }
 
+  .gen-select{
+    width: 160px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0 .9rem;
+    background:#fff;
+    font-weight: 500;
+    color:#0F172A;
+    /* iOS select 튐 방지 */
+    max-width: 100%;
+  }
+  .gen-select:focus{
+    outline:none;
+    box-shadow: var(--ring);
+    border-color: rgba(30,58,138,.5);
+  }
+
+  /* ✅ 가중치 폼 */
+  .weight-form{
+    display:flex;
+    align-items:center;
+    gap: .6rem;
+    flex-wrap: wrap;
+    margin-top: .6rem;
+  }
+  .weight-form label{
+    color: var(--muted);
+    font-weight: 600;
+    font-size: .85rem;
+  }
+  .weight-input{
+    width: 82px;
+    padding: .5rem .6rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .weight-input:focus{
+    outline:none;
+    box-shadow: var(--ring);
+    border-color: rgba(30,58,138,.5);
+  }
+
+  /* ✅ 모바일 */
+  @media (max-width: 992px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 768px){
+    .admin-page{ padding: 1.1rem 0; }
+    .page-title{ font-size: 1.35rem; }
+
+    .page-header{
+      flex-direction: column;
+      align-items: flex-start;
+      gap: .85rem;
+    }
+
+    .header-actions{
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .btn-pill{ width: 100%; }
+
+    .filter-bar{
+      flex-direction: column;
+      gap: .6rem;
+    }
+    .gen-select{
+      width: 100%;
+      height: 46px;
+    }
+
+    .user-item{
+      flex-direction: column;
+      align-items: stretch;
+      gap: .75rem;
+    }
+  }
+
+  /* ✅ 아이콘 margin 클래스(me-2 등) 없이도 정렬 깨지지 않게 */
+  .btn-pill i, .btn-mini i{ margin: 0 !important; }
 </style>
-</head>
-<body class="admin-body-v2">
-    <div class="admin-container-v2">
-        <header class="page-header-v2">
-            <h1><i class="fas fa-user-cog"></i> 관리자 페이지</h1>
-            
-            <div class="header-actions">
-                <a href="{% url 'applications:accounting_list' %}" class="btn-dashboard" style="background-color: var(--gradient-start); color: white; border: none;">
-                    <i class="fas fa-calculator me-2"></i>회계 장부 관리
-                </a>
-                
-                <a href="{% url 'applications:dashboard' %}" class="btn-dashboard">
-                    <i class="fas fa-arrow-left me-2"></i>대시보드
-                </a>
-            </div>
-        </header>
+ </head>
+ <body>
+<div class="admin-page">
+  <div class="admin-wrap">
 
-        {% if messages %}
-            {% for message in messages %}<div class="custom-alert" role="alert"><i class="fas fa-check-circle"></i><span>{{ message }}</span></div>{% endfor %}
-        {% endif %}
+    <header class="page-header">
+      <h1 class="page-title"><i class="fas fa-user-cog"></i> 관리자 페이지</h1>
 
-        <div class="row g-4">
-            <div class="col-lg-5">
-                <section class="section-card">
-                    <header class="section-card-header"><i class="fas fa-user-clock me-2 text-warning"></i>가입 승인 대기<span class="badge bg-danger float-end">{{ pending_users.count }} 명</span></header>
-                    <div class="section-card-body">
-                        {% for p_user in pending_users %}
-                            <div class="user-item"><div class="user-details"><strong>{{ p_user.name }}</strong> ({{ p_user.username }})<small class="d-block">   신청: {{ p_user.date_joined|date:"Y.m.d" }}</small></div>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <form action="{% url 'applications:approve_user' p_user.id %}" method="post">{% csrf_token %}<button type="submit" class="btn-action btn-action-outline"><i class="fas fa-check"></i>승인</button></form>
-                                <form action="{% url 'applications:reject_user' p_user.id %}" method="post" onsubmit="return confirm('정말로 {{ p_user.username }} 님의 가입을 거절하시겠습니까?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn-delete-second"><i class="fas fa-times me-1"></i>거절</button>
-                            </form>
-                            </div>
-                        </div>
-                        {% empty %}
-                            <p class="text-center text-muted py-3">승인 대기중인 사용자가 없습니다.</p>
-                        {% endfor %}
-                    </div>
-                </section>
-            </div>
-            <div class="col-lg-7">
-                <section class="section-card">
-                    <header class="section-card-header"><i class="fas fa-users me-2 text-success"></i>사용자 관리<span class="badge bg-light text-dark float-end">{{ active_users.count }} 명</span></header>
-                    <div class="section-card-body">
-                        
-                        <form method="get" action="{% url 'applications:admin_page' %}" class="search-form">
-                            <i class="fas fa-search search-icon"></i>
-                            <input type="text" name="q" class="search-input" placeholder="사용자 아이디 또는 이름으로 검색" value="{{ search_query|default_if_none:'' }}">
-                        </form>
+      <div class="header-actions">
+        <a href="{% url 'applications:accounting_list' %}" class="btn-pill btn-primary">
+          <i class="fas fa-calculator"></i>회계 장부 관리
+        </a>
+        <a href="{% url 'applications:dashboard' %}" class="btn-pill">
+          <i class="fas fa-arrow-left"></i>대시보드
+        </a>
+      </div>
+    </header>
 
-                        {% for a_user in active_users %}
-                            <div class="user-item">
-                                <div>
-                                    <div class="user-details"><a href="{% url 'applications:update_user_gender' a_user.id %}" class="user-details-link">
-                                        <strong>{{ a_user.name }}</strong>
-                                    </a> ({{ a_user.username }}){% if a_user.is_staff %}<span class="badge bg-primary-subtle text-primary-emphasis rounded-pill ms-2">Admin</span>{% endif %}</div>
-                                    <form action="{% url 'applications:update_user_weight' a_user.id %}" method="post" class="weight-form-v2">
-                                        {% csrf_token %}<label for="weight-{{ a_user.id }}" class="form-label mb-0 small text-light">가중치:</label><input type="number" name="weight" value="{{ a_user.weight }}" class="form-control form-control-sm" min="1" id="weight-{{ a_user.id }}"><button type="submit" class="btn-action btn-action-outline"><i class="fas fa-pencil-alt"></i>수정</button>
-                                    </form>
-                                </div>
-                                <div>
-                                    {% if not a_user.is_staff %}<form action="{% url 'applications:delete_user' a_user.id %}" method="post" onsubmit="return confirm('정말로 {{ a_user.username }} 사용자를 삭제하시겠습니까?');">{% csrf_token %}<button type="submit" class="btn-delete"><i class="fas fa-trash-alt me-1"></i>삭제</button></form>{% endif %}
-                                </div>
-                            </div>
-                        {% empty %}
-                            <p class="text-center text-muted py-3">
-                                {% if search_query %}
-                                    '{{ search_query }}'에 대한 검색 결과가 없습니다.
-                                {% else %}
-                                    활성 사용자가 없습니다.
-                                {% endif %}
-                            </p>
-                        {% endfor %}
-                    </div>
-                </section>
-            </div>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="custom-alert" role="alert">
+          <i class="fas fa-check-circle"></i>
+          <span>{{ message }}</span>
         </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="grid">
+
+      <!-- 가입 승인 대기 -->
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <i class="fas fa-user-clock"></i>
+            가입 승인 대기
+          </div>
+          <span class="badge badge-danger">{{ pending_users.count }} 명</span>
+        </div>
+
+        <div class="card-body">
+          {% for p_user in pending_users %}
+            <div class="user-item">
+              <div class="user-details">
+                <strong>{{ p_user.name }}</strong> ({{ p_user.username }})
+                <small>신청: {{ p_user.date_joined|date:"Y.m.d" }}</small>
+              </div>
+
+              <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                <form action="{% url 'applications:approve_user' p_user.id %}" method="post" style="margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-mini">
+                    <i class="fas fa-check"></i>승인
+                  </button>
+                </form>
+
+                <form action="{% url 'applications:reject_user' p_user.id %}" method="post"
+                      onsubmit="return confirm('정말로 {{ p_user.username }} 님의 가입을 거절하시겠습니까?');"
+                      style="margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-mini btn-danger">
+                    <i class="fas fa-times"></i>거절
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% empty %}
+            <div style="padding:1.25rem 0; color:var(--muted); font-weight:600; text-align:center;">
+              승인 대기중인 사용자가 없습니다.
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- 사용자 관리 -->
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <i class="fas fa-users"></i>
+            사용자 관리
+          </div>
+          <span class="badge badge-gray">{{ active_users.count }} 명</span>
+        </div>
+
+        <div class="card-body">
+
+          <div class="filter-bar">
+            <form method="get" action="{% url 'applications:admin_page' %}" class="search-form" id="searchForm">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" name="q" class="search-input" placeholder="사용자 아이디 또는 이름으로 검색"
+                     value="{{ search_query|default_if_none:'' }}">
+              <input type="hidden" name="gen" value="{{ gen_filter|default_if_none:'' }}">
+            </form>
+
+            <select class="gen-select" id="genSelect">
+              <option value="">전체 기수</option>
+              {% for g in generations %}
+                <option value="{{ g }}" {% if gen_filter == g|stringformat:"i" %}selected{% endif %}>{{ g }}기</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {% for a_user in active_users %}
+            <div class="user-item">
+              <div style="flex:1 1 auto;">
+                <div class="user-details">
+                  <a href="{% url 'applications:update_user_info' a_user.id %}" class="user-details-link">
+                    <strong>{{ a_user.name }}</strong>
+                  </a>
+                  <span style="color:var(--muted); font-weight:450; margin-left:.35rem;">({{ a_user.username }}, {{ a_user.generation }}기)</span>
+                  {% if a_user.is_staff %}
+                    <span class="badge" style="margin-left:.5rem; border-color: rgba(59,130,246,.25); background: rgba(59,130,246,.08); color:#1D4ED8;">Admin</span>
+                  {% endif %}
+
+                  <!-- ✅ (수정본) 회계열람 토글 시 확인 메시지 -->
+                  <form action="{% url 'applications:toggle_accounting_permission' a_user.id %}"
+                        method="post"
+                        onsubmit="return confirm('{% if a_user.can_view_accounting %}회계 열람을 차단할까요?{% else %}회계 열람을 허용할까요?{% endif %}');"
+                        style="display:inline-block; margin-left:.5rem;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-mini"
+                            style="
+                              border-radius:999px;
+                              padding:.38rem .65rem;
+                              font-size:.85rem;
+                              border: 1px solid var(--border);
+                              background: {% if a_user.can_view_accounting %}rgba(16,185,129,.10){% else %}#fff{% endif %};
+                              color: {% if a_user.can_view_accounting %}#047857{% else %}#475569{% endif %};
+                            ">
+                      <i class="fas {% if a_user.can_view_accounting %}fa-eye{% else %}fa-eye-slash{% endif %}"></i>
+                      회계열람 {% if a_user.can_view_accounting %}허용{% else %}차단{% endif %}
+                    </button>
+                  </form>
+                </div>
+
+                <form action="{% url 'applications:update_user_weight' a_user.id %}" method="post" class="weight-form">
+                  {% csrf_token %}
+                  <label for="weight-{{ a_user.id }}">가중치</label>
+                  <input id="weight-{{ a_user.id }}" type="number" name="weight" value="{{ a_user.weight }}"
+                         class="weight-input" min="1" inputmode="numeric">
+                  <button type="submit" class="btn-mini">
+                    <i class="fas fa-pencil-alt"></i>수정
+                  </button>
+                </form>
+              </div>
+
+              <div>
+                {% if not a_user.is_staff %}
+                  <form action="{% url 'applications:delete_user' a_user.id %}" method="post"
+                        onsubmit="return confirm('정말로 {{ a_user.username }} 사용자를 삭제하시겠습니까?');"
+                        style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-mini btn-danger" title="삭제">
+                      <i class="fas fa-trash-alt"></i>삭제
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          {% empty %}
+            <div style="padding:1.25rem 0; color:var(--muted); font-weight:600; text-align:center;">
+              {% if search_query %}
+                '{{ search_query }}'에 대한 검색 결과가 없습니다.
+              {% else %}
+                활성 사용자가 없습니다.
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
     </div>
-</body>
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-{% endblock %}
+  </div>
+</div>
+
+<script>
+  // ✅ 기수 필터 변경 시 URL 안전하게 구성(특수문자/공백 방지)
+  (function () {
+    const genSelect = document.getElementById('genSelect');
+    const searchForm = document.getElementById('searchForm');
+    if (!genSelect || !searchForm) return;
+
+    genSelect.addEventListener('change', function () {
+      const params = new URLSearchParams(new FormData(searchForm));
+      params.set('gen', this.value || '');
+      const url = window.location.pathname + '?' + params.toString();
+      window.location.href = url;
+    });
+  })();
+</script>
+</body> 
+</html>

@@ -15,24 +15,26 @@ class SimpleUserSignupForm(UserCreationForm):
     # UserCreationForm에 없는 필드들을 직접 정의합니다.
     name = forms.CharField(max_length=150, required=True, help_text="이름을 입력하세요.")
     gender = forms.ChoiceField(choices=[('M', '남성'), ('F', '여성')], required=True)
+    generation = forms.IntegerField(min_value=1, required=True, help_text="기수를 입력하세요.")
 
     class Meta(UserCreationForm.Meta):
         # model은 settings.py에 설정된 User 모델을 가져옵니다.
         model = get_user_model()
         # UserCreationForm의 기본 필드('username')에 우리가 추가할 필드를 더해줍니다.
-        fields = UserCreationForm.Meta.fields + ('name', 'gender')
+        fields = UserCreationForm.Meta.fields + ('name', 'gender', 'generation')
         
 # users/forms.py 파일 하단에 추가
 
 class UserProfileChangeForm(forms.ModelForm):
     class Meta:
         model = get_user_model()
-        fields = ['username', 'name', 'gender']
+        fields = ['username', 'name', 'gender', 'generation']
 
         labels = {
             'username': '아이디',
             'name': '이름',
             'gender': '성별',
+            'generation': '기수',
         }
 
 class UserAdminChangeForm(admin_forms.UserChangeForm):

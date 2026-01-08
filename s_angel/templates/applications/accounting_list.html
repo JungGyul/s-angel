@@ -342,9 +342,11 @@ button.action-pill{
       <a href="{% url 'applications:export_accounting_excel' %}" class="btn-action btn-excel">
         <i class="fas fa-file-excel"></i>엑셀 다운로드
       </a>
+      {% if is_admin %}
       <a href="{% url 'applications:accounting_create' %}" class="btn-action btn-add">
         <i class="fas fa-plus"></i>내역 추가
       </a>
+        {% endif %}
     </div>
 
     <div class="sum-grid">
@@ -397,16 +399,19 @@ button.action-pill{
 
             <td data-label="관리">
               <div class="manage-wrap">
+                {% if is_admin %}
                 <a href="{% url 'applications:accounting_update' tx.id %}" class="action-pill edit" title="수정">
                   <i class="fas fa-pen"></i>수정
                 </a>
-
+                    {% endif %}
                 <form action="{% url 'applications:accounting_delete' tx.id %}" method="post"
                       onsubmit="return confirm('정말 삭제하시겠습니까?');" style="margin:0;">
                   {% csrf_token %}
+                  {% if is_admin %}
                   <button type="submit" class="action-pill del" title="삭제">
                     <i class="fas fa-trash"></i>삭제
                   </button>
+                    {% endif %}
                 </form>
               </div>
             </td>

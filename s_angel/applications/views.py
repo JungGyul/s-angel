@@ -5,7 +5,7 @@ from django.shortcuts import render, get_object_or_404
 from .models import Event, Application
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import redirect
-from .forms import EventCreateForm, UserGenderUpdateForm
+from .forms import EventCreateForm, UserInfoUpdateForm
 import random
 from django.contrib import messages
 import datetime
@@ -316,39 +316,49 @@ def dashboard(request):
 
 # applications/views.py 의 admin_page 함수
 
+# applications/views.py
+
 @staff_member_required
 def admin_page(request):
-    """관리자 전용 종합 관리 페이지 뷰"""
-    pending_users = User.objects.filter(is_active=False).order_by('-date_joined')
+    """관리자 페이지: 검색 및 기수 필터링 기능 추가"""
+    search_query = request.GET.get('q', '')
+    gen_filter = request.GET.get('gen', '') # 기수 필터 파라미터
 
-    # ▼▼▼ 검색 및 정렬 로직 시작 ▼▼▼
-
-    # 1. GET 파라미터에서 검색어(q)를 가져옵니다.
-    search_query = request.GET.get('q', None)
-
-    # 2. 기본적으로 모든 활성 사용자를 가져옵니다.
     active_users = User.objects.filter(is_active=True).exclude(id=request.user.id)
 
-    # 3. 만약 검색어가 있다면, 해당 검색어로 필터링합니다.
+    # 1. 기수 필터링
+    if gen_filter:
+        active_users = active_users.filter(generation=gen_filter)
+
+    # 2. 검색어 필터링
     if search_query:
-        # username 필드 또는 name 필드에 검색어가 포함(icontains)된 사용자를 찾습니다.
         active_users = active_users.filter(
             Q(username__icontains=search_query) | Q(name__icontains=search_query)
         )
 
-    # 4. 최종적으로 사용자 이름(name)을 기준으로 가나다순 정렬합니다.
-    active_users = active_users.order_by('name')
-
-    # ▲▲▲ 검색 및 정렬 로직 끝 ▲▲▲
+    # 3. 정렬 및 기수 목록 가져오기 (필터 드롭다운용)
+    active_users = active_users.order_by('generation', 'name')
+    generations = User.objects.values_list('generation', flat=True).distinct().order_by('generation')
 
     context = {
-        'pending_users': pending_users,
         'active_users': active_users,
-        'search_query': search_query, # 템플릿에 검색어를 전달
+        'search_query': search_query,
+        'gen_filter': gen_filter,
+        'generations': generations,
+        'pending_users': User.objects.filter(is_active=False),
     }
     return render(request, 'applications/admin_page.html', context)
 
-
+# 권한 토글 뷰 추가
+@staff_member_required
+def toggle_accounting_permission(request, user_id):
+    if request.method == 'POST':
+        target_user = get_object_or_404(User, id=user_id)
+        target_user.can_view_accounting = not target_user.can_view_accounting
+        target_user.save()
+        status = "부여" if target_user.can_view_accounting else "회수"
+        messages.success(request, f"{target_user.name}님의 회계 열람 권한이 {status}되었습니다.")
+    return redirect(request.META.get('HTTP_REFERER', 'applications:admin_page'))
 
 @staff_member_required
 def approve_user(request, user_id):
@@ -431,37 +441,46 @@ def event_update(request, event_id):
     }
     return render(request, 'applications/event_update.html', context)
 
+# applications/views.py
+
 @staff_member_required
-def update_user_gender(request, user_id):
-    """관리자가 사용자의 성별을 수정하는 뷰"""
+def update_user_info(request, user_id):
+    """성별과 기수를 모두 수정하는 뷰"""
     user_to_update = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
-        form = UserGenderUpdateForm(request.POST, instance=user_to_update)
+        # UserInfoUpdateForm으로 이름 변경 권장
+        form = UserInfoUpdateForm(request.POST, instance=user_to_update)
         if form.is_valid():
             form.save()
-            messages.success(request, f"'{user_to_update.name}' 님의 성별이 성공적으로 수정되었습니다.")
+            messages.success(request, f"'{user_to_update.name}'님의 정보(기수: {user_to_update.generation}기)가 수정되었습니다.")
             return redirect('applications:admin_page')
     else:
-        form = UserGenderUpdateForm(instance=user_to_update)
+        form = UserInfoUpdateForm(instance=user_to_update)
         
     context = {
         'form': form,
         'user_to_update': user_to_update,
     }
-    return render(request, 'applications/update_user_gender.html', context)
+    return render(request, 'applications/update_user_info.html', context)
 
 
 # applications/views.py
 
-@staff_member_required
+# applications/views.py
+
+@login_required # staff_member_required 대신 login_required로 변경 (권한 있는 유저도 들어와야 하므로)
 def accounting_list(request):
-    """회계 내역 목록 및 총액 계산 (나중에 넣은 것이 아래로 가도록 정렬 수정)"""
+    """회계 내역 목록: 관리자 또는 권한 부여 유저만 접근 가능"""
     
-    # order_by에서 '-'를 제거하여 오름차순(과거->최신)으로 변경합니다.
+    # 🛡️ 보안 로직: 관리자도 아니고 권한도 없다면 '자물쇠 화면'으로
+    if not (request.user.is_staff or getattr(request.user, 'can_view_accounting', False)):
+        # 접근 권한이 없을 때 보여줄 페이지 (우리가 만든 unauthorized.html)
+        return render(request, 'applications/unauthorized.html')
+
+    # --- 데이터 가져오기 로직 (기존과 동일) ---
     transactions = Transaction.objects.all().order_by('date', 'id')
     
-    # 총 수입/지출 계산 (이 부분은 기존과 동일)
     total_income = transactions.filter(transaction_type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
     total_expense = transactions.filter(transaction_type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
     balance = total_income - total_expense
@@ -471,6 +490,7 @@ def accounting_list(request):
         'total_income': total_income,
         'total_expense': total_expense,
         'balance': balance,
+        'is_admin': request.user.is_staff, # 관리자 여부를 템플릿에 전달
     }
     return render(request, 'applications/accounting_list.html', context)
 
