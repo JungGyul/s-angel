@@ -12,6 +12,9 @@
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
+    *, *::before, *::after {
+    box-sizing: border-box;
+}
     /* 네이비 테마 컬러 팔레트 */
     :root {
     --gradient-start: #1E3A8A; /* 더 진한 네이비 */
@@ -242,6 +245,14 @@
         margin-right: 1rem;
         font-size: 1.25rem;
     }
+    .service-menu-container {
+    display: flex;
+    flex-wrap: wrap; /* 모바일에서 자리가 부족하면 아래로 내려가게 설정 */
+    gap: 10px;      /* 버튼 사이의 간격 */
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
     /* 기존 @media 블록을 아래 내용으로 교체 */
 
 @media (max-width: 768px) {
@@ -286,9 +297,19 @@
         flex-direction: column;
         align-items: stretch;
     }
+}
     .action-btn {
-        justify-content: center;
-    }
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    /* 버튼 너비가 부모를 넘지 않도록 설정 */
+    max-width: 100%; 
 }
 /* 캘린더 버튼 전용 디자인 */
 .action-btn.calendar-btn {
@@ -318,6 +339,23 @@
 
 /* 모바일 대응 (이전 대시보드 스타일과 호환) */
 @media (max-width: 768px) {
+    .service-menu-container {
+        gap: 8px; /* 간격을 살짝 좁힘 */
+    }
+
+    /* 위쪽 두 버튼(의전 만들기, 통계)은 반반씩 */
+    .action-btn.half-width {
+        flex: 1 1 calc(50% - 4px); /* 두 버튼이 나란히 배치되도록 */
+        font-size: 0.85rem;
+        padding: 10px 8px;
+    }
+
+    /* 아래쪽 캘린더 버튼은 한 줄 전체 차지 */
+    .action-btn.full-width {
+        flex: 1 1 100%; 
+        width: 100%;
+        margin-top: 4px; /* 위 버튼들과의 간격 */
+    }
     .action-btn.calendar-btn {
         width: 100%;
         justify-content: center;
