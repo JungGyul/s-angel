@@ -178,6 +178,59 @@
         justify-content: space-between !important; /* 양 끝 정렬 유지 */
     }
     }
+    /* calendar.html 스타일 시트의 @media(max-width:768px) 부분을 이걸로 교체하세요 */
+@media (max-width: 768px) {
+    /* 1. 달력 전체 높이 및 폰트 축소 */
+    .fc .fc-view-harness {
+        height: auto !important;
+        min-height: 500px;
+    }
+
+    /* 2. 날짜 숫자 아주 작게 (구글 캘린더 스타일) */
+    .fc .fc-daygrid-day-number {
+        font-size: 0.65rem !important;
+        padding: 2px !important;
+        font-weight: 600;
+    }
+
+    /* @media (max-width: 768px) 블록 내부 수정 */
+
+    /* 1. 일정 막대(Event Bar) 두께 대폭 축소 */
+    .fc-daygrid-event {
+        margin: 0.5px 0 !important;  /* 위아래 간격을 0.5px로 더 좁힘 */
+        padding: 0 2px !important;   /* 내부 여백을 거의 없앰 */
+        border-radius: 2px !important;
+        min-height: 12px !important; /* 최소 높이를 16px -> 12px로 줄임 (핵심) */
+        line-height: 12px !important; /* 줄 간격도 높이에 맞춤 */
+    }
+
+    /* 2. 일정 글자 크기도 이에 맞춰 더 작게 조절 */
+    .fc-event-title {
+        font-size: 0.55rem !important; /* 글자 크기 축소 (0.6rem -> 0.55rem) */
+        font-weight: 700 !important;   /* 두께는 유지하여 가독성 확보 */
+        letter-spacing: -0.02em !important;
+        line-height: 12px !important;  /* 수직 중앙 정렬을 위해 높이와 맞춤 */
+    }
+
+    /* 3. '+1 more' 링크도 더 작게 */
+    .fc-daygrid-more-link {
+        font-size: 0.5rem !important;
+        margin-top: 0 !important;
+        line-height: 1 !important;
+    }
+
+    /* 6. 헤더(요일) 높이 축소 */
+    .fc .fc-col-header-cell-cushion {
+        font-size: 0.7rem !important;
+        padding: 2px 0 !important;
+    }
+
+    /* 7. 일정 추가 버튼 컴팩트화 */
+    .btn-primary-custom {
+        padding: 0.4rem 0.7rem !important;
+        font-size: 0.75rem !important;
+    }
+}
   </style>
 </head>
 
@@ -291,7 +344,7 @@
         initialView: 'dayGridMonth',
         locale: 'ko',
         fixedWeekCount: false,
-        dayMaxEvents: true,
+        dayMaxEvents: 5, 
         events: {{ schedules_json|safe }},
         headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
 
