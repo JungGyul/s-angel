@@ -339,27 +339,46 @@
 
 /* 모바일 대응 (이전 대시보드 스타일과 호환) */
 @media (max-width: 768px) {
-    .service-menu-container {
-        gap: 8px; /* 간격을 살짝 좁힘 */
+    .dashboard-container {
+        padding: 1.5rem 1rem;
     }
 
-    /* 위쪽 두 버튼(의전 만들기, 통계)은 반반씩 */
+    /* 상단 메뉴 컨테이너: 세로 정렬(column)을 해제하고 가로 래핑 허용 */
+    .mb-5 > .d-flex {
+        flex-direction: row !important; /* column으로 바뀌는 것 방지 */
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important; /* 버튼 사이 간격 고정 */
+    }
+
+    /* 나란히 배치될 버튼 (의전 만들기, 통계 등) */
     .action-btn.half-width {
-        flex: 1 1 calc(50% - 4px); /* 두 버튼이 나란히 배치되도록 */
+        flex: 1 1 calc(50% - 5px) !important; /* 전체 100%에서 간격 10px의 절반인 5px을 뺌 */
         font-size: 0.85rem;
-        padding: 10px 8px;
+        padding: 12px 8px;
+        white-space: nowrap; /* 글자 줄바꿈 방지 */
     }
 
-    /* 아래쪽 캘린더 버튼은 한 줄 전체 차지 */
+    /* 한 줄을 다 차지할 버튼 (캘린더) */
     .action-btn.full-width {
-        flex: 1 1 100%; 
+        flex: 1 1 100% !important; 
         width: 100%;
-        margin-top: 4px; /* 위 버튼들과의 간격 */
+        margin-top: 0; /* gap이 있으므로 별도 마진 불필요 */
     }
+
     .action-btn.calendar-btn {
-        width: 100%;
         justify-content: center;
-        padding: 0.8rem;
+    }
+
+    /* 기존 카드 헤더 등 모바일 대응 */
+    .event-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    .action-links {
+        flex-direction: column;
+        align-items: stretch;
     }
 }
 </style>
@@ -394,30 +413,31 @@
             {% endfor %}
         {% endif %}
         <div class="mb-5">
-        <h2 class="section-title">서비스 메뉴</h2>
-        <div class="d-flex flex-wrap gap-3">
-            {% if request.user.is_staff %}
-                <a class="action-btn third" href="{% url 'applications:create_event' %}">
-                    <i class="fas fa-plus me-2"></i>새로운 의전 만들기
-                </a>
-            {% endif %}
-
-            {% if request.user.can_view_accounting %}
-                <a class="action-btn secondary calendar-btn" href="{% url 'applications:accounting_list' %}" style="background-color: #f1f5f9; border: 1px solid #cbd5e1;">
-                    <i class="fas fa-calculator me-2"></i>회계 장부 열람
-                </a>
-            {% endif %}
-
-            {% if request.user.is_staff %}
-                <a class="action-btn secondary" href="{% url 'applications:event_statistics' %}">
-                    <i class="fas fa-chart-bar me-2"></i>통계 페이지로 가기
-                </a>
-            {% endif %}
-            <a class="action-btn secondary calendar-btn" href="{% url 'applications:calendar' %}">
-                <i class="fas fa-calendar-alt me-2"></i>S-ANGEL 캘린더
+    <h2 class="section-title">서비스 메뉴</h2>
+    <div class="d-flex flex-wrap service-menu-container">
+        {% if request.user.is_staff %}
+            <a class="action-btn third half-width" href="{% url 'applications:create_event' %}">
+                <i class="fas fa-plus me-2"></i>새로운 의전 만들기
             </a>
-        </div>
+        {% endif %}
+
+        {% if request.user.can_view_accounting %}
+            <a class="action-btn secondary calendar-btn half-width" href="{% url 'applications:accounting_list' %}" style="background-color: #f1f5f9; border: 1px solid #cbd5e1;">
+                <i class="fas fa-calculator me-2"></i>회계 장부 열람
+            </a>
+        {% endif %}
+
+        {% if request.user.is_staff %}
+            <a class="action-btn secondary half-width" href="{% url 'applications:event_statistics' %}">
+                <i class="fas fa-chart-bar me-2"></i>통계 페이지로 가기
+            </a>
+        {% endif %}
+
+        <a class="action-btn secondary calendar-btn full-width" href="{% url 'applications:calendar' %}">
+            <i class="fas fa-calendar-alt me-2"></i>S-ANGEL 캘린더
+        </a>
     </div>
+</div>
 
         <div>
             {% if request.user.is_staff %}
