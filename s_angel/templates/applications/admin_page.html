@@ -229,6 +229,7 @@
     transition:.15s ease;
     white-space: nowrap;
     line-height: 1;
+    color: var(--text);
   }
   .btn-mini:hover{ background:#F1F5F9; }
 
@@ -382,21 +383,27 @@
 
   /* 수정 버튼 최적화 */
   .weight-form .btn-mini {
-    flex: 0 0 auto; /* 필요한 만큼의 폭만 차지 */
+    flex: 0 0 auto;
     white-space: nowrap; 
-    padding: 0.4rem 0.6rem !important; /* 좌우 패딩을 줄여 공간 확보 */
+    padding: 0.4rem 0.6rem !important;
     height: 36px;
-    font-size: 13px; /* 글자 크기를 살짝 조절 */
+    font-size: 13px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 3px; /* 아이콘과 글자 사이 간격 */
+    gap: 3px;
+
+    /* ▼▼▼ 글자 색상을 명시적으로 고정 (다크 네이비) ▼▼▼ */
+    background: #ffffff !important; /* 배경을 확실하게 흰색으로 */
+    color: var(--text) !important;  /* 글자색을 테마 텍스트색(#0F172A)으로 고정 */
+    border: 1px solid var(--border) !important;
   }
 
-  /* 아이콘 크기 조절 */
+  /* 아이콘 색상도 함께 고정 */
   .weight-form .btn-mini i {
+    color: var(--text) !important;
     font-size: 0.75rem;
-    margin-right: 2px !important; /* 아이콘 오른쪽에 아주 살짝 여백 */
+    margin-right: 2px !important;
   }
     /* 삭제 버튼 위치 조정 (우측 상단 또는 하단 적절히) */
     .user-item > div:last-child {
