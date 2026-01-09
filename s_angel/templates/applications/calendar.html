@@ -147,6 +147,9 @@
 
       .btn-primary-custom{padding:0.4rem 0.7rem!important;font-size:0.75rem!important;border-radius:10px!important;height:auto!important;}
       .btn-primary-custom i{font-size:0.75rem!important;margin-right:0.3rem!important;}
+      .calendar-card {
+    margin-bottom: 2rem;
+  }
     }
     /* 날짜 선택기가 모달 안에서 입력창 바로 아래 예쁘게 붙도록 */
 .flatpickr-wrapper {
@@ -437,7 +440,7 @@ function pickerToKstIso(picker) {
         eventDisplay: 'block',
         events: {{ schedules_json|safe }},
         headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
-
+        height: 'auto',
         eventClick: function (info) {
           fillModalFromEvent(info.event);
           eventModal.show();

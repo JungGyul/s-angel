@@ -357,37 +357,47 @@
 
     /* 가중치 폼 레이아웃 최적화 */
     .weight-form {
-      display: flex;
-      flex-wrap: nowrap; /* 요소들이 한 줄에 나오도록 강제 */
-      align-items: center;
-      justify-content: flex-start;
-      gap: 0.5rem;
-      width: 100%;
-      margin-top: 0.5rem;
-    }
+    display: flex;
+    flex-wrap: nowrap; /* 요소들이 한 줄에 유지되도록 */
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem; /* 간격을 살짝 줄임 */
+    width: 100%;
+    margin-top: 0.6rem;
+  }
 
-    .weight-input {
-      width: 70px !important; /* 폭을 적절히 조절 */
-      flex: 0 0 70px !important;
-      height: 38px;
-    }
+  .weight-input {
+    width: 60px !important; /* 입력창 폭을 더 줄임 */
+    flex: 0 0 60px !important;
+    height: 36px;
+    padding: 0.4rem !important; /* 내부 여백 축소 */
+    font-size: 14px;
+  }
 
-    .weight-form label {
-      flex-shrink: 0;
-      margin-right: 2px;
-    }
+  .weight-form label {
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    margin-right: 2px;
+  }
 
-    /* 수정 버튼이 찌그러지지 않게 설정 */
-    .weight-form .btn-mini {
-      flex-shrink: 0;
-      white-space: nowrap; /* 글자가 밑으로 숨지 않게 함 */
-      padding: 0.5rem 0.8rem !important;
-      height: 38px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
+  /* 수정 버튼 최적화 */
+  .weight-form .btn-mini {
+    flex: 0 0 auto; /* 필요한 만큼의 폭만 차지 */
+    white-space: nowrap; 
+    padding: 0.4rem 0.6rem !important; /* 좌우 패딩을 줄여 공간 확보 */
+    height: 36px;
+    font-size: 13px; /* 글자 크기를 살짝 조절 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px; /* 아이콘과 글자 사이 간격 */
+  }
 
+  /* 아이콘 크기 조절 */
+  .weight-form .btn-mini i {
+    font-size: 0.75rem;
+    margin-right: 2px !important; /* 아이콘 오른쪽에 아주 살짝 여백 */
+  }
     /* 삭제 버튼 위치 조정 (우측 상단 또는 하단 적절히) */
     .user-item > div:last-child {
       display: flex;
@@ -399,6 +409,7 @@
         width: 100%; /* 모바일에서 삭제 버튼을 넓게 쓰려면 유지, 아니면 auto */
         justify-content: center;
     }
+    
   }
 
   /* ✅ 아이콘 margin 클래스(me-2 등) 없이도 정렬 깨지지 않게 */
