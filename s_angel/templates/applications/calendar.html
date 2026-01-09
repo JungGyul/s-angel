@@ -430,7 +430,7 @@ function pickerToKstIso(picker) {
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'ko',
-        timeZone: 'Asia/Seoul',
+        timeZone: 'local',
         fixedWeekCount: false,
         dayMaxEvents: 5,
         eventDisplay: 'block',
@@ -461,19 +461,20 @@ function fillModalFromEvent(event) {
   document.getElementById('editTitle').value = event.title || '';
   document.getElementById('editContent').value = event.extendedProps?.content || '';
 
-  // ✅ Date로 넣지 말고, KST 문자열로 넣기
-  startPicker.setDate(toKstYmdHi(event.start), false, "Y-m-d H:i");
+  // ✅ Date 그대로 넣기
+  startPicker.setDate(event.start, false);
 
   if (event.end) {
-    endPicker.setDate(toKstYmdHi(event.end), false, "Y-m-d H:i");
+    endPicker.setDate(event.end, false);
   } else {
     const defaultEnd = new Date(event.start.getTime() + 60 * 60 * 1000);
-    endPicker.setDate(toKstYmdHi(defaultEnd), false, "Y-m-d H:i");
+    endPicker.setDate(defaultEnd, false);
   }
 
   const colorEl = document.getElementById('editColor');
   if (colorEl) colorEl.value = event.backgroundColor || event.color || '#1E3A8A';
 }
+
 
 
     function openCreateModal() {
