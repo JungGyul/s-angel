@@ -26,6 +26,11 @@ from datetime import date, timedelta
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
 
+from zoneinfo import ZoneInfo
+KST = ZoneInfo("Asia/Seoul")
+UTC = dt.timezone.utc
+
+
 
 @login_required
 def cancel_application(request, event_id):
@@ -592,39 +597,36 @@ def accounting_delete(request, pk):
 def _parse_iso_dt(s: str | None):
     if not s:
         return None
-    s = s.strip()
-    if s.endswith("Z"):
-        s = s[:-1] + "+00:00"
+    try:
+        d = dt.datetime.fromisoformat(s.replace('Z', '+00:00'))
 
-    d = dt.datetime.fromisoformat(s)
+        # timezone 없는 naive면 KST로 간주
+        if timezone.is_naive(d):
+            d = timezone.make_aware(d, KST)
 
-    # ✅ naive면 '기본 TIME_ZONE'으로 해석
-    if timezone.is_naive(d):
-        tz = timezone.get_default_timezone()
-        d = timezone.make_aware(d, tz)
-
-    return d
-
+        # DB 저장은 UTC로 (Django USE_TZ=True 표준)
+        return d.astimezone(UTC)
+    except Exception:
+        return None
 
 @login_required
 @ensure_csrf_cookie
 def calendar_view(request):
     schedules = ClubSchedule.objects.all().order_by("start_at")
-
     schedule_list = []
+
     for s in schedules:
-        start_local = timezone.localtime(s.start_at)
+        start_local = s.start_at.astimezone(KST)
         item = {
             "id": s.id,
             "title": s.title,
-            "start": start_local.isoformat(),
+            "start": start_local.isoformat(),  # "…+09:00"
             "allDay": False,
             "color": s.color or "#1E3A8A",
             "extendedProps": {"content": s.content or ""},
         }
-
-        if s.end_at and s.end_at > s.start_at:
-            end_local = timezone.localtime(s.end_at)
+        if s.end_at:
+            end_local = s.end_at.astimezone(KST)
             item["end"] = end_local.isoformat()
 
         schedule_list.append(item)
@@ -634,6 +636,7 @@ def calendar_view(request):
         "is_admin": request.user.is_staff,
     }
     return render(request, "applications/calendar.html", context)
+
 
 
 @staff_member_required

@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -97,7 +97,11 @@
     .fc .fc-daygrid-more-link{font-weight:800;color:var(--navy);text-decoration:none;}
 
     /* Modal */
-    .modal-content{border-radius:18px;border:1px solid rgba(226,232,240,.9);box-shadow:0 22px 50px rgba(0,0,0,.18);overflow:hidden;}
+    .modal-content{
+      border-radius:18px;border:1px solid rgba(226,232,240,.9);box-shadow:0 22px 50px rgba(0,0,0,.18);
+      /* ✅ flatpickr 팝업이 잘리는 문제 방지 */
+      overflow:visible;
+    }
     .modal-header{background:linear-gradient(135deg, rgba(30,58,138,.08), rgba(49,46,129,.05));border-bottom:1px solid rgba(226,232,240,.9);padding:1rem 1.25rem;}
     .modal-title{font-weight:900;letter-spacing:-.02em;}
     .modal-body{padding:1rem 1.25rem;}
@@ -121,6 +125,10 @@
       border-color: var(--navy) !important;
     }
 
+    /* ✅ 시간패널 입력이 클릭/타이핑 막히는 경우 방지 */
+    .flatpickr-time input { pointer-events:auto !important; user-select:text !important; }
+    .flatpickr-time .numInputWrapper { pointer-events:auto !important; }
+
     @media (max-width: 768px) {
       .topbar{flex-direction:column;align-items:stretch;}
       .btn-back{width:100%;justify-content:center;}
@@ -140,6 +148,24 @@
       .btn-primary-custom{padding:0.4rem 0.7rem!important;font-size:0.75rem!important;border-radius:10px!important;height:auto!important;}
       .btn-primary-custom i{font-size:0.75rem!important;margin-right:0.3rem!important;}
     }
+    /* 날짜 선택기가 모달 안에서 입력창 바로 아래 예쁘게 붙도록 */
+.flatpickr-wrapper {
+  display: block;
+  width: 100%;
+}
+
+/* 캘린더 팝업이 모달 뒤로 숨지 않도록 z-index 조절 */
+.flatpickr-calendar.static {
+  top: 100% !important;
+  z-index: 9999;
+}
+
+/* 시작/종료 배지 스타일 살짝 조정 */
+.badge.bg-light.text-dark {
+  min-width: 45px;
+  font-weight: 800;
+  border: 1px solid var(--border);
+}
   </style>
 </head>
 
@@ -177,7 +203,7 @@
   <form style="display:none">{% csrf_token %}</form>
 
   <!-- Modal -->
-  <div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
+  <div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true" data-bs-focus="false">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
@@ -262,12 +288,92 @@
       try { return JSON.parse(text); }
       catch { return { _raw: text }; }
     }
+function toKstISO(date) {
+  if (!date) return null;
 
-    // ✅ 핵심: 문자열을 new Date()로 파싱하지 말고,
-    // flatpickr가 가진 Date 객체(selectedDates[0])를 그대로 ISO(Z)로 보낸다.
-    function pickerToIsoZ(picker) {
-      const d = picker?.selectedDates?.[0];
-      return d ? d.toISOString() : null;
+  // Asia/Seoul 기준으로 "YYYY-MM-DD HH:mm:ss" 만들기
+  const s = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false
+  }).format(date); // "2026-01-09 19:00:00"
+
+  return s.replace(" ", "T") + "+09:00"; // "2026-01-09T19:00:00+09:00"
+}
+
+function pickerToKstIso(picker) {
+  const d = picker?.selectedDates?.[0];
+  return toKstISO(d);
+}
+
+
+
+    /**
+     * ✅ flatpickr 하단 시간패널(시/분)만 "직접 타이핑" 안정화
+     * - input.type 변경 금지(브라우저/flatpickr 충돌 방지)
+     * - blur/enter 시 값 클램프 후 fp.setDate로 반영
+     */
+    function enableTypingInTimePanel(fp) {
+      if (!fp?.calendarContainer) return;
+
+      const hour = fp.calendarContainer.querySelector(".flatpickr-hour");
+      const minute = fp.calendarContainer.querySelector(".flatpickr-minute");
+      if (!hour || !minute) return;
+
+      const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+      const pad2 = (n) => String(n).padStart(2, "0");
+
+      // 중복 바인딩 방지
+      if (hour.dataset.typingBound === "1" && minute.dataset.typingBound === "1") return;
+      hour.dataset.typingBound = "1";
+      minute.dataset.typingBound = "1";
+
+      const bind = (el, min, max) => {
+        el.readOnly = false;
+        el.disabled = false;
+        el.tabIndex = 0;
+        el.inputMode = "numeric";   // 모바일 숫자 키패드 유도(가능한 경우)
+        el.autocomplete = "off";
+
+        el.addEventListener("focus", () => setTimeout(() => el.select?.(), 0));
+
+        const commit = () => {
+          let v = parseInt(el.value, 10);
+          if (Number.isNaN(v)) v = 0;
+          v = clamp(v, min, max);
+          el.value = pad2(v);
+
+          const base = fp.selectedDates?.[0] ? new Date(fp.selectedDates[0]) : new Date();
+          const h = clamp(parseInt(hour.value, 10) || 0, 0, 23);
+          const m = clamp(parseInt(minute.value, 10) || 0, 0, 59);
+          base.setHours(h, m, 0, 0);
+
+          // 선택 날짜/시간 반영
+          fp.setDate(base, true);
+        };
+
+        el.addEventListener("blur", commit);
+        el.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            el.blur();
+          }
+        });
+      };
+
+      bind(hour, 0, 23);
+      bind(minute, 0, 59);
+
+      // minuteIncrement 스냅 (원하면 유지)
+      const inc = fp.config.minuteIncrement || 1;
+      minute.addEventListener("blur", () => {
+        let m = parseInt(minute.value || "0", 10);
+        if (Number.isNaN(m)) m = 0;
+        m = Math.round(m / inc) * inc;
+        if (m >= 60) m = 60 - inc;
+        minute.value = pad2(clamp(m, 0, 59));
+      });
     }
 
     let calendar;
@@ -276,8 +382,11 @@
     let endPicker;
 
     document.addEventListener('DOMContentLoaded', function () {
-      eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+      // ✅ data-bs-focus="false"가 먹지 않는 환경 대비: JS로도 focus 옵션 꺼줌
+      eventModal = new bootstrap.Modal(document.getElementById('eventModal'), { focus: false });
+
       const calendarEl = document.getElementById('calendar');
+      const modalContent = document.querySelector('#eventModal .modal-content');
 
       // ===== Flatpickr =====
       const fpBase = {
@@ -285,42 +394,43 @@
         dateFormat: "Y-m-d H:i",
         time_24hr: true,
         locale: "ko",
-        disableMobile: true,   // ✅ boolean
-        allowInput: IS_ADMIN,  // 관리자만 입력/수정
-        clickOpens: IS_ADMIN,  // 관리자만 picker 열기
+        disableMobile: true,
+        allowInput: false,      // ✅ 입력칸(editStart/editEnd) 자체 타이핑 비활성
+        clickOpens: IS_ADMIN,   // 관리자만 picker 열기
         minuteIncrement: 5,
-        monthSelectorType: 'static'
+        monthSelectorType: 'static',
+        static: true, // 이 옵션이 있어야 입력창 바로 아래에 팝업이 붙습니다.
+
+        // ✅ 모달 포커스 트랩/밖으로 append 되면서 생기던 클릭 문제 방지
+        // (모달 안으로 넣되, modal-content overflow를 visible로 변경해 잘림도 방지)
+        appendTo: modalContent
       };
 
       startPicker = flatpickr("#editStart", {
         ...fpBase,
-        onChange: function(selectedDates) {
-          if (!selectedDates?.[0]) return;
-          const s = selectedDates[0];
-          // 종료 최소값 제한
-          endPicker.set('minDate', s);
+        onReady: function(_, __, inst) { enableTypingInTimePanel(inst); },
+        onOpen: function(_, __, inst) { setTimeout(() => enableTypingInTimePanel(inst), 0); },
+        onValueUpdate: function(_, __, inst) { enableTypingInTimePanel(inst); },
 
-          // end가 start보다 빠르면 end를 start로 자동 보정 (서버에서 end 삭제되는 것 방지)
-          const e = endPicker.selectedDates?.[0];
-          if (e && e < s) endPicker.setDate(s, true);
-        }
+        // ✅ 시작/종료 제약 제거 (요청사항)
+        onChange: function() { /* no constraints */ }
       });
 
       endPicker = flatpickr("#editEnd", {
         ...fpBase,
-        onChange: function(selectedDates) {
-          // 종료 선택하면 start max 제한 (원하면 유지)
-          const e = selectedDates?.[0];
-          if (e) startPicker.set('maxDate', e);
-          else startPicker.set('maxDate', null);
-        }
+        onReady: function(_, __, inst) { enableTypingInTimePanel(inst); },
+        onOpen: function(_, __, inst) { setTimeout(() => enableTypingInTimePanel(inst), 0); },
+        onValueUpdate: function(_, __, inst) { enableTypingInTimePanel(inst); },
+
+        // ✅ 시작/종료 제약 제거 (요청사항)
+        onChange: function() { /* no constraints */ }
       });
 
       // ===== FullCalendar =====
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'ko',
-        timeZone: 'Asia/Seoul',   // ✅ 명시 (안정)
+        timeZone: 'Asia/Seoul',
         fixedWeekCount: false,
         dayMaxEvents: 5,
         eventDisplay: 'block',
@@ -336,54 +446,61 @@
       calendar.render();
     });
 
-    function fillModalFromEvent(event) {
-      document.getElementById('modalTitle').textContent = '일정 상세';
-      document.getElementById('eventId').value = event.id || '';
-      document.getElementById('editTitle').value = event.title || '';
-      document.getElementById('editContent').value =
-        (event.extendedProps && event.extendedProps.content) ? event.extendedProps.content : '';
+function toKstYmdHi(date) {
+  const s = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+    hour12: false
+  }).format(date); // "2026-01-09 19:00"
+  return s;
+}
 
-      const start = event.start;             // Date (local)
-      const end = event.end || null;         // Date or null
+function fillModalFromEvent(event) {
+  document.getElementById('eventId').value = event.id || '';
+  document.getElementById('editTitle').value = event.title || '';
+  document.getElementById('editContent').value = event.extendedProps?.content || '';
 
-      startPicker.setDate(start, true);
-      endPicker.setDate(end, true);
+  // ✅ Date로 넣지 말고, KST 문자열로 넣기
+  startPicker.setDate(toKstYmdHi(event.start), false, "Y-m-d H:i");
 
-      // 제약 조건도 동기화
-      endPicker.set('minDate', start);
-      if (end) startPicker.set('maxDate', end);
-      else startPicker.set('maxDate', null);
-
-      const colorEl = document.getElementById('editColor');
-      if (colorEl) colorEl.value = event.backgroundColor || event.color || '#1E3A8A';
-    }
-
-    function openCreateModal() {
-  document.getElementById('modalTitle').textContent = '새 일정 추가';
-  document.getElementById('eventId').value = '';
-  document.getElementById('editTitle').value = '';
-  document.getElementById('editContent').value = '';
-
-  // ✅ 지금이 16:47이면 16:00으로 맞추기
-  const now = new Date();
-  now.setMinutes(0);
-  now.setSeconds(0);
-  now.setMilliseconds(0);
-
-  // (선택) 기본 종료시간: 1시간 뒤
-  const end = new Date(now.getTime() + 60 * 60 * 1000);
-
-  startPicker.set('maxDate', null);
-  endPicker.set('minDate', now);
-
-  startPicker.setDate(now, true);
-  endPicker.setDate(end, true);
+  if (event.end) {
+    endPicker.setDate(toKstYmdHi(event.end), false, "Y-m-d H:i");
+  } else {
+    const defaultEnd = new Date(event.start.getTime() + 60 * 60 * 1000);
+    endPicker.setDate(toKstYmdHi(defaultEnd), false, "Y-m-d H:i");
+  }
 
   const colorEl = document.getElementById('editColor');
-  if (colorEl) colorEl.value = '#1E3A8A';
-
-  eventModal.show();
+  if (colorEl) colorEl.value = event.backgroundColor || event.color || '#1E3A8A';
 }
+
+
+    function openCreateModal() {
+      document.getElementById('modalTitle').textContent = '새 일정 추가';
+      document.getElementById('eventId').value = '';
+      document.getElementById('editTitle').value = '';
+      document.getElementById('editContent').value = '';
+
+      const now = new Date();
+      now.setMinutes(0);
+      now.setSeconds(0);
+      now.setMilliseconds(0);
+
+      const end = new Date(now.getTime() + 60 * 60 * 1000);
+
+      // ✅ 시작/종료 제약 완전 제거
+      // startPicker.set('maxDate', null);
+      // endPicker.set('minDate', now);
+
+      startPicker.setDate(now, true);
+      endPicker.setDate(end, true);
+
+      const colorEl = document.getElementById('editColor');
+      if (colorEl) colorEl.value = '#1E3A8A';
+
+      eventModal.show();
+    }
 
     // ===== CRUD =====
     async function saveEvent() {
@@ -398,26 +515,19 @@
         return;
       }
 
-      const startISO = pickerToIsoZ(startPicker);
-      const endISO = pickerToIsoZ(endPicker);
+      const startISO = pickerToKstIso(startPicker);
+    const endISO   = pickerToKstIso(endPicker);
+
 
       if (!startISO) {
         alert('시작 시간을 선택해주세요.');
         return;
       }
 
-      // end가 start보다 빠르면 end를 null로 (서버도 같은 처리)
-      let finalEndISO = endISO;
-      if (startPicker.selectedDates?.[0] && endPicker.selectedDates?.[0]) {
-        if (endPicker.selectedDates[0] <= startPicker.selectedDates[0]) {
-          finalEndISO = null;
-        }
-      }
-
       const payload = {
         title,
         start: startISO,
-        end: finalEndISO,
+        end: endISO, // ✅ end <= start여도 null로 바꾸지 않음(요청사항: 구애 X)
         content: document.getElementById('editContent').value || '',
         color: colorEl ? colorEl.value : '#1E3A8A'
       };
