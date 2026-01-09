@@ -138,6 +138,20 @@
             font-weight: 600;
             text-decoration: none;
         }
+        .forgot-wrap{
+  text-align: center;
+  margin-top: 1rem;
+}
+.forgot-link{
+  font-size: 0.9rem;
+  color: var(--text-light);
+  text-decoration: none;
+  font-weight: 600;
+}
+.forgot-link:hover{
+  text-decoration: underline;
+}
+
     </style>
 </head>
 <body>
@@ -166,12 +180,21 @@
                     <i class="fas fa-user form-icon"></i>
                     <input type="text" name="username" class="form-control" placeholder="아이디" required />
                 </div>
+
                 <div class="form-group">
                     <i class="fas fa-lock form-icon"></i>
                     <input type="password" name="password" class="form-control" placeholder="비밀번호" required />
                 </div>
+
                 <button type="submit" class="btn-gradient">로그인</button>
+
+                <div class="forgot-wrap">
+                    <a class="forgot-link" href="{% url 'users:password_reset_verify' %}">
+                        비밀번호를 잊으셨나요?
+                    </a>
+                </div>
             </form>
+
         </div>
         <div class="signup-link">
             <span>계정이 없으신가요?</span>

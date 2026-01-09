@@ -321,6 +321,7 @@
     .grid{ grid-template-columns: 1fr; }
   }
 
+  /* ✅ 모바일 환경 수정본 */
   @media (max-width: 768px){
     .admin-page{ padding: 1.1rem 0; }
     .page-title{ font-size: 1.35rem; }
@@ -350,25 +351,54 @@
     .user-item{
       flex-direction: column;
       align-items: stretch;
-      gap: .75rem;
+      gap: 1rem;
+      position: relative;
     }
-    .weight-form{
-    width: 100%;
-    flex-wrap: wrap;
-    align-items: stretch;
-  }
 
-  /* 입력칸은 고정 폭(또는 원하는 폭) 유지 */
-  .weight-input{
-    width: 90px;
-    flex: 0 0 90px;
-  }
+    /* 가중치 폼 레이아웃 최적화 */
+    .weight-form {
+      display: flex;
+      flex-wrap: nowrap; /* 요소들이 한 줄에 나오도록 강제 */
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.5rem;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
 
-  /* ✅ 수정 버튼은 다음 줄로 내려서 100% 폭으로 */
-  .weight-form .btn-mini{
-    flex-shrink: 0;
-    min-width: 64px;
-  }
+    .weight-input {
+      width: 70px !important; /* 폭을 적절히 조절 */
+      flex: 0 0 70px !important;
+      height: 38px;
+    }
+
+    .weight-form label {
+      flex-shrink: 0;
+      margin-right: 2px;
+    }
+
+    /* 수정 버튼이 찌그러지지 않게 설정 */
+    .weight-form .btn-mini {
+      flex-shrink: 0;
+      white-space: nowrap; /* 글자가 밑으로 숨지 않게 함 */
+      padding: 0.5rem 0.8rem !important;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 삭제 버튼 위치 조정 (우측 상단 또는 하단 적절히) */
+    .user-item > div:last-child {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.2rem;
+    }
+    
+    .btn-danger {
+        width: 100%; /* 모바일에서 삭제 버튼을 넓게 쓰려면 유지, 아니면 auto */
+        justify-content: center;
+    }
   }
 
   /* ✅ 아이콘 margin 클래스(me-2 등) 없이도 정렬 깨지지 않게 */

@@ -7,9 +7,23 @@ from .models import User
 from django import forms 
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import SetPasswordForm
 
 
 User = get_user_model()
+
+class CustomSetPasswordForm(SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["new_password1"].widget.attrs.update({
+            "placeholder": "새 비밀번호",
+            "autocomplete": "new-password",
+        })
+        self.fields["new_password2"].widget.attrs.update({
+            "placeholder": "새 비밀번호 확인",
+            "autocomplete": "new-password",
+        })
 
 class SimpleUserSignupForm(UserCreationForm):
     # UserCreationForm에 없는 필드들을 직접 정의합니다.
@@ -24,6 +38,26 @@ class SimpleUserSignupForm(UserCreationForm):
         fields = UserCreationForm.Meta.fields + ('name', 'gender', 'generation')
         
 # users/forms.py 파일 하단에 추가
+
+class PasswordResetVerifyForm(forms.Form):
+    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '아이디'}))
+    name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '이름'}))
+    generation = forms.IntegerField(widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '기수 (숫자만)'}))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get("username")
+        name = cleaned_data.get("name")
+        generation = cleaned_data.get("generation")
+
+        if username and name and generation:
+            try:
+                # 아이디, 이름, 기수가 모두 일치하는 유저가 있는지 확인
+                user = User.objects.get(username=username, name=name, generation=generation)
+                cleaned_data['user'] = user
+            except User.DoesNotExist:
+                raise forms.ValidationError("입력하신 정보와 일치하는 사용자가 없습니다.")
+        return cleaned_data
 
 class UserProfileChangeForm(forms.ModelForm):
     class Meta:

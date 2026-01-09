@@ -2,10 +2,12 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages  # messages 프레임워크 import
+from .forms import PasswordResetVerifyForm, CustomSetPasswordForm
+
 
 
 
@@ -14,6 +16,36 @@ User = get_user_model()
 from .forms import SimpleUserSignupForm, UserProfileChangeForm
 from django.contrib.auth.decorators import login_required
 
+
+def password_reset_verify(request):
+    if request.method == "POST":
+        form = PasswordResetVerifyForm(request.POST)
+        if form.is_valid():
+            # 확인 성공 시 세션에 유저 ID 저장 후 변경 페이지로
+            request.session['reset_user_id'] = form.cleaned_data['user'].pk
+            return redirect('users:password_reset_change')
+    else:
+        form = PasswordResetVerifyForm()
+    return render(request, 'users/password_reset_verify.html', {'form': form})
+
+def password_reset_change(request):
+    user_id = request.session.get('reset_user_id')
+    if not user_id:
+        return redirect('users:password_reset_verify')
+    
+    user = get_object_or_404(User, pk=user_id)
+    
+    if request.method == "POST":
+        form = CustomSetPasswordForm(user, request.POST)
+        if form.is_valid():
+            form.save()
+            del request.session['reset_user_id']
+            messages.success(request, "비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.")
+            return redirect('users:main')
+    else:
+        form = CustomSetPasswordForm(user)
+
+    return render(request, 'users/password_reset_change.html', {'form': form})
 
 
 def signup(request):
