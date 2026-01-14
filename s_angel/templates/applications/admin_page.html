@@ -416,6 +416,35 @@
         width: 100%; /* 모바일에서 삭제 버튼을 넓게 쓰려면 유지, 아니면 auto */
         justify-content: center;
     }
+    /* ✅ 모바일에서는 grid를 세로 스택으로 강제 (잘림/밀림 방지 + 위로 올라감) */
+  .grid{
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ✅ 가입 승인 대기를 항상 제일 위로 */
+  .card-pending{
+    order: -1;
+  }
+
+  /* ✅ 가로로 커지면서 레이아웃 밀어내는 요소들 차단 */
+  .card, .user-item, .user-details, .card-body{
+    min-width: 0;
+  }
+
+  /* ✅ 긴 이름/아이디가 있어도 줄바꿈되게 해서 가로 overflow 방지 */
+  .user-details,
+  .user-details strong,
+  .user-details small{
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* ✅ 버튼 영역도 가로 강제 확장 방지 */
+  .user-item > div{
+    min-width: 0;
+  }
+
     
   }
 
@@ -452,7 +481,7 @@
     <div class="grid">
 
       <!-- 가입 승인 대기 -->
-      <section class="card">
+      <section class="card card-pending">
         <div class="card-head">
           <div>
             <i class="fas fa-user-clock"></i>
