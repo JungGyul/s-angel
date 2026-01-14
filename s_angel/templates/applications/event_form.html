@@ -19,6 +19,11 @@
     --radius: 16px;
   }
   *{ box-sizing:border-box; }
+/* ✅ 모바일/iOS 가로 튐 방지 핵심 */
+input, select, textarea{
+  max-width: 100%;
+  min-width: 0;
+}
 
   body{
     margin:0;
@@ -87,6 +92,15 @@
     grid-template-columns: 1fr 1fr;
     gap: .85rem;
   }
+  .grid > * { min-width: 0; }     /* 또는 .field{min-width:0;} */
+
+/* ✅ iOS에서 date input이 폭을 무시하는 케이스 방지 */
+input[type="date"]{
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
 
   label{
     display:block;

@@ -26,6 +26,11 @@
       background: var(--bg);
       color: var(--text);
     }
+    /* ✅ 모바일/iOS 가로 튐 방지 핵심 */
+input, select, textarea{
+  max-width: 100%;
+  min-width: 0;
+}
 
     .acc-page{ min-height:100vh; padding: 1.75rem 0; }
     .acc-wrap{ max-width: 880px; margin: 0 auto; padding: 0 1rem 5.5rem; }
@@ -125,6 +130,15 @@
       display:flex;
       flex-direction: column;
       gap:.35rem;
+    }
+    .grid > * { min-width: 0; }     /* 또는 .field{min-width:0;} */
+
+    /* ✅ iOS에서 date input이 폭을 무시하는 케이스 방지 */
+    input[type="date"]{
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     }
     .field.full{ grid-column: 1 / -1; }
 
