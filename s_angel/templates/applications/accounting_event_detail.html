@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>행사 상세</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  {% load humanize %}
+
+<style>
+  :root{
+    --navy:#1E3A8A;
+    --bg:#F9FAFB;
+    --card:#FFFFFF;
+    --border:#E5E7EB;
+    --text:#334155;
+    --muted:#64748B;
+    --green:#10B981;
+    --red:#EF4444;
+    --shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+    --radius: 16px;
+  }
+  *{ box-sizing:border-box; }
+
+  .page{
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 1.75rem 0;
+  }
+  .wrap{
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .title{
+    margin:0;
+    font-size: 1.45rem;
+    font-weight: 1000;
+    border-left: 4px solid var(--navy);
+    padding-left: .85rem;
+    line-height: 1.15;
+  }
+  .subtitle{
+    margin-top: .35rem;
+    color: var(--muted);
+    font-size: .95rem;
+    padding-left: .95rem;
+    line-height: 1.4;
+    font-weight: 800;
+  }
+
+  .btn-ghost{
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 900;
+    padding: .55rem .9rem;
+    border-radius: .75rem;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.45rem;
+    transition: .15s ease;
+    white-space: nowrap;
+  }
+  .btn-ghost:hover{ background:#F1F5F9; }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .card-pad{ padding: 1rem 1.05rem; }
+
+  .event-top{
+    display:flex;
+    justify-content:space-between;
+    gap: 1rem;
+    align-items:flex-start;
+    flex-wrap: wrap;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:.45rem;
+    padding: .32rem .6rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #F8FAFC;
+    color: #334155;
+    font-weight: 900;
+    font-size: .82rem;
+  }
+  .badge-event{
+    border-color: rgba(30,58,138,.25);
+    background: rgba(30,58,138,.07);
+    color: var(--navy);
+  }
+
+  .actions{
+    display:flex;
+    gap:.6rem;
+    flex-wrap: wrap;
+  }
+  .btn-action{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5rem;
+    padding: .65rem 1rem;
+    border-radius: .8rem;
+    font-weight: 950;
+    text-decoration:none;
+    border: 1px solid transparent;
+    transition: .15s ease;
+    white-space: nowrap;
+  }
+  .btn-add{
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    box-shadow: 0 10px 18px rgba(30,58,138,.18);
+  }
+  .btn-add:hover{ filter: brightness(.97); }
+
+  .btn-outline{
+    background: transparent;
+    border-color: rgba(30,58,138,.25);
+    color: var(--navy);
+  }
+  .btn-outline:hover{ background: rgba(30,58,138,.06); }
+
+  .sum-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .85rem;
+    margin: 1rem 0 1.25rem;
+  }
+  .sum-card{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.1rem 1.05rem;
+    box-shadow: var(--shadow);
+  }
+  .sum-label{
+    font-size: .88rem;
+    color: var(--muted);
+    margin-bottom: .35rem;
+    font-weight: 900;
+  }
+  .sum-value{
+    font-size: 1.35rem;
+    font-weight: 1000;
+    letter-spacing: -0.02em;
+  }
+  .sum-income{ color: var(--green); }
+  .sum-expense{ color: var(--red); }
+  .sum-total{ color: var(--navy); }
+
+  .table-card{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  table{
+    width:100%;
+    border-collapse: collapse;
+  }
+  thead th{
+    background:#F8FAFC;
+    color: var(--muted);
+    font-size: .85rem;
+    font-weight: 1000;
+    padding: .95rem .9rem;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    text-align:center;
+  }
+  td{
+    padding: .9rem .9rem;
+    border-bottom: 1px solid #F1F5F9;
+    vertical-align: middle;
+    text-align:center;
+  }
+  td[data-label="금액"]{ text-align:right; }
+
+  tbody tr:hover{ background:#FBFDFF; }
+
+  .money{
+    font-weight: 1000;
+    white-space: nowrap;
+  }
+  .money.income{ color: var(--green); }
+  .money.expense{ color: var(--red); }
+
+  .manage-wrap{
+    display:flex;
+    justify-content:center;
+    gap:.5rem;
+    flex-wrap:nowrap;
+  }
+  .action-pill{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.45rem;
+    padding:.48rem .8rem;
+    border-radius:.8rem;
+    font-weight: 950;
+    font-size: .9rem;
+    border: 1px solid var(--border);
+    background: #fff;
+    text-decoration:none;
+    transition: .15s ease;
+    white-space: nowrap;
+    cursor:pointer;
+  }
+  .action-pill:hover{ background:#F1F5F9; }
+  .action-pill.edit{
+    border-color: rgba(37,99,235,.25);
+    background: rgba(37,99,235,.06);
+    color:#1D4ED8;
+  }
+  .action-pill.edit:hover{ background: rgba(37,99,235,.10); }
+  .action-pill.del{
+    border-color: rgba(220,38,38,.25);
+    background: rgba(239,68,68,.07);
+    color:#DC2626;
+  }
+  .action-pill.del:hover{ background: rgba(239,68,68,.12); }
+
+  .empty{
+    padding: 3.5rem 1rem;
+    text-align:center;
+    color: var(--muted);
+    font-weight: 900;
+  }
+
+  @media (max-width: 768px){
+    .page{ padding: 1.1rem 0; }
+    .title{ font-size: 1.25rem; }
+    .sum-grid{ grid-template-columns: 1fr; gap:.75rem; }
+
+    thead{ display:none; }
+    table, tbody, tr{ display:block; width:100%; }
+    tr{
+      padding: .95rem .95rem;
+      border-bottom: 1px solid var(--border);
+    }
+    td{
+      display:grid;
+      grid-template-columns: 92px 1fr;
+      gap: .5rem;
+      padding: .35rem 0;
+      border: 0;
+      text-align: left;
+    }
+    td::before{
+      content: attr(data-label);
+      color: var(--muted);
+      font-weight: 1000;
+      font-size: .9rem;
+    }
+    td[data-label="금액"]{ text-align:left; }
+    .manage-wrap{ justify-content:flex-start; flex-wrap: wrap; gap:.55rem; }
+  }
+</style>
+</head>
+
+<body>
+<div class="page">
+  <div class="wrap">
+
+    <div class="header">
+      <div>
+        <h2 class="title">{{ event.name }}</h2>
+        <div class="subtitle">
+          <span class="badge badge-event">
+            <i class="fas fa-folder-open"></i> 행사 · {{ event.budget_year.year }}년도
+          </span>
+          &nbsp;·&nbsp; 대표 날짜: {{ event.date|date:"Y-m-d" }}
+        </div>
+        {% if event.description %}
+          <div class="subtitle" style="margin-top:.45rem;">
+            {{ event.description }}
+          </div>
+        {% endif %}
+      </div>
+
+      <a href="{% url 'applications:accounting_year_list' year=event.budget_year.year %}" class="btn-ghost">
+        <i class="fas fa-arrow-left"></i>목록으로
+      </a>
+    </div>
+
+    <div class="card card-pad">
+      <div class="event-top">
+        <div>
+          <div class="badge">
+            <i class="fas fa-receipt"></i> 이 행사에 포함된 거래: {{ transactions|length }}건
+          </div>
+        </div>
+
+        <div class="actions">
+          <a class="btn-action btn-outline"
+             href="{% url 'applications:export_accounting_excel' year=event.budget_year.year %}">
+            <i class="fas fa-file-excel"></i>엑셀 다운로드
+          </a>
+
+          {% if is_admin %}
+            <a class="btn-action btn-add"
+   href="{% url 'applications:accounting_create' %}?year_id={{ event.budget_year.id }}&event_id={{ event.id }}">
+  <i class="fas fa-plus"></i>내역 추가
+</a>
+
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="sum-grid">
+      <div class="sum-card">
+        <div class="sum-label">행사 수입</div>
+        <div class="sum-value sum-income">+ {{ summary.income|intcomma }}원</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">행사 지출</div>
+        <div class="sum-value sum-expense">- {{ summary.expense|intcomma }}원</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">행사 합계</div>
+        <div class="sum-value sum-total">{{ summary.total|intcomma }}원</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 120px;">날짜</th>
+            <th>항목</th>
+            <th style="width: 140px;">카테고리</th>
+            <th style="width: 120px;">구분</th>
+            <th style="width: 150px;">금액</th>
+            <th style="width: 220px;">관리</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for tx in transactions %}
+          <tr>
+            <td data-label="날짜">{{ tx.date|date:"Y-m-d" }}</td>
+
+            <td data-label="항목">
+              <strong>{{ tx.item_name }}</strong>
+              {% if tx.description %}
+                <div style="margin-top:.25rem; font-size:.86rem; color:var(--muted); font-weight:800;">
+                  {{ tx.description|truncatechars:70 }}
+                </div>
+              {% endif %}
+            </td>
+
+            <td data-label="카테고리">
+              <span class="badge">{{ tx.category }}</span>
+            </td>
+
+            <td data-label="구분">
+              {% if tx.transaction_type == 'INCOME' %}
+                <span class="badge" style="border-color: rgba(16,185,129,.25); background: rgba(16,185,129,.08); color:#047857;">
+                  수입
+                </span>
+              {% else %}
+                <span class="badge" style="border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.08); color:#B91C1C;">
+                  지출
+                </span>
+              {% endif %}
+            </td>
+
+            <td data-label="금액">
+              {% if tx.transaction_type == 'INCOME' %}
+                <span class="money income">+ {{ tx.amount|intcomma }}원</span>
+              {% else %}
+                <span class="money expense">- {{ tx.amount|intcomma }}원</span>
+              {% endif %}
+            </td>
+
+            <td data-label="관리">
+              <div class="manage-wrap">
+                {% if is_admin %}
+                  <a href="{% url 'applications:accounting_update' tx.id %}" class="action-pill edit">
+                    <i class="fas fa-pen"></i>수정
+                  </a>
+                  <form action="{% url 'applications:accounting_delete' tx.id %}"
+                        method="post"
+                        onsubmit="return confirm('정말 삭제하시겠습니까?');"
+                        style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="action-pill del">
+                      <i class="fas fa-trash"></i>삭제
+                    </button>
+                  </form>
+                {% else %}
+                  <span style="color:var(--muted); font-weight:900;">-</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+
+          {% empty %}
+          <tr>
+            <td colspan="6" class="empty">이 행사에 등록된 내역이 없습니다.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

@@ -422,7 +422,7 @@
         {% endif %}
 
         {% if request.user.can_view_accounting %}
-            <a class="action-btn secondary calendar-btn half-width" href="{% url 'applications:accounting_list' %}" style="background-color: #f1f5f9; border: 1px solid #cbd5e1;">
+            <a class="action-btn secondary calendar-btn half-width" href="{% url 'applications:accounting_main' %}" style="background-color: #f1f5f9; border: 1px solid #cbd5e1;">
                 <i class="fas fa-calculator me-2"></i>회계 장부 열람
             </a>
         {% endif %}

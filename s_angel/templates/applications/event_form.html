@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>행사 생성</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+  :root{
+    --navy:#1E3A8A;
+    --bg:#F9FAFB;
+    --card:#FFFFFF;
+    --border:#E5E7EB;
+    --text:#334155;
+    --muted:#64748B;
+    --shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+    --radius: 16px;
+  }
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif;
+  }
+
+  .wrap{
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem;
+  }
+
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .title{
+    margin:0;
+    font-size: 1.35rem;
+    font-weight: 1000;
+    border-left: 4px solid var(--navy);
+    padding-left: .85rem;
+    line-height: 1.15;
+  }
+  .sub{
+    margin-top: .35rem;
+    color: var(--muted);
+    font-weight: 800;
+    padding-left: .95rem;
+    line-height: 1.4;
+  }
+
+  .btn-ghost{
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 900;
+    padding: .55rem .9rem;
+    border-radius: .75rem;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.45rem;
+    transition: .15s ease;
+    white-space: nowrap;
+  }
+  .btn-ghost:hover{ background:#F1F5F9; }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1rem 1.05rem;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .85rem;
+  }
+
+  label{
+    display:block;
+    font-size: .86rem;
+    color: var(--muted);
+    font-weight: 900;
+    margin: 0 0 .35rem;
+  }
+
+  select, input{
+    width:100%;
+    border: 1px solid var(--border);
+    border-radius: .8rem;
+    padding: .75rem .85rem;
+    font-weight: 950;
+    outline:none;
+    background:#fff;
+  }
+  select:focus, input:focus{
+    box-shadow: 0 0 0 3px rgba(30,58,138,.18);
+    border-color: rgba(30,58,138,.35);
+  }
+
+  .row{ margin-top: .85rem; }
+
+  .actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:.6rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5rem;
+    padding: .65rem 1rem;
+    border-radius: .8rem;
+    font-weight: 950;
+    text-decoration:none;
+    border: 1px solid transparent;
+    transition: .15s ease;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .btn.primary{
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    box-shadow: 0 10px 18px rgba(30,58,138,.18);
+  }
+  .btn.primary:hover{ filter: brightness(.97); }
+  .btn.outline{
+    background: transparent;
+    border-color: rgba(30,58,138,.25);
+    color: var(--navy);
+  }
+  .btn.outline:hover{ background: rgba(30,58,138,.06); }
+
+  @media (max-width: 640px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <h1 class="title">행사 생성</h1>
+      <div class="sub">‘축제 / MT / 일일호프’ 같은 행사 주머니를 먼저 만들고, 그 안에 내역을 넣을 수 있어요.</div>
+    </div>
+    <a href="{% url 'applications:accounting_main' %}" class="btn-ghost">
+      <i class="fas fa-arrow-left"></i>돌아가기
+    </a>
+  </div>
+
+  <form method="post" class="card">
+    {% csrf_token %}
+
+    <div class="grid">
+      <div>
+        <label for="budget_year">기수(연도)</label>
+        <select id="budget_year" name="budget_year" required>
+  <option value="" disabled {% if not initial_year_id %}selected{% endif %}>기수를 선택하세요</option>
+  {% for y in years %}
+    <option value="{{ y.id }}" {% if initial_year_id and y.id|stringformat:"s" == initial_year_id %}selected{% endif %}>
+      {{ y.year }}년도{% if y.is_active %} (활성){% endif %}
+    </option>
+  {% endfor %}
+</select>
+      </div>
+
+      <div>
+        <label for="date">대표 날짜</label>
+        <input id="date" type="date" name="date" required>
+      </div>
+    </div>
+
+    <div class="row">
+      <label for="name">행사명</label>
+      <input id="name" type="text" name="name" maxlength="100" placeholder="예) 2026 축제 / 1학기 MT / 신입생 OT" required>
+    </div>
+
+    <div class="actions">
+      <a class="btn outline" href="{% url 'applications:accounting_main' %}">
+        <i class="fas fa-times"></i>취소
+      </a>
+      <button class="btn primary" type="submit">
+        <i class="fas fa-check"></i>행사 생성
+      </button>
+    </div>
+  </form>
+</div>
+</body>
+</html>

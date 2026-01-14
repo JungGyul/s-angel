@@ -431,7 +431,7 @@
       <h1 class="page-title"><i class="fas fa-user-cog"></i> 관리자 페이지</h1>
 
       <div class="header-actions">
-        <a href="{% url 'applications:accounting_list' %}" class="btn-pill btn-primary">
+        <a href="{% url 'applications:accounting_main' %}" class="btn-pill btn-primary">
           <i class="fas fa-calculator"></i>회계 장부 관리
         </a>
         <a href="{% url 'applications:dashboard' %}" class="btn-pill">
@@ -591,6 +591,40 @@
           {% endfor %}
         </div>
       </section>
+
+        <!-- 회계 시스템 관리 -->
+      <section class="card" style="margin-bottom: 1.5rem; grid-column: span 2;">
+  <div class="card-head" style="background: var(--navy); color: white;">
+    <div>
+      <i class="fas fa-file-invoice-dollar"></i>
+      회계 시스템 관리 (기수 및 장부)
+    </div>
+    <span class="badge" style="color: white; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1);">Master Control</span>
+  </div>
+
+  <div class="card-body" style="display: flex; gap: 2rem; flex-wrap: wrap;">
+    
+    <div style="flex: 1; min-width: 300px;">
+  <h4 style="margin-bottom: 1rem; font-size: 1rem;"><i class="fas fa-plus-circle"></i> 새 회계 연도 생성</h4>
+  
+  <form action="{% url 'applications:create_budget_year' %}" method="post" class="filter-bar" 
+        style="flex-direction: column;"
+        onsubmit="return confirm('새로운 회계 기수를 생성하시겠습니까?\n생성 시 기존에 활성화된 기수는 자동으로 비활성화됩니다.');">
+    
+    {% csrf_token %}
+    <input type="number" name="year" class="search-input" placeholder="연도 입력 (예: 2026)" 
+           required style="margin-bottom: 0.5rem; padding-left: 1rem;">
+    
+    <div style="display: flex; gap: 0.5rem;">
+      <button type="submit" class="btn-pill btn-primary" style="flex: 1; justify-content: center;">
+        <i class="fas fa-save"></i> 기수 생성 및 활성화
+      </button>
+    </div>
+  </form>
+</div>
+
+  </div>
+</section>
 
     </div>
   </div>

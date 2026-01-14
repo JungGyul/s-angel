@@ -2,7 +2,7 @@
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
-from .models import Event, Application
+from .models import Event, Application, BudgetYear, AccountingEvent
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import redirect
 from .forms import EventCreateForm, UserInfoUpdateForm
@@ -25,10 +25,19 @@ from django.http import JsonResponse # AJAX 처리를 위해 이것도 필요합
 from datetime import date, timedelta
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
+from itertools import chain
+from django.db import transaction
 
 from zoneinfo import ZoneInfo
 KST = ZoneInfo("Asia/Seoul")
 UTC = dt.timezone.utc
+def _get_default_budget_year():
+    """활성 기수 있으면 그거, 없으면 최신 year"""
+    active = BudgetYear.objects.filter(is_active=True).order_by('-year').first()
+    if active:
+        return active
+    return BudgetYear.objects.order_by('-year').first()
+
 
 
 
@@ -483,35 +492,109 @@ def update_user_info(request, user_id):
 
 # applications/views.py
 
-@login_required # staff_member_required 대신 login_required로 변경 (권한 있는 유저도 들어와야 하므로)
-def accounting_list(request):
-    """회계 내역 목록: 관리자 또는 권한 부여 유저만 접근 가능"""
+# -----------------------------------------------------------
+# 1. 회계 메인: 현재 활성화된 기수로 리다이렉트
+# -----------------------------------------------------------
+@login_required
+def accounting_main(request):
+    """/accounting/ 접속 시 가장 최신(혹은 활성) 연도로 이동"""
+    active_year = BudgetYear.objects.filter(is_active=True).first()
+    if not active_year:
+        active_year = BudgetYear.objects.order_by('-year').first()
     
-    # 🛡️ 보안 로직: 관리자도 아니고 권한도 없다면 '자물쇠 화면'으로
+    if active_year:
+        return redirect('applications:accounting_year_list', year=active_year.year)
+    else:
+        # 연도 데이터가 하나도 없을 때 처리
+        return render(request, 'applications/unauthorized.html', {'message': '등록된 회계 연도가 없습니다.'})
+
+# -----------------------------------------------------------
+# 2. 통합 타임라인 리스트 (가장 핵심 로직)
+# -----------------------------------------------------------
+@login_required
+def accounting_list(request, year):
+    """해당 연도의 일반 내역 + 행사 요약을 시간순으로 병합하여 출력"""
+
     if not (request.user.is_staff or getattr(request.user, 'can_view_accounting', False)):
-        # 접근 권한이 없을 때 보여줄 페이지 (우리가 만든 unauthorized.html)
         return render(request, 'applications/unauthorized.html')
 
-    # --- 데이터 가져오기 로직 (기존과 동일) ---
-    transactions = Transaction.objects.all().order_by('date', 'id')
-    
-    total_income = transactions.filter(transaction_type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
-    total_expense = transactions.filter(transaction_type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
-    balance = total_income - total_expense
+    budget_year = get_object_or_404(BudgetYear, year=year)
+
+    generals = Transaction.objects.filter(budget_year=budget_year, event__isnull=True)
+    events = AccountingEvent.objects.filter(budget_year=budget_year)
+
+    timeline = sorted(
+        chain(generals, events),
+        key=lambda x: x.date,
+        reverse=True
+    )
+
+    total_stats = Transaction.objects.filter(budget_year=budget_year).aggregate(
+        income=Sum('amount', filter=Q(transaction_type='INCOME')),
+        expense=Sum('amount', filter=Q(transaction_type='EXPENSE'))
+    )
+
+    income = total_stats['income'] or 0
+    expense = total_stats['expense'] or 0
+
+    # ✅ 버튼(칩)용: 현재 보고 있는 기수 + 그 이전 기수 1개
+    # ✅ 버튼(칩)용: 최근(왼쪽) → 과거(오른쪽) 순서, 최대 3개
+    next_year = BudgetYear.objects.filter(year__gt=budget_year.year).order_by('year').first()
+    prev_year = BudgetYear.objects.filter(year__lt=budget_year.year).order_by('-year').first()
+
+    year_buttons = []
+    if next_year:
+        year_buttons.append(next_year)   # 더 최근이 왼쪽
+    year_buttons.append(budget_year)     # 현재
+    if prev_year:
+        year_buttons.append(prev_year)   # 더 과거가 오른쪽
+
 
     context = {
-        'transactions': transactions,
-        'total_income': total_income,
-        'total_expense': total_expense,
-        'balance': balance,
-        'is_admin': request.user.is_staff, # 관리자 여부를 템플릿에 전달
+        'budget_year': budget_year,
+        'all_years': BudgetYear.objects.all().order_by('-year'),  # 드롭다운은 전체 유지
+        'year_buttons': year_buttons,                             # ✅ 칩은 2개만
+        'timeline': timeline,
+        'total_income': income,
+        'total_expense': expense,
+        'balance': income - expense,
+        'is_admin': request.user.is_staff,
     }
     return render(request, 'applications/accounting_list.html', context)
 
+
+# -----------------------------------------------------------
+# 3. 행사 세부 내역 뷰
+# -----------------------------------------------------------
+@login_required
+def event_detail(request, event_id):
+    """특정 행사(예: 축제)를 클릭했을 때 그 안의 세부 영수증 목록 표시"""
+    event = get_object_or_404(AccountingEvent, pk=event_id)
+    transactions = event.transactions.all().order_by('date')
+    
+    summary = event.get_summary() # 모델에서 만든 합계 함수 활용
+
+    return render(request, 'applications/accounting_event_detail.html', {
+        'event': event,
+        'transactions': transactions,
+        'summary': summary,
+        'is_admin': request.user.is_staff,
+    })
+
+# -----------------------------------------------------------
+# 4. 내역 생성 (기수 및 행사 선택 기능 포함)
+# -----------------------------------------------------------
 @staff_member_required
 def accounting_create(request):
     if request.method == 'POST':
-        # 리스트 형식으로 넘어오는 데이터를 처리
+        # 어떤 기수와 행사에 저장할지 ID를 가져옴
+        year_id = request.POST.get('budget_year')
+        event_id = request.POST.get('accounting_event')
+
+        budget_year = get_object_or_404(BudgetYear, pk=year_id)
+        event = AccountingEvent.objects.filter(pk=event_id).first() if event_id else None
+
+        # 리스트 데이터 처리 (정결님의 기존 로직 유지)
         dates = request.POST.getlist('date[]')
         item_names = request.POST.getlist('item_name[]')
         amounts = request.POST.getlist('amount[]')
@@ -521,8 +604,10 @@ def accounting_create(request):
 
         transactions_to_create = []
         for i in range(len(item_names)):
-            if item_names[i]: # 항목명이 있는 경우에만 생성
+            if item_names[i]:
                 transactions_to_create.append(Transaction(
+                    budget_year=budget_year,
+                    event=event,  # 행사 주머니에 쏙 넣기
                     date=dates[i],
                     item_name=item_names[i],
                     amount=amounts[i],
@@ -530,34 +615,61 @@ def accounting_create(request):
                     transaction_type=types[i],
                     description=descriptions[i]
                 ))
-        
+
         if transactions_to_create:
             Transaction.objects.bulk_create(transactions_to_create)
             messages.success(request, f"{len(transactions_to_create)}건의 내역이 추가되었습니다.")
-        
-        return redirect('applications:accounting_list')
-    
-    return render(request, 'applications/accounting_form.html')
 
+        return redirect('applications:accounting_year_list', year=budget_year.year)
+
+    # ✅ GET: 활성 기수를 기본으로 선택 + (행사 상세에서 넘어온 경우) 프리셀렉트
+    default_year = _get_default_budget_year()
+
+    # 행사 상세에서:
+    # /accounting/create/?year_id=<BudgetYear.id>&event_id=<AccountingEvent.id>
+    initial_year_id = request.GET.get('year_id') or (str(default_year.id) if default_year else "")
+    initial_event_id = request.GET.get('event_id') or ""
+
+    return render(request, 'applications/accounting_form.html', {
+        'years': BudgetYear.objects.all().order_by('-year'),
+        # events는 "전체"를 넘겨도 되지만, UX적으로는 기수별 AJAX 로딩이 더 좋음
+        # 지금은 기존 유지하려면 넘겨도 됨:
+        # 'events': AccountingEvent.objects.all(),
+
+        # ✅ 템플릿/JS에서 초기 선택용으로 사용
+        'initial_year_id': initial_year_id,
+        'initial_event_id': initial_event_id,
+    })
+
+    
+    # GET 요청 시: 연도와 행사 목록을 폼에 전달
+    return render(request, 'applications/accounting_form.html', {
+        'years': BudgetYear.objects.all(),
+        'events': AccountingEvent.objects.all(),
+    })
+
+# -----------------------------------------------------------
+# 5. 엑셀 내보내기 (기수별 분리)
+# -----------------------------------------------------------
 @staff_member_required
-def export_accounting_excel(request):
-    """회계 내역을 엑셀로 내보내기"""
+def export_accounting_excel(request, year):
+    budget_year = get_object_or_404(BudgetYear, year=year)
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="s_angel_회계록.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="S-Angel_{year}_Accounting.xlsx"'
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "회계장부"
+    ws.title = f"{year}년 회계장부"
 
-    # 헤더 작성
-    headers = ['날짜', '항목명', '카테고리', '구분', '금액', '상세내용']
+    # 헤더에 '행사명' 컬럼 추가
+    headers = ['날짜', '행사명', '항목명', '카테고리', '구분', '금액', '상세내용']
     ws.append(headers)
 
-    # 데이터 작성
-    transactions = Transaction.objects.all().order_by('-date')
+    transactions = Transaction.objects.filter(budget_year=budget_year).order_by('date')
     for tx in transactions:
         ws.append([
             tx.date.strftime('%Y-%m-%d'),
+            tx.event.name if tx.event else "일반",
             tx.item_name,
             tx.category,
             tx.get_transaction_type_display(),
@@ -569,31 +681,95 @@ def export_accounting_excel(request):
     return response
 
 @staff_member_required
-def accounting_update(request, pk):
-    """기존 회계 내역 수정"""
-    transaction = get_object_or_404(Transaction, pk=pk)
+def event_create(request):
+    """'축제', 'MT' 같은 행사 주머니를 생성하는 뷰"""
     if request.method == 'POST':
+        year_id = request.POST.get('budget_year')
+        name = request.POST.get('name')
+        date = request.POST.get('date')
+
+        budget_year = get_object_or_404(BudgetYear, pk=year_id)
+        AccountingEvent.objects.create(
+            budget_year=budget_year,
+            name=name,
+            date=date
+        )
+        return redirect('applications:accounting_year_list', year=budget_year.year)
+
+    # ✅ GET: 활성 기수를 기본으로 선택
+    default_year = _get_default_budget_year()
+
+    return render(request, 'applications/event_form.html', {
+        'years': BudgetYear.objects.all().order_by('-year'),
+        'initial_year_id': str(default_year.id) if default_year else "",
+    })
+
+@staff_member_required
+def accounting_update(request, pk):
+    """기존 회계 내역 수정: 연도 및 행사 이동 로직 포함"""
+    transaction = get_object_or_404(Transaction, pk=pk)
+    
+    if request.method == 'POST':
+        # 1. 외래키(연도, 행사) 데이터 가져오기
+        year_id = request.POST.get('budget_year')
+        event_id = request.POST.get('accounting_event')
+
+        # 2. 데이터 업데이트
+        transaction.budget_year = get_object_or_404(BudgetYear, pk=year_id)
+        # 행사는 '선택 안 함(일반 내역)'일 수 있으므로 filter().first() 처리
+        transaction.event = AccountingEvent.objects.filter(pk=event_id).first() if event_id else None
+        
         transaction.date = request.POST.get('date')
         transaction.item_name = request.POST.get('item_name')
         transaction.amount = request.POST.get('amount')
         transaction.category = request.POST.get('category')
         transaction.transaction_type = request.POST.get('transaction_type')
         transaction.description = request.POST.get('description')
+        
         transaction.save()
-        messages.success(request, "내역이 수정되었습니다.")
-        return redirect('applications:accounting_list')
+        
+        messages.success(request, f"'{transaction.item_name}' 내역이 수정되었습니다.")
+        
+        # 3. 중요: 수정된 내역이 속한 기수의 리스트 페이지로 리다이렉트
+        return redirect('applications:accounting_year_list', year=transaction.budget_year.year)
     
-    return render(request, 'applications/accounting_update_form.html', {'transaction': transaction})
+    # GET 요청 시: 폼에 필요한 연도/행사 목록 함께 전달
+    context = {
+        'transaction': transaction,
+        'years': BudgetYear.objects.all().order_by('-year'),
+        'events': AccountingEvent.objects.filter(budget_year=transaction.budget_year) # 현재 기수 행사들
+    }
+    return render(request, 'applications/accounting_update_form.html', context)
 
+# views.py 수정 제안
 @staff_member_required
 def accounting_delete(request, pk):
-    """회계 내역 삭제"""
+    """회계 내역 삭제: 삭제 후 원래 있던 연도 페이지로 유지"""
     if request.method == 'POST':
         transaction = get_object_or_404(Transaction, pk=pk)
+        target_year = transaction.budget_year.year # 삭제 전 연도 저장
         transaction.delete()
         messages.success(request, "내역이 삭제되었습니다.")
+        return redirect('applications:accounting_year_list', year=target_year) # 삭제 후 그 연도 장부로!
     return redirect('applications:accounting_list')
 
+@staff_member_required
+def accounting_events_api(request):
+    """
+    GET /accounting/api/events/?year_id=3
+    -> 해당 BudgetYear(pk=3)의 행사 목록 반환
+    """
+    year_id = request.GET.get('year_id')
+    if not year_id:
+        return JsonResponse({'events': []})
+
+    budget_year = get_object_or_404(BudgetYear, pk=year_id)
+
+    events = AccountingEvent.objects.filter(budget_year=budget_year).order_by('-date', '-id')
+    data = [{'id': e.id, 'name': e.name, 'date': e.date.strftime('%Y-%m-%d')} for e in events]
+    return JsonResponse({'events': data})
+
+#-----------------------------------------------------------일정관리------------------------------------------------
 def _parse_iso_dt(s: str | None):
     if not s:
         return None
@@ -608,6 +784,8 @@ def _parse_iso_dt(s: str | None):
         return d.astimezone(UTC)
     except Exception:
         return None
+
+
 
 @login_required
 @ensure_csrf_cookie
@@ -700,3 +878,58 @@ def delete_schedule(request, pk):
     schedule = get_object_or_404(ClubSchedule, pk=pk)
     schedule.delete()
     return JsonResponse({"status": "success"})
+
+# -----------------------------------------------------------
+# [관리자 전용] 1. 새 회계 연도(기수) 생성 및 활성화
+# -----------------------------------------------------------
+@staff_member_required
+def create_budget_year(request):
+    if request.method == 'POST':
+        year_val = request.POST.get('year')
+        
+        if not year_val:
+            messages.error(request, "연도를 입력해주세요.")
+            return redirect('applications:admin_page')
+
+        with transaction.atomic():
+            # 1. 기존에 활성화된 모든 연도를 비활성화 (새 기수 집중을 위해)
+            BudgetYear.objects.filter(is_active=True).update(is_active=False)
+            
+            # 2. 새 연도 생성 또는 업데이트 (이미 있으면 활성화만)
+            budget_year, created = BudgetYear.objects.update_or_create(
+                year=year_val,
+                defaults={'is_active': True}
+            )
+            
+        status_msg = "생성" if created else "활성화"
+        messages.success(request, f"{year_val}년 회계 기수가 성공적으로 {status_msg}되었습니다.")
+        return redirect('applications:admin_page')
+
+    return redirect('applications:admin_page')
+
+# -----------------------------------------------------------
+# [관리자 전용] 2. 현재 활성 기수 데이터 전체 초기화
+# -----------------------------------------------------------
+@staff_member_required
+def initialize_accounting_data(request):
+    """현재 활성화된 기수의 모든 내역과 행사를 삭제"""
+    if request.method == 'POST':
+        active_year = BudgetYear.objects.filter(is_active=True).first()
+        
+        if active_year:
+            # 1. 해당 연도에 속한 모든 내역(Transaction) 삭제
+            # (AccountingEvent가 CASCADE 설정되어 있다면 내역부터 지워집니다)
+            count_tx = active_year.all_transactions.count()
+            count_event = active_year.events.count()
+            
+            active_year.all_transactions.all().delete()
+            active_year.events.all().delete()
+            
+            messages.success(request, f"{active_year.year}년도의 내역 {count_tx}건과 행사 {count_event}건이 초기화되었습니다.")
+        else:
+            messages.error(request, "활성화된 회계 연도가 없어 초기화할 수 없습니다.")
+            
+        return redirect('applications:admin_page')
+    
+    return redirect('applications:admin_page')
+
