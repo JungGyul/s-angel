@@ -28,6 +28,7 @@ from django.utils import timezone
 from itertools import chain
 from django.db import transaction
 
+
 from zoneinfo import ZoneInfo
 KST = ZoneInfo("Asia/Seoul")
 UTC = dt.timezone.utc
@@ -768,6 +769,37 @@ def accounting_events_api(request):
     events = AccountingEvent.objects.filter(budget_year=budget_year).order_by('-date', '-id')
     data = [{'id': e.id, 'name': e.name, 'date': e.date.strftime('%Y-%m-%d')} for e in events]
     return JsonResponse({'events': data})
+
+# [관리자 전용] 행사 정보 수정
+@staff_member_required
+def accounting_event_update(request, pk):
+    event = get_object_or_404(AccountingEvent, pk=pk)
+    
+    if request.method == 'POST':
+        event.name = request.POST.get('name')
+        event.date = request.POST.get('date')
+        event.description = request.POST.get('description')
+        event.save()
+        
+        messages.success(request, f"행사 '{event.name}' 정보가 수정되었습니다.")
+        return redirect('applications:accounting_year_list', year=event.budget_year.year)
+    
+    context = {
+        'event': event,
+        'years': BudgetYear.objects.all().order_by('-year'),
+    }
+    return render(request, 'applications/accounting_event_update_form.html', context)
+
+# [관리자 전용] 행사 삭제 (삭제 시 그 안의 내역들도 같이 지워짐)
+@staff_member_required
+def accounting_event_delete(request, pk):
+    if request.method == 'POST':
+        event = get_object_or_404(AccountingEvent, pk=pk)
+        target_year = event.budget_year.year
+        event.delete() # CASCADE 설정에 의해 내부 Transaction도 자동 삭제됨
+        messages.success(request, "행사가 삭제되었습니다.")
+        return redirect('applications:accounting_year_list', year=target_year)
+    return redirect('applications:accounting_list')
 
 #-----------------------------------------------------------일정관리------------------------------------------------
 def _parse_iso_dt(s: str | None):

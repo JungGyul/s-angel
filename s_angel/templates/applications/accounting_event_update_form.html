@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>행사 정보 수정</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root{
+      --navy:#1E3A8A;
+      --bg:#F9FAFB;
+      --card:#FFFFFF;
+      --border:#E5E7EB;
+      --text:#334155;
+      --muted:#64748B;
+      --danger:#DC2626;
+      --shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+      --radius: 16px;
+      --ring: 0 0 0 3px rgba(30,58,138,.18);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans KR",sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .acc-page{ min-height:100vh; padding: 1.75rem 0; }
+    .acc-wrap{ max-width: 880px; margin: 0 auto; padding: 0 1rem 5.5rem; }
+
+    .acc-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .acc-title{
+      margin:0;
+      font-size: 1.45rem;
+      font-weight: 1000;
+      border-left: 4px solid var(--navy);
+      padding-left: .85rem;
+      line-height: 1.15;
+    }
+    .acc-sub{
+      margin-top: .35rem;
+      color: var(--muted);
+      font-size: .95rem;
+      padding-left: .95rem;
+      line-height: 1.4;
+      font-weight: 800;
+    }
+
+    .btn-ghost{
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-weight: 900;
+      padding: .55rem .9rem;
+      border-radius: .75rem;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:.45rem;
+      transition: .15s ease;
+      white-space: nowrap;
+      box-shadow: var(--shadow);
+    }
+    .btn-ghost:hover{ background:#F1F5F9; }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .card-head{
+      padding: 1rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: .75rem;
+      flex-wrap: wrap;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      padding:.45rem .8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(30,58,138,.28);
+      background: rgba(30,58,138,.06);
+      color: var(--navy);
+      font-weight: 950;
+      font-size: .9rem;
+    }
+    .meta{
+      color: var(--muted);
+      font-weight: 850;
+      font-size: .92rem;
+      display:flex;
+      gap:.6rem;
+      flex-wrap: wrap;
+      align-items:center;
+    }
+    .meta i{ opacity:.8; }
+
+    .form{
+      padding: 1.1rem;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .95rem;
+      align-items: start;
+    }
+    .field{
+      display:flex;
+      flex-direction: column;
+      gap:.35rem;
+    }
+    .field.full{ grid-column: 1 / -1; }
+
+    label{
+      font-size: .86rem;
+      color: var(--muted);
+      font-weight: 950;
+    }
+
+    input, select, textarea{
+      width:100%;
+      border: 1px solid var(--border);
+      border-radius: .85rem;
+      padding: .78rem .9rem;
+      font-weight: 900;
+      outline:none;
+      background:#fff;
+      transition: .15s ease;
+    }
+    textarea{ min-height: 120px; resize: vertical; }
+
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(30,58,138,.35);
+      box-shadow: var(--ring);
+    }
+
+    .help{
+      margin-top: .1rem;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: .88rem;
+      line-height: 1.35;
+    }
+
+    /* 하단 고정 액션 바 */
+    .sticky-bar{
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: rgba(249,250,251,.92);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      padding: .8rem 0;
+    }
+    .sticky-inner{
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:.5rem;
+      padding:.7rem 1.05rem;
+      border-radius: .9rem;
+      font-weight: 950;
+      border: 1px solid transparent;
+      cursor:pointer;
+      text-decoration:none;
+      transition:.15s ease;
+      white-space: nowrap;
+    }
+    .btn-cancel{
+      background: var(--card);
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .btn-cancel:hover{ background:#F1F5F9; }
+
+    .btn-save{
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      box-shadow: 0 10px 18px rgba(30,58,138,.18);
+    }
+    .btn-save:hover{ filter: brightness(.97); }
+
+    .btn-danger{
+      background: rgba(239,68,68,.08);
+      border-color: rgba(220,38,38,.25);
+      color: var(--danger);
+    }
+    .btn-danger:hover{ background: rgba(239,68,68,.12); }
+
+    @media (max-width: 820px){
+      .acc-page{ padding: 1.1rem 0; }
+      .acc-title{ font-size: 1.25rem; }
+      .grid{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="acc-page">
+  <div class="acc-wrap">
+
+    <div class="acc-head">
+      <div>
+        <h2 class="acc-title">행사 정보 수정</h2>
+        <div class="acc-sub">행사명, 날짜, 설명을 정리해서 장부를 깔끔하게 유지할 수 있어요.</div>
+      </div>
+
+      <a href="{% url 'applications:accounting_year_list' event.budget_year.year %}" class="btn-ghost">
+        <i class="fas fa-arrow-left"></i>돌아가기
+      </a>
+    </div>
+
+    <form method="post" class="card" id="eventForm">
+      {% csrf_token %}
+
+      <!-- 카드 헤더(현재 상태/정보) -->
+      <div class="card-head">
+        <div class="badge">
+          <i class="fas fa-folder-open"></i>
+          현재 행사: {{ event.name }}
+        </div>
+        <div class="meta">
+          <span><i class="fas fa-lock"></i> {{ event.budget_year.year }}년도(고정)</span>
+          <span><i class="fas fa-calendar-day"></i> {{ event.date|date:'Y-m-d' }}</span>
+        </div>
+      </div>
+
+      <!-- 폼 -->
+      <div class="form">
+        <div class="grid">
+
+          <div class="field">
+            <label>회계 기수(연도)</label>
+            <!-- ✅ 화면에는 고정된 값만 보여주기 -->
+            <input type="text" value="{{ event.budget_year.year }}년도" readonly>
+
+            <!-- ✅ 서버에는 현재 기수 id를 hidden으로 전달 -->
+            <input type="hidden" name="budget_year" value="{{ event.budget_year.id }}">
+        </div>
+
+
+          <div class="field">
+            <label for="date">대표 날짜</label>
+            <input id="date" type="date" name="date" required value="{{ event.date|date:'Y-m-d' }}">
+            <div class="help">타임라인에서 표시/정렬에 쓰이는 기준 날짜예요.</div>
+          </div>
+
+          <div class="field full">
+            <label for="name">행사명</label>
+            <input id="name" type="text" name="name" maxlength="100" required value="{{ event.name }}"
+                   placeholder="예) 축제, MT, 대운동장 주점">
+          </div>
+
+          <div class="field full">
+            <label for="description">상세 내용(선택)</label>
+            <textarea id="description" name="description" rows="4"
+                      placeholder="담당자/정산 방식/특이사항 등을 남겨두면 좋아요.">{{ event.description }}</textarea>
+            <div class="help">필요 없으면 비워도 돼요.</div>
+          </div>
+
+        </div>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- 하단 고정 액션 -->
+<div class="sticky-bar">
+  <div class="sticky-inner">
+    <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
+      <a href="{% url 'applications:accounting_event_detail' event.id %}" class="btn-pill btn-cancel">
+        <i class="fas fa-list"></i>상세보기
+      </a>
+    </div>
+
+    <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
+
+      <a href="{% url 'applications:accounting_year_list' event.budget_year.year %}" class="btn-pill btn-cancel">
+        <i class="fas fa-times"></i>취소
+      </a>
+      <button type="submit" form="eventForm" class="btn-pill btn-save">
+        <i class="fas fa-save"></i>수정 완료
+      </button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

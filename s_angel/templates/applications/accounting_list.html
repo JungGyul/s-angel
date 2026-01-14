@@ -374,7 +374,7 @@
       <div>
         <h2 class="acc-title">S-ANGEL 회계 장부</h2>
         <div class="acc-subtitle">
-          {{ budget_year.year }}년도 기수 회계 장부
+          {{ budget_year.year }}년도 S-ANGEL 회계 장부
         </div>
       </div>
 
@@ -523,12 +523,25 @@
               <div class="money total" style="border-top: 1px solid var(--border);">{{ s.total|intcomma }}원</div>
             </td>
             <td data-label="관리/이동">
-              <div class="manage-wrap">
-                <a href="{% url 'applications:accounting_event_detail' item.id %}" class="action-pill edit" style="background: var(--navy); color: white; border: none;">
-                  <i class="fas fa-list"></i> 상세보기
-                </a>
-              </div>
-            </td>
+                <div class="manage-wrap">
+                    {% if is_admin %}
+                    <a href="{% url 'applications:accounting_event_update' item.id %}" class="action-pill edit">
+                        <i class="fas fa-edit"></i> 수정
+                    </a>
+                    
+                    <form action="{% url 'applications:accounting_event_delete' item.id %}" method="post" 
+                            onsubmit="return confirm('행사를 삭제하면 그 안의 모든 내역도 함께 삭제됩니다. 정말 삭제할까요?');" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" class="action-pill del">
+                        <i class="fas fa-trash"></i> 삭제
+                        </button>
+                    </form>
+                    {% else %}<a href="{% url 'applications:accounting_event_detail' item.id %}" class="action-pill" style="background: var(--navy); color:white; border:none;">
+                        상세보기
+                        </a>
+                    {% endif %}
+                </div>
+                </td>
           </tr>
           {% endwith %}
         {% endif %}

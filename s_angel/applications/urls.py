@@ -45,6 +45,10 @@ urlpatterns = [
     path('accounting/<int:pk>/update/', views.accounting_update, name='accounting_update'),
     path('accounting/<int:pk>/delete/', views.accounting_delete, name='accounting_delete'),
 
+    path('accounting/event/<int:pk>/update/', views.accounting_event_update, name='accounting_event_update'),
+    path('accounting/event/<int:pk>/delete/', views.accounting_event_delete, name='accounting_event_delete'),
+
+
     path('user/<int:user_id>/update_info/', views.update_user_info, name='update_user_info'),
 
     path('admin/budget-year/create/', views.create_budget_year, name='create_budget_year'),
