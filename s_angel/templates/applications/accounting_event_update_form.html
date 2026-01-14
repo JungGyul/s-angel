@@ -131,15 +131,6 @@ input, select, textarea{
       flex-direction: column;
       gap:.35rem;
     }
-    .grid > * { min-width: 0; }     /* 또는 .field{min-width:0;} */
-
-    /* ✅ iOS에서 date input이 폭을 무시하는 케이스 방지 */
-    input[type="date"]{
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    }
     .field.full{ grid-column: 1 / -1; }
 
     label{
@@ -297,7 +288,6 @@ input, select, textarea{
             <label for="description">상세 내용(선택)</label>
             <textarea id="description" name="description" rows="4"
                       placeholder="담당자/정산 방식/특이사항 등을 남겨두면 좋아요.">{{ event.description }}</textarea>
-            <div class="help">필요 없으면 비워도 돼요.</div>
           </div>
 
         </div>

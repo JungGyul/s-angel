@@ -35,15 +35,7 @@ input, select, textarea{
     .btn.primary:hover{ filter:brightness(.97); }
 
     .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:.85rem; }
-    .grid > * { min-width: 0; }     /* 또는 .field{min-width:0;} */
-
-/* ✅ iOS에서 date input이 폭을 무시하는 케이스 방지 */
-input[type="date"]{
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-}
+    
     label{ display:block; font-size:.86rem; color:var(--muted); font-weight:900; margin:0 0 .35rem; }
     input, select, textarea{
       width:100%; border:1px solid var(--border); border-radius:.8rem;

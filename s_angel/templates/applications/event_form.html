@@ -92,15 +92,7 @@ input, select, textarea{
     grid-template-columns: 1fr 1fr;
     gap: .85rem;
   }
-  .grid > * { min-width: 0; }     /* 또는 .field{min-width:0;} */
-
-/* ✅ iOS에서 date input이 폭을 무시하는 케이스 방지 */
-input[type="date"]{
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-}
+  
 
   label{
     display:block;
