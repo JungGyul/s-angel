@@ -2,6 +2,40 @@ from django.db import models
 from django.conf import settings
 from django.db.models import Sum, Q
 
+
+class SpecialLotteryGroup(models.Model):
+    class DrawMode(models.TextChoices):
+        BALANCED = "BALANCED", "가중치 반영 + 반복 선발 완화"
+        WEIGHTED = "WEIGHTED", "기존 가중치 그대로 반영"
+        EQUAL = "EQUAL", "모든 신청자 동일 확률"
+
+    name = models.CharField(max_length=200, verbose_name="특별추첨명")
+    description = models.TextField(blank=True, verbose_name="설명")
+    draw_mode = models.CharField(
+        max_length=20,
+        choices=DrawMode.choices,
+        default=DrawMode.BALANCED,
+        verbose_name="임시 추첨 방식",
+    )
+    is_drawn = models.BooleanField(default=False, verbose_name="임시 추첨 완료")
+    is_finalized = models.BooleanField(default=False, verbose_name="최종 확정")
+    created_at = models.DateTimeField(auto_now_add=True)
+    finalized_at = models.DateTimeField(null=True, blank=True)
+    finalized_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="finalized_special_lotteries",
+    )
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return self.name
+
+
 class Event(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -11,6 +45,18 @@ class Event(models.Model):
     male_slots = models.PositiveIntegerField()
     female_slots = models.PositiveIntegerField()
     is_finalized = models.BooleanField(default=False) # 최종 확정 여부 추가
+    special_lottery_group = models.ForeignKey(
+        SpecialLotteryGroup,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="events",
+        verbose_name="특별추첨 묶음",
+    )
+    special_lottery_order = models.PositiveIntegerField(
+        default=0,
+        verbose_name="특별추첨 내 순서",
+    )
 
     def __str__(self):
         return self.title
@@ -23,10 +69,56 @@ class Application(models.Model):
     failed_count = models.PositiveIntegerField(default=0)
     weight = models.PositiveIntegerField(default=1)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "participant"],
+                name="unique_application_event_participant",
+            ),
+        ]
+
     def __str__(self):
         return f"{self.participant.username} - {self.event.title} ({'당첨' if self.selected else '탈락'})"
-    
-    # applications/models.py
+
+
+class SpecialLotterySettlement(models.Model):
+    class Adjustment(models.TextChoices):
+        INCREASE = "INCREASE", "가중치 증가"
+        KEEP = "KEEP", "가중치 유지"
+        RESET = "RESET", "가중치 초기화"
+
+    group = models.ForeignKey(
+        SpecialLotteryGroup,
+        on_delete=models.CASCADE,
+        related_name="settlements",
+    )
+    participant = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="special_lottery_settlements",
+    )
+    application_count = models.PositiveIntegerField()
+    selected_count = models.PositiveIntegerField()
+    total_application_count = models.PositiveIntegerField()
+    total_selected_count = models.PositiveIntegerField()
+    previous_weight = models.PositiveIntegerField()
+    new_weight = models.PositiveIntegerField()
+    adjustment = models.CharField(max_length=10, choices=Adjustment.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["group", "participant"],
+                name="unique_special_lottery_settlement",
+            ),
+        ]
+        ordering = ["participant_id"]
+
+    def __str__(self):
+        return f"{self.group.name} - {self.participant.username}: {self.previous_weight} → {self.new_weight}"
+
+
 class BudgetYear(models.Model):
     year = models.IntegerField("연도(기수)", unique=True)
     is_active = models.BooleanField("현재 활성 기수", default=False)

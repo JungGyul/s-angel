@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --navy: #1e3a8a;
+      --bg: #f8fafc;
+      --card: #fff;
+      --line: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --danger: #b91c1c;
+    }
+    body {
+      margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+      font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .container { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; margin-bottom: 24px;
+    }
+    h1 { margin: 0; font-size: 28px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 24px; box-shadow: 0 8px 24px rgb(15 23 42 / .05);
+    }
+    .field { margin-bottom: 22px; }
+    label { display: block; margin-bottom: 8px; font-weight: 800; }
+    .form-control {
+      width: 100%; min-height: 44px; border: 1px solid #cbd5e1;
+      border-radius: 10px; padding: 10px 12px; background: #fff; font: inherit;
+    }
+    textarea.form-control { resize: vertical; }
+    .help { margin-top: 7px; color: var(--muted); font-size: 14px; }
+    .errors, .errorlist { margin: 7px 0; padding-left: 20px; color: var(--danger); }
+    #id_events {
+      list-style: none; padding: 0; margin: 0; display: grid; gap: 10px;
+    }
+    #id_events li {
+      border: 1px solid var(--line); border-radius: 10px; background: #f8fafc;
+    }
+    #id_events label {
+      display: flex; align-items: center; gap: 10px; margin: 0;
+      padding: 13px 14px; cursor: pointer; font-weight: 650;
+    }
+    #id_events input { width: 18px; height: 18px; accent-color: var(--navy); }
+    .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 28px; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 44px; padding: 0 18px; border-radius: 10px;
+      border: 1px solid var(--line); text-decoration: none; font-weight: 800;
+      background: #fff; color: var(--text); cursor: pointer;
+    }
+    .btn-primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+    @media (max-width: 600px) {
+      .container { padding: 24px 14px; }
+      .header { align-items: flex-start; flex-direction: column; }
+      .card { padding: 18px; }
+      .actions .btn { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <h1>{{ page_title }}</h1>
+        <p class="help">먼저 날짜별 활동을 만든 뒤 이 화면에서 하나의 묶음으로 연결합니다.</p>
+      </div>
+      <a class="btn" href="{% url 'applications:special_lottery_list' %}">목록으로</a>
+    </header>
+
+    <form method="post" class="card">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <div class="field">
+        <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+        {{ form.name }}
+        {{ form.name.errors }}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+        {{ form.description }}
+        {{ form.description.errors }}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.draw_mode.id_for_label }}">{{ form.draw_mode.label }}</label>
+        {{ form.draw_mode }}
+        {{ form.draw_mode.errors }}
+        <p class="help">
+          기본 방식은 현재 가중치를 반영하되, 이번 묶음에서 이미 여러 번 뽑힌 사람의 다음 확률만 완만하게 낮춥니다.
+        </p>
+      </div>
+
+      <div class="field">
+        <label>{{ form.events.label }}</label>
+        {{ form.events }}
+        {{ form.events.errors }}
+        <p class="help">{{ form.events.help_text }}</p>
+      </div>
+
+      <div class="actions">
+        <a class="btn" href="{% url 'applications:special_lottery_list' %}">취소</a>
+        <button class="btn btn-primary" type="submit">저장하고 명단으로</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>특별추첨 관리</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --navy: #1e3a8a;
+      --indigo: #4338ca;
+      --bg: #f8fafc;
+      --card: #fff;
+      --line: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --green: #047857;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; margin-bottom: 28px;
+    }
+    h1 { margin: 0; font-size: 28px; }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 42px; padding: 0 16px; border-radius: 10px;
+      text-decoration: none; border: 1px solid var(--line);
+      background: var(--card); color: var(--text); font-weight: 700;
+    }
+    .btn-primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+    .messages { display: grid; gap: 8px; margin-bottom: 20px; }
+    .message {
+      padding: 12px 14px; background: #eff6ff; color: var(--navy);
+      border: 1px solid #bfdbfe; border-radius: 10px;
+    }
+    .groups { display: grid; gap: 16px; }
+    .group-card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgb(15 23 42 / .05);
+    }
+    .group-top {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    }
+    .group-title { margin: 0 0 8px; font-size: 21px; }
+    .description { margin: 0; color: var(--muted); line-height: 1.6; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .badge {
+      padding: 5px 9px; border-radius: 999px; background: #f1f5f9;
+      color: #475569; font-size: 13px; font-weight: 700; white-space: nowrap;
+    }
+    .badge.done { color: var(--green); background: #ecfdf5; }
+    .events {
+      margin: 18px 0; padding: 14px 16px; background: #f8fafc;
+      border-radius: 12px; display: grid; gap: 7px;
+    }
+    .event { display: flex; justify-content: space-between; gap: 12px; color: #475569; }
+    .group-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .empty {
+      padding: 56px 20px; text-align: center; color: var(--muted);
+      background: var(--card); border: 1px dashed #cbd5e1; border-radius: 16px;
+    }
+    @media (max-width: 640px) {
+      .container { padding: 24px 14px; }
+      .header, .group-top { align-items: stretch; flex-direction: column; }
+      .header-actions, .badges { justify-content: flex-start; }
+      .header-actions .btn { flex: 1; }
+      .event { flex-direction: column; gap: 3px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <h1>특별추첨 관리</h1>
+        <p class="description">여러 활동을 한 번에 추첨하고 최종 명단 기준으로 가중치를 정산합니다.</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn" href="{% url 'applications:dashboard' %}">대시보드</a>
+        <a class="btn btn-primary" href="{% url 'applications:special_lottery_create' %}">새 특별추첨</a>
+      </div>
+    </header>
+
+    {% if messages %}
+      <div class="messages">
+        {% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}
+      </div>
+    {% endif %}
+
+    <section class="groups">
+      {% for group in groups %}
+        <article class="group-card">
+          <div class="group-top">
+            <div>
+              <h2 class="group-title">{{ group.name }}</h2>
+              <p class="description">{{ group.description|default:"설명 없음" }}</p>
+            </div>
+            <div class="badges">
+              <span class="badge">{{ group.get_draw_mode_display }}</span>
+              {% if group.is_finalized %}
+                <span class="badge done">최종 확정</span>
+              {% elif group.is_drawn %}
+                <span class="badge">명단 조정 중</span>
+              {% else %}
+                <span class="badge">추첨 전</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="events">
+            {% for event in group.events.all %}
+              <div class="event">
+                <strong>{{ event.title }}</strong>
+                <span>{{ event.start_date }} · {{ event.total_slots }}명</span>
+              </div>
+            {% empty %}
+              <span>연결된 활동이 없습니다.</span>
+            {% endfor %}
+          </div>
+
+          <div class="group-actions">
+            <a class="btn btn-primary" href="{% url 'applications:special_lottery_review' group.id %}">
+              {% if group.is_finalized %}결과 및 정산 보기{% elif group.is_drawn %}명단 계속 조정{% else %}추첨 시작{% endif %}
+            </a>
+            {% if not group.is_drawn and not group.is_finalized %}
+              <a class="btn" href="{% url 'applications:special_lottery_update' group.id %}">설정 수정</a>
+            {% endif %}
+          </div>
+        </article>
+      {% empty %}
+        <div class="empty">
+          아직 특별추첨이 없습니다.<br>
+          먼저 날짜별 활동을 만든 다음 특별추첨으로 묶어주세요.
+        </div>
+      {% endfor %}
+    </section>
+  </main>
+</body>
+</html>

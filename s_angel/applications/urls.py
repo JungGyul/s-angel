@@ -1,11 +1,47 @@
 from django.urls import path
 from . import views
+from . import special_lottery
 
 app_name = "applications"  # ✅ 이 줄이 꼭 있어야 namespace 사용 가능
 
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
+    path(
+        'special-lotteries/',
+        special_lottery.special_lottery_list,
+        name='special_lottery_list',
+    ),
+    path(
+        'special-lotteries/create/',
+        special_lottery.special_lottery_create,
+        name='special_lottery_create',
+    ),
+    path(
+        'special-lotteries/<int:group_id>/edit/',
+        special_lottery.special_lottery_update,
+        name='special_lottery_update',
+    ),
+    path(
+        'special-lotteries/<int:group_id>/',
+        special_lottery.special_lottery_review,
+        name='special_lottery_review',
+    ),
+    path(
+        'special-lotteries/<int:group_id>/draw/',
+        special_lottery.special_lottery_draw,
+        name='special_lottery_draw',
+    ),
+    path(
+        'special-lotteries/<int:group_id>/save/',
+        special_lottery.special_lottery_save_roster,
+        name='special_lottery_save_roster',
+    ),
+    path(
+        'special-lotteries/<int:group_id>/finalize/',
+        special_lottery.special_lottery_finalize,
+        name='special_lottery_finalize',
+    ),
     path('create/', views.create_event, name='create_event'),
     path('apply/<int:event_id>/', views.apply_event, name='apply_event'),
     path('draw/<int:event_id>/', views.draw_event, name='draw_event'),

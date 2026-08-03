@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ group.name }} 특별추첨</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --navy: #1e3a8a;
+      --indigo: #4338ca;
+      --bg: #f8fafc;
+      --card: #fff;
+      --line: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --green: #047857;
+      --red: #b91c1c;
+      --amber: #b45309;
+    }
+    body {
+      margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+      font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input { font: inherit; }
+    .container { max-width: 1180px; margin: 0 auto; padding: 36px 20px 120px; }
+    .header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 18px; margin-bottom: 22px;
+    }
+    h1 { margin: 0 0 8px; font-size: 29px; }
+    .subtitle { margin: 0; color: var(--muted); line-height: 1.6; }
+    .header-actions, .top-actions, .bottom-actions {
+      display: flex; gap: 9px; flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 42px; padding: 0 16px; border-radius: 10px;
+      text-decoration: none; border: 1px solid var(--line);
+      background: #fff; color: var(--text); font-weight: 800; cursor: pointer;
+    }
+    .btn-primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+    .btn-indigo { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+    .btn-danger { background: var(--red); border-color: var(--red); color: #fff; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .messages { display: grid; gap: 8px; margin: 16px 0; }
+    .message {
+      padding: 12px 14px; background: #eff6ff; border: 1px solid #bfdbfe;
+      color: var(--navy); border-radius: 10px;
+    }
+    .summary {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      margin: 20px 0;
+    }
+    .summary-card {
+      padding: 16px; background: var(--card); border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+    .summary-label { color: var(--muted); font-size: 13px; font-weight: 700; }
+    .summary-value { margin-top: 6px; font-size: 21px; font-weight: 850; }
+    .panel {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      margin-top: 18px; overflow: hidden; box-shadow: 0 8px 24px rgb(15 23 42 / .04);
+    }
+    .panel-header {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; padding: 17px 19px; background: #f8fafc; border-bottom: 1px solid var(--line);
+    }
+    .panel-title { margin: 0; font-size: 19px; }
+    .count { color: var(--muted); font-weight: 750; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #eef2f7; }
+    th {
+      color: #475569; background: #fbfdff; font-size: 13px;
+      text-transform: none; white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: 0; }
+    tr.selected { background: #eff6ff; }
+    .winner-check { width: 19px; height: 19px; accent-color: var(--navy); }
+    .muted { color: var(--muted); }
+    .pill {
+      display: inline-flex; padding: 4px 8px; border-radius: 999px;
+      font-size: 12px; font-weight: 800; background: #f1f5f9; color: #475569;
+    }
+    .pill.increase { background: #fff7ed; color: var(--amber); }
+    .pill.keep { background: #eff6ff; color: var(--navy); }
+    .pill.reset { background: #ecfdf5; color: var(--green); }
+    .empty { padding: 28px; text-align: center; color: var(--muted); }
+    .settlement-title { margin: 34px 0 0; font-size: 23px; }
+    .settlement-help { color: var(--muted); line-height: 1.6; }
+    .bottom-actions {
+      position: sticky; bottom: 16px; justify-content: flex-end;
+      margin-top: 22px; padding: 14px; background: rgb(255 255 255 / .94);
+      border: 1px solid var(--line); border-radius: 14px;
+      box-shadow: 0 12px 35px rgb(15 23 42 / .12); backdrop-filter: blur(8px);
+    }
+    @media (max-width: 760px) {
+      .container { padding: 24px 12px 100px; }
+      .header { flex-direction: column; }
+      .summary { grid-template-columns: repeat(2, 1fr); }
+      .header-actions .btn, .top-actions .btn, .bottom-actions .btn { flex: 1; }
+      th, td { padding: 10px 9px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <h1>{{ group.name }}</h1>
+        <p class="subtitle">
+          {{ group.description|default:"여러 활동의 명단을 한 번에 추첨하고 조정합니다." }}<br>
+          추첨 방식: <strong>{{ group.get_draw_mode_display }}</strong>
+        </p>
+      </div>
+      <div class="header-actions">
+        <a class="btn" href="{% url 'applications:special_lottery_list' %}">특별추첨 목록</a>
+        <a class="btn" href="{% url 'applications:dashboard' %}">대시보드</a>
+      </div>
+    </header>
+
+    {% if messages %}
+      <div class="messages">
+        {% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="summary">
+      <div class="summary-card">
+        <div class="summary-label">상태</div>
+        <div class="summary-value">
+          {% if group.is_finalized %}최종 확정{% elif group.is_drawn %}명단 조정 중{% else %}추첨 전{% endif %}
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">활동 수</div>
+        <div class="summary-value">{{ event_rows|length }}개</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">전체 신청</div>
+        <div class="summary-value">{{ total_application_count }}건</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">현재 선발</div>
+        <div class="summary-value"><span id="total-selected">{{ total_selected_count }}</span>건</div>
+      </div>
+    </div>
+
+    {% if not group.is_finalized %}
+      <div class="top-actions">
+        {% if not group.is_drawn %}
+          <a class="btn" href="{% url 'applications:special_lottery_update' group.id %}">묶음 설정 수정</a>
+        {% endif %}
+        <form method="post" action="{% url 'applications:special_lottery_draw' group.id %}">
+          {% csrf_token %}
+          <button
+            class="btn btn-primary"
+            type="submit"
+            onclick="return confirm('{% if group.is_drawn %}현재 임시 명단을 지우고 다시 전체 추첨할까요?{% else %}모든 활동을 한 번에 추첨할까요?{% endif %}');"
+          >
+            {% if group.is_drawn %}전체 다시 추첨{% else %}전체 임시 추첨{% endif %}
+          </button>
+        </form>
+      </div>
+    {% endif %}
+
+    <form
+      id="roster-form"
+      method="post"
+      action="{% url 'applications:special_lottery_save_roster' group.id %}"
+    >
+      {% csrf_token %}
+      <input type="hidden" name="roster_submission" value="1">
+
+      {% for row in event_rows %}
+        <section class="panel" data-event-panel data-target="{{ row.event.total_slots }}">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">{{ row.event.title }}</h2>
+              <span class="muted">{{ row.event.start_date }} ~ {{ row.event.end_date }}</span>
+            </div>
+            <div class="count">
+              선택 <span data-event-count>{{ row.selected_count }}</span> / 목표 {{ row.event.total_slots }}명
+            </div>
+          </div>
+          {% if row.applications %}
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>선택</th>
+                    <th>이름</th>
+                    <th>성별</th>
+                    <th>현재 가중치</th>
+                    <th>신청 시각</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for application in row.applications %}
+                    <tr class="{% if application.selected %}selected{% endif %}">
+                      <td>
+                        <input
+                          class="winner-check"
+                          type="checkbox"
+                          name="event_{{ row.event.id }}_selected"
+                          value="{{ application.id }}"
+                          data-user-id="{{ application.participant_id }}"
+                          {% if application.selected %}checked{% endif %}
+                          {% if group.is_finalized %}disabled{% endif %}
+                        >
+                      </td>
+                      <td><strong>{{ application.participant.name|default:application.participant.username }}</strong></td>
+                      <td>{{ application.participant.get_gender_display|default:"-" }}</td>
+                      <td>{{ application.participant.weight }}</td>
+                      <td class="muted">{{ application.applied_at|date:"m.d H:i" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty">이 활동에는 신청자가 없습니다.</div>
+          {% endif %}
+        </section>
+      {% empty %}
+        <div class="empty panel">연결된 활동이 없습니다.</div>
+      {% endfor %}
+
+      <h2 class="settlement-title">신청 대비 가중치 정산 미리보기</h2>
+      <p class="settlement-help">
+        개인 선발률이 전체 선발률보다 낮으면 +1, 같으면 유지, 높으면 1로 초기화합니다.
+        한 특별추첨에서 증가량은 최대 1입니다.
+        전체 선발률: <strong><span id="group-rate">{{ total_selection_rate|floatformat:1 }}</span>%</strong>
+      </p>
+
+      <section class="panel">
+        {% if user_stats %}
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>이름</th>
+                  <th>신청</th>
+                  <th>선발</th>
+                  <th>개인 선발률</th>
+                  <th>가중치 변화</th>
+                  <th>정산</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for stats in user_stats %}
+                  <tr
+                    data-user-stat
+                    data-user-id="{{ stats.participant.id }}"
+                    data-application-count="{{ stats.application_count }}"
+                    data-old-weight="{{ stats.old_weight }}"
+                  >
+                    <td><strong>{{ stats.participant.name|default:stats.participant.username }}</strong></td>
+                    <td>{{ stats.application_count }}회</td>
+                    <td><span data-selected-count>{{ stats.selected_count }}</span>회</td>
+                    <td><span data-personal-rate>{{ stats.selection_rate|floatformat:1 }}</span>%</td>
+                    <td>
+                      {{ stats.old_weight }}
+                      →
+                      <strong data-new-weight>{{ stats.new_weight }}</strong>
+                    </td>
+                    <td>
+                      <span
+                        class="pill {% if stats.adjustment == 'INCREASE' %}increase{% elif stats.adjustment == 'RESET' %}reset{% else %}keep{% endif %}"
+                        data-adjustment
+                      >
+                        {% if stats.adjustment == "INCREASE" %}+1
+                        {% elif stats.adjustment == "RESET" %}1로 초기화
+                        {% else %}유지{% endif %}
+                      </span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty">신청자가 생기면 가중치 정산 미리보기가 표시됩니다.</div>
+        {% endif %}
+      </section>
+
+      {% if not group.is_finalized %}
+        <div class="bottom-actions">
+          <button class="btn btn-indigo" type="submit">명단 임시 저장</button>
+          <button class="btn btn-danger" type="button" id="finalize-button">묶음 전체 최종 확정</button>
+        </div>
+      {% endif %}
+    </form>
+  </main>
+
+  <script>
+    (() => {
+      const form = document.getElementById('roster-form');
+      const checkboxes = Array.from(document.querySelectorAll('.winner-check'));
+      const totalApplications = Number('{{ total_application_count }}');
+      const finalized = {{ group.is_finalized|yesno:"true,false" }};
+
+      function refreshPreview() {
+        const totalSelected = checkboxes.filter((checkbox) => checkbox.checked).length;
+        document.getElementById('total-selected').textContent = totalSelected;
+        document.getElementById('group-rate').textContent = totalApplications
+          ? (totalSelected / totalApplications * 100).toFixed(1)
+          : '0.0';
+
+        document.querySelectorAll('[data-event-panel]').forEach((panel) => {
+          const count = panel.querySelectorAll('.winner-check:checked').length;
+          panel.querySelector('[data-event-count]').textContent = count;
+        });
+
+        document.querySelectorAll('[data-user-stat]').forEach((row) => {
+          const userId = row.dataset.userId;
+          const applicationCount = Number(row.dataset.applicationCount);
+          const oldWeight = Number(row.dataset.oldWeight);
+          const selectedCount = checkboxes.filter(
+            (checkbox) => checkbox.checked && checkbox.dataset.userId === userId
+          ).length;
+          const personalRate = applicationCount
+            ? selectedCount / applicationCount * 100
+            : 0;
+
+          row.querySelector('[data-selected-count]').textContent = selectedCount;
+          row.querySelector('[data-personal-rate]').textContent = personalRate.toFixed(1);
+
+          const adjustment = row.querySelector('[data-adjustment]');
+          let newWeight = oldWeight;
+          adjustment.className = 'pill keep';
+          adjustment.textContent = '유지';
+
+          if (totalApplications > 0 && totalSelected > 0) {
+            const personalRateSide = selectedCount * totalApplications;
+            const groupRateSide = totalSelected * applicationCount;
+            if (personalRateSide < groupRateSide) {
+              newWeight = oldWeight + 1;
+              adjustment.className = 'pill increase';
+              adjustment.textContent = '+1';
+            } else if (personalRateSide > groupRateSide) {
+              newWeight = 1;
+              adjustment.className = 'pill reset';
+              adjustment.textContent = '1로 초기화';
+            }
+          }
+          row.querySelector('[data-new-weight]').textContent = newWeight;
+        });
+
+        checkboxes.forEach((checkbox) => {
+          checkbox.closest('tr').classList.toggle('selected', checkbox.checked);
+        });
+      }
+
+      checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', refreshPreview);
+      });
+
+      const finalizeButton = document.getElementById('finalize-button');
+      if (finalizeButton) {
+        finalizeButton.addEventListener('click', () => {
+          const totalSelected = checkboxes.filter((checkbox) => checkbox.checked).length;
+          if (totalSelected === 0) {
+            alert('최소 한 명 이상 선택해야 최종 확정할 수 있습니다.');
+            return;
+          }
+
+          const mismatchLines = [];
+          document.querySelectorAll('[data-event-panel]').forEach((panel) => {
+            const target = Number(panel.dataset.target);
+            const selected = panel.querySelectorAll('.winner-check:checked').length;
+            if (target !== selected) {
+              const title = panel.querySelector('.panel-title').textContent.trim();
+              mismatchLines.push(`${title}: 목표 ${target}명 / 현재 ${selected}명`);
+            }
+          });
+
+          let message = '현재 명단으로 묶음 전체를 최종 확정할까요?\\n가중치가 한 번만 정산되며 이후에는 수정할 수 없습니다.';
+          if (mismatchLines.length) {
+            message += `\\n\\n모집 인원과 다른 활동:\\n${mismatchLines.join('\\n')}`;
+          }
+          if (!confirm(message)) return;
+
+          finalizeButton.disabled = true;
+          form.action = "{% url 'applications:special_lottery_finalize' group.id %}";
+          form.submit();
+        });
+      }
+
+      if (!finalized) refreshPreview();
+    })();
+  </script>
+</body>
+</html>

@@ -1,22 +1,18 @@
+import pytest
 from django.urls import resolve
 from django.urls import reverse
 
-from s_angel.users.models import User
 
-
-def test_detail(user: User):
-    assert (
-        reverse("users:detail", kwargs={"username": user.username})
-        == f"/users/{user.username}/"
-    )
-    assert resolve(f"/users/{user.username}/").view_name == "users:detail"
-
-
-def test_update():
-    assert reverse("users:update") == "/users/~update/"
-    assert resolve("/users/~update/").view_name == "users:update"
-
-
-def test_redirect():
-    assert reverse("users:redirect") == "/users/~redirect/"
-    assert resolve("/users/~redirect/").view_name == "users:redirect"
+@pytest.mark.parametrize(
+    ("view_name", "path"),
+    [
+        ("users:main", "/"),
+        ("users:signup", "/signup/"),
+        ("users:profile_update", "/profile/update/"),
+        ("users:password_reset_verify", "/password-reset/"),
+        ("users:password_reset_change", "/password-reset/change/"),
+    ],
+)
+def test_user_urls(view_name, path):
+    assert reverse(view_name) == path
+    assert resolve(path).view_name == view_name

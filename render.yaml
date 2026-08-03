@@ -2,5 +2,5 @@ services:
   - type: web
     name: s-angel
     env: python
-    buildCommand: "./manage.py collectstatic --noinput"
+    buildCommand: "./build.sh"
     startCommand: "gunicorn config.wsgi:application"
