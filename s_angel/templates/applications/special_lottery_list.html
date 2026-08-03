@@ -35,8 +35,12 @@
       min-height: 42px; padding: 0 16px; border-radius: 10px;
       text-decoration: none; border: 1px solid var(--line);
       background: var(--card); color: var(--text); font-weight: 700;
+      cursor: pointer; font-family: inherit;
     }
     .btn-primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+    .btn-danger { background: #fff; border-color: #fecaca; color: #b91c1c; }
+    .delete-group-form { display: inline-flex; margin: 0; }
+    .delete-group-form button:disabled { cursor: wait; opacity: .65; }
     .messages { display: grid; gap: 8px; margin-bottom: 20px; }
     .message {
       padding: 12px 14px; background: #eff6ff; color: var(--navy);
@@ -68,6 +72,16 @@
       padding: 56px 20px; text-align: center; color: var(--muted);
       background: var(--card); border: 1px dashed #cbd5e1; border-radius: 16px;
     }
+    .toast {
+      position: fixed; right: 20px; bottom: 20px; z-index: 1000;
+      max-width: min(420px, calc(100vw - 40px)); padding: 14px 16px;
+      border-radius: 12px; background: #0f172a; color: #fff;
+      box-shadow: 0 12px 28px rgb(15 23 42 / .25);
+      opacity: 0; transform: translateY(12px); pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: #991b1b; }
     @media (max-width: 640px) {
       .container { padding: 24px 14px; }
       .header, .group-top { align-items: stretch; flex-direction: column; }
@@ -96,9 +110,9 @@
       </div>
     {% endif %}
 
-    <section class="groups">
+    <section class="groups" id="special-lottery-groups">
       {% for group in groups %}
-        <article class="group-card">
+        <article class="group-card" data-group-card="{{ group.id }}">
           <div class="group-top">
             <div>
               <h2 class="group-title">{{ group.name }}</h2>
@@ -134,15 +148,100 @@
             {% if not group.is_drawn and not group.is_finalized %}
               <a class="btn" href="{% url 'applications:special_lottery_update' group.id %}">설정 수정</a>
             {% endif %}
+            <form
+              method="post"
+              action="{% url 'applications:special_lottery_delete' group.id %}"
+              class="delete-group-form"
+              data-confirm="이 특별추첨과 포함된 모든 활동·신청 내역을 삭제할까요? 회원 가중치는 변경하거나 되돌리지 않습니다."
+              onsubmit="if (!window.fetch) return confirm(this.dataset.confirm);"
+            >
+              {% csrf_token %}
+              <button class="btn btn-danger" type="submit">묶음 전체 삭제</button>
+            </form>
           </div>
         </article>
       {% empty %}
-        <div class="empty">
+        <div class="empty" id="special-lottery-empty">
           아직 특별추첨이 없습니다.<br>
           먼저 날짜별 활동을 만든 다음 특별추첨으로 묶어주세요.
         </div>
       {% endfor %}
     </section>
   </main>
+  <div class="toast" id="special-lottery-toast" role="status" aria-live="polite"></div>
+  <script>
+    (() => {
+      const forms = document.querySelectorAll('.delete-group-form');
+      const groups = document.getElementById('special-lottery-groups');
+      const toast = document.getElementById('special-lottery-toast');
+      let toastTimer;
+
+      function showToast(message, isError = false) {
+        window.clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.classList.toggle('error', isError);
+        toast.classList.add('show');
+        toastTimer = window.setTimeout(() => toast.classList.remove('show'), 3000);
+      }
+
+      function showEmptyState() {
+        if (groups.querySelector('[data-group-card]')) return;
+        const empty = document.createElement('div');
+        empty.id = 'special-lottery-empty';
+        empty.className = 'empty';
+        empty.innerHTML = '아직 특별추첨이 없습니다.<br>먼저 날짜별 활동을 만든 다음 특별추첨으로 묶어주세요.';
+        groups.appendChild(empty);
+      }
+
+      forms.forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+          if (!window.fetch) return;
+          event.preventDefault();
+          if (!window.confirm(form.dataset.confirm)) return;
+
+          const button = form.querySelector('button');
+          const originalText = button.textContent;
+          button.disabled = true;
+          button.textContent = '삭제 중...';
+
+          try {
+            const response = await fetch(form.action, {
+              method: 'POST',
+              body: new FormData(form),
+              credentials: 'same-origin',
+              headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+            });
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+              if (response.redirected) {
+                window.location.assign(response.url);
+                return;
+              }
+              throw new Error('서버 응답을 확인할 수 없습니다.');
+            }
+
+            const data = await response.json();
+            if (!response.ok || !data.ok) {
+              showToast(data.message || '삭제하지 못했습니다.', true);
+              return;
+            }
+
+            const card = form.closest('[data-group-card]');
+            if (card) card.remove();
+            showEmptyState();
+            showToast(data.message);
+          } catch (error) {
+            showToast('네트워크 상태를 확인한 뒤 다시 시도해주세요.', true);
+          } finally {
+            button.disabled = false;
+            button.textContent = originalText;
+          }
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Count
 from django.db.models import Prefetch
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -358,6 +359,39 @@ def special_lottery_review(request, group_id):
         "applications/special_lottery_review.html",
         _build_review_context(group),
     )
+
+
+@staff_member_required
+@require_POST
+def special_lottery_delete(request, group_id):
+    with transaction.atomic():
+        group = get_object_or_404(
+            SpecialLotteryGroup.objects.select_for_update(),
+            pk=group_id,
+        )
+        group_id = group.pk
+        group_name = group.name
+        events = list(_ordered_events(group, lock=True))
+        event_ids = [event.pk for event in events]
+        if event_ids:
+            Event.objects.filter(pk__in=event_ids).delete()
+        group.delete()
+
+    message = (
+        f"'{group_name}' 특별추첨과 포함된 활동 {len(event_ids)}개를 삭제했습니다. "
+        "회원 가중치는 변경하지 않았습니다."
+    )
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse(
+            {
+                "ok": True,
+                "group_id": group_id,
+                "message": message,
+            },
+        )
+
+    messages.success(request, message)
+    return redirect("applications:special_lottery_list")
 
 
 @staff_member_required

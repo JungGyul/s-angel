@@ -1,6 +1,6 @@
 # ruff: noqa: PLR2004
 
-from datetime import date
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +9,7 @@ from django.db import IntegrityError
 from django.db import transaction
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import Application
 from .models import Event
@@ -28,11 +29,12 @@ class SpecialLotteryTestCase(TestCase):
         self.client.force_login(self.staff)
 
     def create_event(self, title, *, total_slots=1):
+        today = timezone.localdate()
         return Event.objects.create(
             title=title,
             description="",
-            start_date=date(2026, 8, 10),
-            end_date=date(2026, 8, 11),
+            start_date=today + timedelta(days=7),
+            end_date=today + timedelta(days=14),
             total_slots=total_slots,
             male_slots=0,
             female_slots=0,
@@ -217,7 +219,13 @@ class SpecialLotteryTestCase(TestCase):
         event_two = self.create_event("2일차")
         group = self.create_group(event_one, event_two)
 
-        response = self.client.get(
+        draw_url = reverse(
+            "applications:draw_event",
+            kwargs={"event_id": event_one.pk},
+        )
+        assert self.client.get(draw_url).status_code == 405
+
+        response = self.client.post(
             reverse(
                 "applications:draw_event",
                 kwargs={"event_id": event_one.pk},
@@ -231,6 +239,87 @@ class SpecialLotteryTestCase(TestCase):
                 kwargs={"group_id": group.pk},
             ),
         )
+
+    def test_grouped_event_allows_individual_and_batch_delete_without_weight_change(
+        self,
+    ):
+        participant = User.objects.create_user(
+            username="delete-group-user",
+            weight=5,
+        )
+        event_one = self.create_event("삭제 1일차")
+        event_two = self.create_event("삭제 2일차")
+        group = self.create_group(event_one, event_two)
+        group.is_drawn = True
+        group.is_finalized = True
+        group.save(update_fields=["is_drawn", "is_finalized"])
+        Event.objects.filter(pk__in=[event_one.pk, event_two.pk]).update(
+            is_finalized=True,
+        )
+        application = Application.objects.create(
+            event=event_one,
+            participant=participant,
+            selected=True,
+        )
+        settlement = SpecialLotterySettlement.objects.create(
+            group=group,
+            participant=participant,
+            application_count=1,
+            selected_count=1,
+            total_application_count=1,
+            total_selected_count=1,
+            previous_weight=4,
+            new_weight=5,
+            adjustment=SpecialLotterySettlement.Adjustment.INCREASE,
+        )
+
+        individual_url = reverse(
+            "applications:delete_event",
+            kwargs={"event_id": event_one.pk},
+        )
+        dashboard_response = self.client.get(
+            reverse("applications:dashboard"),
+        )
+        self.assertContains(
+            dashboard_response,
+            f'action="{individual_url}"',
+            count=1,
+        )
+        individual_response = self.client.post(
+            individual_url,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert individual_response.status_code == 200
+        assert individual_response.json()["deleted"] is True
+        assert not Event.objects.filter(pk=event_one.pk).exists()
+        assert not Application.objects.filter(pk=application.pk).exists()
+        assert Event.objects.filter(pk=event_two.pk).exists()
+        assert SpecialLotteryGroup.objects.filter(pk=group.pk).exists()
+        participant.refresh_from_db()
+        assert participant.weight == 5
+
+        list_response = self.client.get(
+            reverse("applications:special_lottery_list"),
+        )
+        self.assertContains(list_response, 'class="delete-group-form"', count=1)
+
+        delete_url = reverse(
+            "applications:special_lottery_delete",
+            kwargs={"group_id": group.pk},
+        )
+        assert self.client.get(delete_url).status_code == 405
+        response = self.client.post(
+            delete_url,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        assert response.status_code == 200
+        assert response.json()["ok"] is True
+        assert not SpecialLotteryGroup.objects.filter(pk=group.pk).exists()
+        assert not Event.objects.filter(pk=event_two.pk).exists()
+        assert not SpecialLotterySettlement.objects.filter(pk=settlement.pk).exists()
+        participant.refresh_from_db()
+        assert participant.weight == 5
 
     def test_normal_finalize_updates_weights_only_once(self):
         winner = User.objects.create_user(

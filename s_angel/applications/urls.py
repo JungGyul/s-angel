@@ -33,6 +33,11 @@ urlpatterns = [
         name='special_lottery_draw',
     ),
     path(
+        'special-lotteries/<int:group_id>/delete/',
+        special_lottery.special_lottery_delete,
+        name='special_lottery_delete',
+    ),
+    path(
         'special-lotteries/<int:group_id>/save/',
         special_lottery.special_lottery_save_roster,
         name='special_lottery_save_roster',

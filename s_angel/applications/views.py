@@ -11,7 +11,7 @@ from django.contrib import messages
 import datetime as dt
 from django.contrib.auth import get_user_model # <--- User를 직접 import하는 대신 이 함수를 가져옵니다.
 User = get_user_model() # <--- settings.py에 설정된 User 모델을 가져와 변수에 할당합니다.
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from .models import Transaction, ClubSchedule
 from django.db.models import Sum
 import openpyxl
@@ -42,7 +42,66 @@ def _get_default_budget_year():
 
 
 
+def _application_action_response(
+    request,
+    *,
+    event,
+    applied,
+    message,
+    success=True,
+):
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse(
+            {
+                "ok": success,
+                "applied": applied,
+                "event_id": event.pk,
+                "event_title": event.title,
+                "message": message,
+            },
+            status=200 if success else 409,
+        )
+
+    if success:
+        messages.success(request, message)
+    else:
+        messages.warning(request, message)
+    return redirect("applications:dashboard")
+
+
+def _dashboard_event_action_response(
+    request,
+    *,
+    event_id,
+    event_title,
+    action,
+    message,
+    success=True,
+    **extra,
+):
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        payload = {
+            "ok": success,
+            "action": action,
+            "event_id": event_id,
+            "event_title": event_title,
+            "message": message,
+        }
+        payload.update(extra)
+        return JsonResponse(
+            payload,
+            status=200 if success else 409,
+        )
+
+    if success:
+        messages.success(request, message)
+    else:
+        messages.warning(request, message)
+    return redirect("applications:dashboard")
+
+
 @login_required
+@require_POST
 def cancel_application(request, event_id):
     event = get_object_or_404(
         Event.objects.select_for_update(),
@@ -50,39 +109,65 @@ def cancel_application(request, event_id):
     )
     application = Application.objects.filter(event=event, participant=request.user).first()
     if not application:
-        return redirect('applications:dashboard')
+        return _application_action_response(
+            request,
+            event=event,
+            applied=False,
+            message="이미 취소된 신청입니다.",
+        )
 
-    # 이미 추첨이 완료된 경우 취소 불가
-    group_is_drawn = (
-        event.special_lottery_group
-        and event.special_lottery_group.is_drawn
-    )
-    if group_is_drawn or Application.objects.filter(event=event, selected=True).exists():
-        return redirect('applications:dashboard')
-
-    application.delete()
-    return redirect('applications:dashboard')
-
-@staff_member_required
-def delete_event(request, event_id):
-    event = get_object_or_404(
-        Event.objects.select_for_update(),
-        id=event_id,
-    )
-    if (
+    group_is_closed = (
         event.special_lottery_group
         and (
             event.special_lottery_group.is_drawn
             or event.special_lottery_group.is_finalized
         )
+    )
+    event_is_drawn = Application.objects.filter(
+        event=event,
+        selected=True,
+    ).exists()
+    if (
+        event.end_date < timezone.localdate()
+        or event.is_finalized
+        or group_is_closed
+        or event_is_drawn
     ):
-        messages.error(
+        return _application_action_response(
             request,
-            "추첨을 시작한 특별추첨의 활동은 개별 삭제할 수 없습니다.",
+            event=event,
+            applied=True,
+            message="모집이 마감되었거나 추첨이 시작되어 취소할 수 없습니다.",
+            success=False,
         )
-        return redirect("applications:dashboard")
+
+    application.delete()
+    return _application_action_response(
+        request,
+        event=event,
+        applied=False,
+        message=f"'{event.title}' 신청을 취소했습니다.",
+    )
+
+@staff_member_required
+@require_POST
+def delete_event(request, event_id):
+    event = get_object_or_404(
+        Event.objects.select_for_update(),
+        id=event_id,
+    )
+    event_title = event.title
+
+    event_id = event.pk
     event.delete()
-    return redirect('applications:dashboard')
+    return _dashboard_event_action_response(
+        request,
+        event_id=event_id,
+        event_title=event_title,
+        action="delete",
+        message=f"'{event_title}' 활동을 삭제했습니다.",
+        deleted=True,
+    )
 
 @login_required
 def event_winners(request, event_id):
@@ -186,6 +271,7 @@ def _perform_tiered_lottery(applicants_qs, slots_to_fill):
 
 
 @staff_member_required
+@require_POST
 def draw_event(request, event_id):
     """[수정] 1단계: 임시 추첨 (가중치 업데이트 안함)"""
     event = get_object_or_404(
@@ -193,20 +279,42 @@ def draw_event(request, event_id):
         id=event_id,
     )
     if event.special_lottery_group:
-        messages.info(
-            request,
-            "특별추첨에 포함된 활동은 묶음 화면에서 한 번에 추첨해주세요.",
-        )
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return _dashboard_event_action_response(
+                request,
+                event_id=event.pk,
+                event_title=event.title,
+                action="draw",
+                message="특별추첨 활동은 묶음 화면에서 한 번에 추첨해주세요.",
+                success=False,
+            )
+        messages.info(request, "특별추첨 활동은 묶음 화면에서 추첨해주세요.")
         return redirect(
             "applications:special_lottery_review",
             group_id=event.special_lottery_group_id,
         )
     if event.is_finalized: # 최종 확정 필드 체크
-        messages.info(request, "이미 확정된 활동입니다.")
-        return redirect('applications:dashboard')
+        return _dashboard_event_action_response(
+            request,
+            event_id=event.pk,
+            event_title=event.title,
+            action="draw",
+            message="이미 확정된 활동입니다.",
+            success=False,
+        )
 
     all_applicants = Application.objects.filter(event=event).select_related('participant')
-    all_applicants.update(selected=False) # 기존 당첨 정보 초기화
+    existing_winner_count = all_applicants.filter(selected=True).count()
+    if existing_winner_count:
+        return _dashboard_event_action_response(
+            request,
+            event_id=event.pk,
+            event_title=event.title,
+            action="draw",
+            message="이미 임시 추첨이 완료된 활동입니다.",
+            drawn=True,
+            winner_count=existing_winner_count,
+        )
 
     winners = []
     if event.male_slots > 0 or event.female_slots > 0:
@@ -227,9 +335,29 @@ def draw_event(request, event_id):
     if winners:
         selected_ids = [w.id for w in winners]
         Application.objects.filter(id__in=selected_ids).update(selected=True)
-        messages.success(request, "임시 추첨 결과가 생성되었습니다. 명단을 검토해주세요.")
-    
-    return redirect('applications:dashboard')
+        return _dashboard_event_action_response(
+            request,
+            event_id=event.pk,
+            event_title=event.title,
+            action="draw",
+            message=(
+                f"임시 추첨으로 {len(winners)}명을 선발했습니다. "
+                "명단을 검토해주세요."
+            ),
+            drawn=True,
+            winner_count=len(winners),
+        )
+
+    return _dashboard_event_action_response(
+        request,
+        event_id=event.pk,
+        event_title=event.title,
+        action="draw",
+        message="신청자가 없어 추첨할 수 없습니다.",
+        success=False,
+        drawn=False,
+        winner_count=0,
+    )
 
 @staff_member_required
 def review_winners(request, event_id):
@@ -365,12 +493,13 @@ def finalize_event(request, event_id):
 
 
 @login_required
+@require_POST
 def apply_event(request, event_id):
     event = get_object_or_404(
         Event.objects.select_for_update(),
         id=event_id,
     )
-    today = dt.date.today()
+    today = timezone.localdate()
 
     group_is_closed = (
         event.special_lottery_group
@@ -383,24 +512,36 @@ def apply_event(request, event_id):
         event=event,
         selected=True,
     ).exists()
-    if (
+    is_closed = (
         event.end_date < today
         or event.is_finalized
         or group_is_closed
         or event_is_drawn
-        or Application.objects.filter(
+    )
+    if is_closed:
+        return _application_action_response(
+            request,
             event=event,
-            participant=request.user,
-        ).exists()
-    ):
-        return redirect('applications:dashboard')
+            applied=False,
+            message="모집이 마감되었거나 추첨이 시작되어 신청할 수 없습니다.",
+            success=False,
+        )
 
-    # ▼▼▼ 핵심 변경: 신청 시 가중치를 계산할 필요 없이, 그냥 신청 정보만 생성합니다 ▼▼▼
-    Application.objects.get_or_create(
+    _, created = Application.objects.get_or_create(
         event=event,
         participant=request.user,
     )
-    return redirect('applications:dashboard')
+    message = (
+        f"'{event.title}' 신청이 완료되었습니다."
+        if created
+        else "이미 신청한 활동입니다."
+    )
+    return _application_action_response(
+        request,
+        event=event,
+        applied=True,
+        message=message,
+    )
 
 
 @staff_member_required
@@ -429,10 +570,28 @@ def dashboard(request):
     
     # is_admin 변수와 불필요한 if/else를 제거하여 코드를 단순화합니다.
     # 이벤트 목록은 관리자든 일반 사용자든 동일하게 가져옵니다.
-    events = Event.objects.select_related("special_lottery_group").order_by('-id')
+    selected_applications = Application.objects.filter(
+        event_id=OuterRef("pk"),
+        selected=True,
+    )
+    events = (
+        Event.objects.select_related("special_lottery_group")
+        .annotate(has_selected_application=Exists(selected_applications))
+        .order_by("-id")
+    )
 
-    my_applications = Application.objects.filter(participant=request.user)
-    applied_event_ids = my_applications.values_list('event_id', flat=True)
+    if request.user.is_staff:
+        my_applications = []
+        applied_event_ids = set()
+    else:
+        my_applications = list(
+            Application.objects.filter(participant=request.user)
+            .select_related("event")
+            .order_by("-applied_at"),
+        )
+        applied_event_ids = {
+            application.event_id for application in my_applications
+        }
 
     event_status_list = []
     for event in events:
@@ -440,10 +599,7 @@ def dashboard(request):
         if event.special_lottery_group:
             is_drawn = event.special_lottery_group.is_drawn
         else:
-            is_drawn = Application.objects.filter(
-                event=event,
-                selected=True,
-            ).exists()
+            is_drawn = event.has_selected_application
         # 2. 모델에 추가한 is_finalized 필드 확인
         is_finalized = event.is_finalized 
         

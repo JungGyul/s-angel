@@ -1,6 +1,4 @@
 
-{% load app_filters %}
-
 {% block content %}
 <!DOCTYPE html>
 <html lang="ko">
@@ -195,6 +193,44 @@
         color: #94a3b8;
         cursor: not-allowed;
     }
+    .application-action-form,
+    .dashboard-event-action-form {
+        display: inline-flex;
+        margin: 0;
+    }
+    .application-action-form button,
+    .dashboard-event-action-form button {
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .application-action-form button:disabled,
+    .dashboard-event-action-form button:disabled {
+        cursor: wait;
+        opacity: 0.65;
+    }
+    .dashboard-toast {
+        position: fixed;
+        right: 1.25rem;
+        bottom: 1.25rem;
+        z-index: 1000;
+        max-width: min(420px, calc(100vw - 2rem));
+        padding: 0.9rem 1.1rem;
+        border-radius: 0.75rem;
+        background: #0f172a;
+        color: white;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.25);
+        opacity: 0;
+        transform: translateY(12px);
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .dashboard-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .dashboard-toast.error {
+        background: #991b1b;
+    }
 
     /* 나의 신청 내역 카드 */
     .my-applications-card {
@@ -296,6 +332,12 @@
     .action-links {
         flex-direction: column;
         align-items: stretch;
+    }
+    .application-action-form,
+    .application-action-form .action-btn,
+    .dashboard-event-action-form,
+    .dashboard-event-action-form .action-btn {
+        width: 100%;
     }
 }
     .action-btn {
@@ -451,7 +493,7 @@
 
             {% for item in event_status_list %}
             {% with event=item.event %}
-                <div class="event-card">
+                <div class="event-card" data-event-card="{{ event.id }}">
                   <div class="event-card-header">
                     {% if request.user.is_staff%}
                         <a href="{% url 'applications:event_update' event.id %}" class="event-title-link">
@@ -460,7 +502,7 @@
                     {% else %}
                         <h3 class="event-title">{{ event.title }}</h3>
                     {% endif %}
-                    <div> {# 배지를 감싸는 div 추가 #}
+                    <div data-event-badges> {# 배지를 감싸는 div 추가 #}
                         {% if event.special_lottery_group %}
                             <span class="status-badge" style="background:#ede9fe;color:#5b21b6;">
                                 특별추첨 · {{ event.special_lottery_group.name }}
@@ -482,7 +524,7 @@
 
                         <div class="action-links">
                             {% if request.user.is_staff %}
-                                <div class="action-links">
+                                <div class="action-links" data-event-actions>
                                     {% if event.special_lottery_group %}
                                         <a
                                             href="{% url 'applications:special_lottery_review' event.special_lottery_group.id %}"
@@ -493,9 +535,18 @@
                                         </a>
                                     {% else %}
                                         {% if not item.is_drawn %}
-                                            <a href="{% url 'applications:draw_event' event.id %}"
-                                            onclick="return confirm('추첨을 진행하시겠습니까?');"
-                                            class="action-btn primary">🎯 추첨 실행</a>
+                                            <form
+                                                method="post"
+                                                action="{% url 'applications:draw_event' event.id %}"
+                                                class="dashboard-event-action-form"
+                                                data-action="draw"
+                                                data-event-id="{{ event.id }}"
+                                                data-review-url="{% url 'applications:review_winners' event.id %}"
+                                                data-confirm="추첨을 진행하시겠습니까?"
+                                            >
+                                                {% csrf_token %}
+                                                <button type="submit" class="action-btn primary">🎯 추첨 실행</button>
+                                            </form>
 
                                         {% elif item.is_drawn and not item.is_finalized %}
                                             <a href="{% url 'applications:review_winners' event.id %}"
@@ -507,22 +558,51 @@
                                     {% endif %}
                                     
                                     <a href="{% url 'applications:event_winners' event.id %}" class="action-btn secondary">🏆 당첨자 보기</a>
-                                    {% if not event.special_lottery_group %}
-                                        <a href="{% url 'applications:delete_event' event.id %}"
-                                        onclick="return confirm('정말로 삭제하시겠습니까?');"
-                                        class="action-btn secondary">🗑️ 삭제하기</a>
-                                    {% endif %}
+                                    <form
+                                        method="post"
+                                        action="{% url 'applications:delete_event' event.id %}"
+                                        class="dashboard-event-action-form"
+                                        data-action="delete"
+                                        data-event-id="{{ event.id }}"
+                                        data-confirm="정말로 삭제하시겠습니까? 신청 내역도 함께 삭제되며 가중치는 변경되지 않습니다."
+                                    >
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-btn secondary">🗑️ 삭제하기</button>
+                                    </form>
                                 </div>
                             {% else %}
                                 {% if event.id in applied_event_ids %}
                                     {% if event.end_date >= today and not item.is_drawn %}
-                                        <a href="{% url 'applications:cancel_event' event.id %}" onclick="return confirm('정말로 신청을 취소하시겠습니까?');" class="action-btn danger">❌ 신청 취소</a>
+                                        <form
+                                            method="post"
+                                            action="{% url 'applications:cancel_event' event.id %}"
+                                            class="application-action-form"
+                                            data-event-id="{{ event.id }}"
+                                            data-event-title="{{ event.title }}"
+                                            data-apply-url="{% url 'applications:apply_event' event.id %}"
+                                            data-cancel-url="{% url 'applications:cancel_event' event.id %}"
+                                            data-confirm="정말로 신청을 취소하시겠습니까?"
+                                        >
+                                            {% csrf_token %}
+                                            <button type="submit" class="action-btn danger">❌ 신청 취소</button>
+                                        </form>
                                     {% else %}
                                         <span class="action-btn disabled">✅ 신청 완료</span>
                                     {% endif %}
                                 {% else %}
                                     {% if event.end_date >= today and not item.is_drawn %}
-                                        <a href="{% url 'applications:apply_event' event.id %}" class="action-btn primary">✔️ 신청하기</a>
+                                        <form
+                                            method="post"
+                                            action="{% url 'applications:apply_event' event.id %}"
+                                            class="application-action-form"
+                                            data-event-id="{{ event.id }}"
+                                            data-event-title="{{ event.title }}"
+                                            data-apply-url="{% url 'applications:apply_event' event.id %}"
+                                            data-cancel-url="{% url 'applications:cancel_event' event.id %}"
+                                        >
+                                            {% csrf_token %}
+                                            <button type="submit" class="action-btn primary">✔️ 신청하기</button>
+                                        </form>
                                     {% else %}
                                         <span class="action-btn disabled">신청 마감</span>
                                     {% endif %}
@@ -539,12 +619,15 @@
         {% if not request.user.is_staff %}
         <div class="mt-5">
             <h2 class="section-title">나의 신청 내역</h2>
-            <div class="my-applications-card">
+            <div class="my-applications-card" id="my-applications-list">
                 {% for app in my_applications %}
-                <div class="my-application-item d-flex justify-content-between">
+                <div
+                    class="my-application-item d-flex justify-content-between"
+                    data-my-event-id="{{ app.event.id }}"
+                >
                     <span>{{ app.event.title }}</span>
                     <span>
-                        {% if event_status_list|get_finalized_status:app.event.id %}
+                        {% if app.event.is_finalized %}
                             {% if app.selected %}
                                 <span class="badge bg-success">🎉 당첨</span>
                             {% else %}
@@ -556,7 +639,9 @@
                     </span>
                 </div>
                 {% empty %}
-                <p class="text-center text-muted mb-0">아직 신청한 내역이 없습니다.</p>
+                <p class="text-center text-muted mb-0" id="my-applications-empty">
+                    아직 신청한 내역이 없습니다.
+                </p>
                 {% endfor %}
             </div>
         </div>
@@ -564,8 +649,202 @@
 
     </div>
 
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <div id="dashboard-toast" class="dashboard-toast" role="status" aria-live="polite"></div>
+
+    <script>
+        (() => {
+            const forms = document.querySelectorAll('.application-action-form');
+            const eventForms = document.querySelectorAll('.dashboard-event-action-form');
+            const toast = document.getElementById('dashboard-toast');
+            let toastTimer;
+
+            function showToast(message, isError = false) {
+                window.clearTimeout(toastTimer);
+                toast.textContent = message;
+                toast.classList.toggle('error', isError);
+                toast.classList.add('show');
+                toastTimer = window.setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+
+            function syncMyApplication(eventId, eventTitle, applied) {
+                const list = document.getElementById('my-applications-list');
+                if (!list) return;
+
+                const selector = `[data-my-event-id="${eventId}"]`;
+                const existing = list.querySelector(selector);
+                if (!applied) {
+                    if (existing) existing.remove();
+                } else if (!existing) {
+                    const row = document.createElement('div');
+                    row.className = 'my-application-item d-flex justify-content-between';
+                    row.dataset.myEventId = eventId;
+
+                    const title = document.createElement('span');
+                    title.textContent = eventTitle;
+                    const status = document.createElement('span');
+                    status.innerHTML = '<span class="badge bg-secondary">⏳ 대기중</span>';
+                    row.append(title, status);
+                    list.appendChild(row);
+                }
+
+                let empty = document.getElementById('my-applications-empty');
+                const hasRows = Boolean(list.querySelector('[data-my-event-id]'));
+                if (!hasRows && !empty) {
+                    empty = document.createElement('p');
+                    empty.id = 'my-applications-empty';
+                    empty.className = 'text-center text-muted mb-0';
+                    empty.textContent = '아직 신청한 내역이 없습니다.';
+                    list.appendChild(empty);
+                }
+                if (empty) empty.hidden = hasRows;
+            }
+
+            function updateActionForm(form, applied) {
+                const button = form.querySelector('button');
+                if (applied) {
+                    form.action = form.dataset.cancelUrl;
+                    form.dataset.confirm = '정말로 신청을 취소하시겠습니까?';
+                    button.className = 'action-btn danger';
+                    button.textContent = '❌ 신청 취소';
+                } else {
+                    form.action = form.dataset.applyUrl;
+                    delete form.dataset.confirm;
+                    button.className = 'action-btn primary';
+                    button.textContent = '✔️ 신청하기';
+                }
+            }
+
+            forms.forEach((form) => {
+                form.addEventListener('submit', async (event) => {
+                    if (!window.fetch) return;
+                    event.preventDefault();
+
+                    if (form.dataset.confirm && !window.confirm(form.dataset.confirm)) {
+                        return;
+                    }
+
+                    const button = form.querySelector('button');
+                    const originalText = button.textContent;
+                    button.disabled = true;
+                    button.textContent = '처리 중...';
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            credentials: 'same-origin',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        });
+                        const contentType = response.headers.get('content-type') || '';
+                        if (!contentType.includes('application/json')) {
+                            if (response.redirected) {
+                                window.location.assign(response.url);
+                                return;
+                            }
+                            throw new Error('서버 응답을 확인할 수 없습니다.');
+                        }
+
+                        const data = await response.json();
+                        if (!response.ok || !data.ok) {
+                            showToast(data.message || '요청을 처리하지 못했습니다.', true);
+                            return;
+                        }
+
+                        updateActionForm(form, data.applied);
+                        syncMyApplication(data.event_id, data.event_title, data.applied);
+                        showToast(data.message);
+                    } catch (error) {
+                        showToast('네트워크 상태를 확인한 뒤 다시 시도해주세요.', true);
+                    } finally {
+                        button.disabled = false;
+                        if (button.textContent === '처리 중...') {
+                            button.textContent = originalText;
+                        }
+                    }
+                });
+            });
+
+            eventForms.forEach((form) => {
+                form.addEventListener('submit', async (event) => {
+                    if (!window.fetch) return;
+                    event.preventDefault();
+
+                    if (form.dataset.confirm && !window.confirm(form.dataset.confirm)) {
+                        return;
+                    }
+
+                    const button = form.querySelector('button');
+                    const originalText = button.textContent;
+                    button.disabled = true;
+                    button.textContent = '처리 중...';
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            credentials: 'same-origin',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        });
+                        const contentType = response.headers.get('content-type') || '';
+                        if (!contentType.includes('application/json')) {
+                            if (response.redirected) {
+                                window.location.assign(response.url);
+                                return;
+                            }
+                            throw new Error('서버 응답을 확인할 수 없습니다.');
+                        }
+
+                        const data = await response.json();
+                        if (!response.ok || !data.ok) {
+                            showToast(data.message || '요청을 처리하지 못했습니다.', true);
+                            return;
+                        }
+
+                        const card = form.closest('[data-event-card]');
+                        if (data.action === 'delete') {
+                            if (card) card.remove();
+                        } else if (data.action === 'draw' && card) {
+                            const badges = card.querySelector('[data-event-badges]');
+                            if (badges && !badges.querySelector('.status-badge.drawn')) {
+                                const badge = document.createElement('span');
+                                badge.className = 'status-badge drawn';
+                                badge.textContent = '추첨 완료';
+                                badges.appendChild(badge);
+                            }
+
+                            const reviewLink = document.createElement('a');
+                            reviewLink.href = form.dataset.reviewUrl;
+                            reviewLink.className = 'action-btn third';
+                            reviewLink.style.backgroundColor = '#4F46E5';
+                            reviewLink.textContent = '🔍 명단 검토';
+                            form.replaceWith(reviewLink);
+
+                            const deleteForm = card.querySelector(
+                                '.dashboard-event-action-form[data-action="delete"]'
+                            );
+                            if (deleteForm) deleteForm.remove();
+                        }
+                        showToast(data.message);
+                    } catch (error) {
+                        showToast('네트워크 상태를 확인한 뒤 다시 시도해주세요.', true);
+                    } finally {
+                        button.disabled = false;
+                        if (button.textContent === '처리 중...') {
+                            button.textContent = originalText;
+                        }
+                    }
+                });
+            });
+        })();
+    </script>
 </body>
 
 {% endblock %}
