@@ -28,6 +28,8 @@
   .st-table .table td:last-child, .st-table .table th:last-child { text-align: right; }
   .st-table tr.is-winner td:first-child { font-weight: 700; }
   .st-list > * + * { margin-top: var(--s-3); }
+  .st-roster-msg { padding: 12px 16px; margin: 0; }
+  .st-pager { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); margin-top: var(--s-5); }
 </style>
 {% endblock %}
 
@@ -36,7 +38,7 @@
   <a class="back-btn" href="{% url 'applications:dashboard' %}" aria-label="뒤로 가기: 홈" title="홈"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
   <div class="page-head__text">
     <h1 class="page-title">의전 통계</h1>
-    <p class="page-sub">의전별 신청·당첨 현황{% if event_data %} · 의전 {{ event_data|length }}개{% endif %}</p>
+    <p class="page-sub">의전별 신청·당첨 현황{% if total_events %} · 의전 {{ total_events }}개{% endif %}</p>
   </div>
 </header>
 
@@ -80,31 +82,8 @@
         </div>
       </div>
 
-      <div class="st-table table-wrap">
-        <table class="table">
-          <thead>
-            <tr><th scope="col">이름</th><th scope="col">성별</th><th scope="col">결과</th></tr>
-          </thead>
-          <tbody>
-            {% for app in data.applications %}
-            <tr {% if app.selected %}class="is-winner"{% endif %}>
-              <td>{{ app.participant.name }}</td>
-              <td class="text-2">
-                {% if app.participant.gender == 'M' %}남
-                {% elif app.participant.gender == 'F' %}여
-                {% else %}-{% endif %}
-              </td>
-              <td>
-                {% if data.is_drawn %}
-                  {% if app.selected %}<span class="chip chip--won">당첨</span>{% else %}<span class="chip chip--lost">미당첨</span>{% endif %}
-                {% else %}
-                  <span class="chip chip--pending">대기</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="st-table table-wrap" data-roster-url="{% url 'applications:event_statistics_roster' data.event.id %}">
+        <p class="small muted st-roster-msg">명단을 불러오는 중입니다…</p>
       </div>
       {% else %}
       <div class="empty" style="padding-bottom: var(--s-4)">
@@ -116,6 +95,13 @@
   </details>
   {% endfor %}
 </div>
+{% if page_obj.has_other_pages %}
+<nav class="st-pager" aria-label="페이지">
+  {% if page_obj.has_previous %}<a class="btn btn--secondary" href="?page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i>최근 의전</a>{% else %}<span></span>{% endif %}
+  <span class="small muted tnum">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a class="btn btn--secondary" href="?page={{ page_obj.next_page_number }}">이전 의전<i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a>{% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
 {% else %}
 <div class="panel">
   <div class="empty">
@@ -125,4 +111,28 @@
   </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block javascript %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  "use strict";
+  function load(details) {
+    var box = details.querySelector("[data-roster-url]");
+    if (!box || box.dataset.loaded) return;
+    box.dataset.loaded = "1";
+    fetch(box.dataset.rosterUrl, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(function (r) { if (r.redirected) { location.reload(); throw new Error(); } if (!r.ok) throw new Error(); return r.text(); })
+      .then(function (html) { box.innerHTML = html; })
+      .catch(function () {
+        delete box.dataset.loaded;
+        box.innerHTML = '<p class="small muted st-roster-msg">명단을 불러오지 못했습니다. 다시 펼쳐 주십시오.</p>';
+      });
+  }
+  document.querySelectorAll("details.st-event").forEach(function (d) {
+    if (d.open) load(d);
+    d.addEventListener("toggle", function () { if (d.open) load(d); });
+  });
+});
+</script>
 {% endblock %}

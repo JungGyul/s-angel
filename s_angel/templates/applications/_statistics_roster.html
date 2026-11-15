@@ -1,0 +1,22 @@
+{% if applications %}
+<table class="table">
+  <thead>
+    <tr><th scope="col">이름</th><th scope="col">성별</th><th scope="col">결과</th></tr>
+  </thead>
+  <tbody>
+    {% for app in applications %}
+    <tr {% if app.selected %}class="is-winner"{% endif %}>
+      <td>{{ app.participant.name|default:app.participant.username }}</td>
+      <td class="text-2">{% if app.participant.gender == 'M' %}남{% elif app.participant.gender == 'F' %}여{% else %}-{% endif %}</td>
+      <td>
+        {% if is_drawn %}
+          {% if app.selected %}<span class="chip chip--won">당첨</span>{% else %}<span class="chip chip--lost">미당첨</span>{% endif %}
+        {% else %}
+          <span class="chip chip--pending">대기</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

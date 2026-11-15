@@ -51,6 +51,7 @@ urlpatterns = [
     path('apply/<int:event_id>/', views.apply_event, name='apply_event'),
     path('draw/<int:event_id>/', views.draw_event, name='draw_event'),
     path('statistics/', views.event_statistics, name='event_statistics'),
+    path('statistics/<int:event_id>/roster/', views.event_statistics_roster, name='event_statistics_roster'),
     path('winners/<int:event_id>/', views.event_winners, name='event_winners'),
     path('delete/<int:event_id>/', views.delete_event, name='delete_event'),
     path('event/<int:event_id>/cancel/', views.cancel_application, name='cancel_event'),

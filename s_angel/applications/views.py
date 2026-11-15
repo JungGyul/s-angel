@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
@@ -184,31 +185,47 @@ def event_winners(request, event_id):
 
     return render(request, 'applications/winners.html', {'event': event, 'winners': winners})
 
-# applications/views.py의 event_statistics 함수
-
 @staff_member_required
 def event_statistics(request):
-    events = Event.objects.order_by('-id').prefetch_related(
-        Prefetch('application_set', queryset=Application.objects.select_related('participant')
-                 .order_by('-selected', 'participant__username')),
+    """의전 통계: 요약 숫자는 DB 집계로 한 번에, 명단은 펼칠 때 따로 불러온다(20개씩 페이지)."""
+    events = Event.objects.order_by('-id').annotate(
+        total_applications=Count('application'),
+        male_applications=Count('application', filter=Q(application__participant__gender='M')),
+        female_applications=Count('application', filter=Q(application__participant__gender='F')),
+        total_selected=Count('application', filter=Q(application__selected=True)),
     )
-    event_data = []
-    for event in events:
-        applications = list(event.application_set.all())
-        winners = [app for app in applications if app.selected]
-        event_data.append({
+    paginator = Paginator(events, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    event_data = [
+        {
             'event': event,
-            'applications': applications,
-            'winners': winners,
-            'losers': [app for app in applications if not app.selected],
-            'total_applications': len(applications),
-            'male_applications': sum(app.participant.gender == 'M' for app in applications),
-            'female_applications': sum(app.participant.gender == 'F' for app in applications),
-            'total_selected': len(winners),
-            'is_drawn': bool(winners),
-        })
+            'total_applications': event.total_applications,
+            'male_applications': event.male_applications,
+            'female_applications': event.female_applications,
+            'total_selected': event.total_selected,
+            'is_drawn': event.total_selected > 0,
+        }
+        for event in page_obj
+    ]
+    return render(request, 'applications/statistics.html', {
+        'event_data': event_data,
+        'page_obj': page_obj,
+        'total_events': paginator.count,
+    })
 
-    return render(request, 'applications/statistics.html', {'event_data': event_data})
+
+@staff_member_required
+def event_statistics_roster(request, event_id):
+    """통계 화면에서 의전을 펼쳤을 때 불러오는 신청자 명단(HTML 조각)."""
+    event = get_object_or_404(Event, pk=event_id)
+    applications = list(
+        event.application_set.select_related('participant')
+        .order_by('-selected', 'participant__username')
+    )
+    return render(request, 'applications/_statistics_roster.html', {
+        'applications': applications,
+        'is_drawn': any(app.selected for app in applications),
+    })
 
 def _perform_tiered_lottery(applicants_qs, slots_to_fill):
     """(버그 수정) 우선 선발 및 경쟁 추첨을 수행하는 도우미 함수"""
