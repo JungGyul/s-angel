@@ -58,7 +58,7 @@
 <div class="stats stats--3">
   <div class="stat stat--accent stat--lead">
     <div class="stat__label"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>행사 합계</div>
-    <div class="stat__value">{% if summary.total < 0 %}−{{ summary.total|intcomma|slice:"1:" }}{% else %}{{ summary.total|intcomma }}{% endif %}<small>원</small></div>
+    <div class="stat__value {% if summary.total < 0 %}bad-text{% elif summary.total > 0 %}ok-text{% endif %}">{% if summary.total < 0 %}−{{ summary.total|intcomma|slice:"1:" }}{% elif summary.total > 0 %}+{{ summary.total|intcomma }}{% else %}0{% endif %}<small>원</small></div>
   </div>
   <div class="stat stat--ok">
     <div class="stat__label">수입</div>

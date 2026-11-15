@@ -152,7 +152,7 @@
             </div>
           </div>
           <div class="ledger-row__amt">
-            <span>{% if s.total < 0 %}−{{ s.total|intcomma|slice:"1:" }}{% else %}{{ s.total|intcomma }}{% endif %}원</span>
+            <span class="{% if s.total < 0 %}bad-text{% elif s.total > 0 %}ok-text{% endif %}">{% if s.total < 0 %}−{{ s.total|intcomma|slice:"1:" }}{% elif s.total > 0 %}+{{ s.total|intcomma }}{% else %}0{% endif %}원</span>
             <span class="ledger-row__sub"><span class="ok-text">+{{ s.income|intcomma }}</span> · <span class="bad-text">−{{ s.expense|intcomma }}</span></span>
           </div>
           {% if is_admin %}
