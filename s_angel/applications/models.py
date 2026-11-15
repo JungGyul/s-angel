@@ -19,6 +19,7 @@ class SpecialLotteryGroup(models.Model):
     )
     is_drawn = models.BooleanField(default=False, verbose_name="임시 추첨 완료")
     is_finalized = models.BooleanField(default=False, verbose_name="최종 확정")
+    drawn_at = models.DateTimeField(null=True, blank=True, verbose_name="추첨 일시")
     created_at = models.DateTimeField(auto_now_add=True)
     finalized_at = models.DateTimeField(null=True, blank=True)
     finalized_by = models.ForeignKey(
@@ -45,6 +46,7 @@ class Event(models.Model):
     male_slots = models.PositiveIntegerField()
     female_slots = models.PositiveIntegerField()
     is_finalized = models.BooleanField(default=False) # 최종 확정 여부 추가
+    drawn_at = models.DateTimeField(null=True, blank=True, verbose_name="추첨 일시")
     special_lottery_group = models.ForeignKey(
         SpecialLotteryGroup,
         null=True,
@@ -67,7 +69,7 @@ class Application(models.Model):
     applied_at = models.DateTimeField(auto_now_add=True)
     selected = models.BooleanField(default=False)
     failed_count = models.PositiveIntegerField(default=0)
-    weight = models.PositiveIntegerField(default=1)
+    weight = models.FloatField(null=True, blank=True, verbose_name="추첨 당시 가중치")
 
     class Meta:
         constraints = [
@@ -122,6 +124,16 @@ class SpecialLotterySettlement(models.Model):
 class BudgetYear(models.Model):
     year = models.IntegerField("연도(기수)", unique=True)
     is_active = models.BooleanField("현재 활성 기수", default=False)
+    reason = models.TextField(blank=True, verbose_name="생성 사유")
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name="생성 일시")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_budget_years",
+        verbose_name="생성자",
+    )
 
     class Meta:
         ordering = ['-year']
@@ -140,6 +152,10 @@ class AccountingEvent(models.Model):
 
     def get_summary(self):
         """행사 내부 수입/지출 합산 (프로퍼티처럼 사용 가능)"""
+        if 'summary_income' in self.__dict__ and 'summary_expense' in self.__dict__:
+            income = self.summary_income or 0
+            expense = self.summary_expense or 0
+            return {'income': income, 'expense': expense, 'total': income - expense}
         data = self.transactions.aggregate(
             income=Sum('amount', filter=Q(transaction_type='INCOME')),
             expense=Sum('amount', filter=Q(transaction_type='EXPENSE'))
@@ -177,3 +193,32 @@ class ClubSchedule(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class WeightChange(models.Model):
+    class Source(models.TextChoices):
+        EVENT = "event", "일반 의전"
+        SPECIAL = "special", "특별추첨"
+        MANUAL = "manual", "수동 수정"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        blank=True, related_name="weight_changes", verbose_name="부원",
+    )
+    source = models.CharField(max_length=10, choices=Source.choices, verbose_name="출처")
+    source_id = models.PositiveBigIntegerField(verbose_name="출처 ID")
+    before = models.IntegerField(verbose_name="변경 전")
+    after = models.IntegerField(verbose_name="변경 후")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="처리 일시")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        blank=True, related_name="processed_weight_changes", verbose_name="처리자",
+    )
+
+    class Meta:
+        ordering = ("-created_at", "-pk")
+        verbose_name = "가중치 변경 이력"
+        verbose_name_plural = "가중치 변경 이력"
+
+    def __str__(self):
+        return f"{self.user_id}: {self.before} → {self.after} ({self.get_source_display()})"

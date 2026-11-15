@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+{% comment %}
+  App shell for signed-in pages.
+  Child templates override:
+    title            – <title> text
+    page_title       – short title shown in the glass app bar (desktop)
+    (active tab is automatic: nav_section context processor, from the URL)
+    page_class       – container class, default "page" (also: "page page--wide", "page page--narrow")
+    content          – page body (wrap in <div class="page">…</div>)
+    javascript       – page scripts (sangel.js is already loaded, use SA.*)
+{% endcomment %}
+{% block body %}
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+{% with u=request.user %}
+<header class="appbar">
+  <div class="appbar__inner glass">
+    <a class="brand" href="{% url 'applications:dashboard' %}" aria-label="S-ANGEL 홈">
+      <img class="brand__logo" src="{% static 'images/logo-mark.webp' %}" alt="" width="40" height="32">
+      <span class="brand__word">S-ANGEL</span>
+    </a>
+    {% block page_title_wrap %}<span class="appbar__title hide-mobile">{% block page_title %}{% endblock page_title %}</span>{% endblock page_title_wrap %}
+    <span class="appbar__spacer"></span>
+    {% if u.is_authenticated %}
+    <nav class="appbar__nav" aria-label="주요 메뉴">
+      <a href="{% url 'applications:dashboard' %}" {% if nav_section == "home" %}aria-current="page"{% endif %}><i class="fa-solid fa-house" aria-hidden="true"></i>홈</a>
+      <a href="{% url 'applications:calendar' %}" {% if nav_section == "calendar" %}aria-current="page"{% endif %}><i class="fa-regular fa-calendar" aria-hidden="true"></i>캘린더</a>
+      {% if u.is_staff or u.can_view_accounting %}
+      <a href="{% url 'applications:accounting_main' %}" {% if nav_section == "accounting" %}aria-current="page"{% endif %}><i class="fa-solid fa-wallet" aria-hidden="true"></i>회계</a>
+      {% endif %}
+      {% if u.is_staff %}
+      <a href="{% url 'applications:special_lottery_list' %}" {% if nav_section == "lottery" %}aria-current="page"{% endif %}><i class="fa-solid fa-layer-group" aria-hidden="true"></i>특별추첨</a>
+      <a href="{% url 'applications:admin_page' %}" {% if nav_section == "admin" %}aria-current="page"{% endif %}><i class="fa-solid fa-user-shield" aria-hidden="true"></i>관리</a>
+      {% endif %}
+    </nav>
+    <details class="menu">
+      <summary class="icon-btn" aria-label="계정 메뉴">
+        <span class="avatar" style="width:34px;height:34px;font-size:0.8125rem">{{ u.name|default:u.username|slice:":1" }}</span>
+      </summary>
+      <div class="menu__panel glass" role="menu">
+        <div class="menu__head">
+          <div class="menu__name">{{ u.name|default:u.username }}</div>
+          <div class="menu__meta">{% if u.is_staff %}운영진{% else %}{{ u.generation }}기 부원{% endif %} · {{ u.username }}</div>
+        </div>
+        <a class="menu__item" role="menuitem" href="{% url 'users:profile_update' %}"><i class="fa-regular fa-user" aria-hidden="true"></i>내 정보</a>
+        <form action="{% url 'logout' %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="menu__item menu__item--danger" role="menuitem"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>로그아웃</button>
+        </form>
+      </div>
+    </details>
+    {% endif %}
+  </div>
+</header>
+
+<main id="main" class="app-main{% if not u.is_authenticated %} app-main--bare{% endif %}">
+  {% block content_wrap %}
+  <div class="{% block page_class %}page{% endblock page_class %}">
+    {% include "partials/messages.html" %}
+    {% block content %}{% endblock content %}
+  </div>
+  {% endblock content_wrap %}
+</main>
+
+{% if u.is_authenticated %}
+<nav class="tabbar glass" aria-label="하단 메뉴">
+  <a href="{% url 'applications:dashboard' %}" {% if nav_section == "home" %}aria-current="page"{% endif %}><i class="fa-solid fa-house" aria-hidden="true"></i>홈</a>
+  <a href="{% url 'applications:calendar' %}" {% if nav_section == "calendar" %}aria-current="page"{% endif %}><i class="fa-regular fa-calendar" aria-hidden="true"></i>캘린더</a>
+  {% if u.is_staff or u.can_view_accounting %}
+  <a href="{% url 'applications:accounting_main' %}" {% if nav_section == "accounting" %}aria-current="page"{% endif %}><i class="fa-solid fa-wallet" aria-hidden="true"></i>회계</a>
+  {% endif %}
+  {% if u.is_staff %}
+  <a href="{% url 'applications:special_lottery_list' %}" {% if nav_section == "lottery" %}aria-current="page"{% endif %}><i class="fa-solid fa-layer-group" aria-hidden="true"></i>특별추첨</a>
+  <a href="{% url 'applications:admin_page' %}" {% if nav_section == "admin" %}aria-current="page"{% endif %}><i class="fa-solid fa-user-shield" aria-hidden="true"></i>관리</a>
+  {% endif %}
+</nav>
+{% endif %}
+{% endwith %}
+{% endblock body %}

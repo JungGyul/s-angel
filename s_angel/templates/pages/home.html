@@ -1,3 +1,19 @@
 {% extends "base.html" %}
 
+{% block title %}S-ANGEL{% endblock title %}
 
+{% block content %}
+<div class="cluster" style="justify-content:center;margin-bottom:var(--s-3)">
+  <span class="brand__mark" style="width:48px;height:48px" aria-hidden="true"></span>
+</div>
+<h1 class="message-page__title">S-ANGEL</h1>
+<p class="message-page__text">성균관대학교 공식 학교발전 홍보대사 의전 및 운영 시스템</p>
+<div class="btn-row">
+  {% if user.is_authenticated %}
+  <a class="btn btn--primary" href="{% url 'applications:dashboard' %}">홈으로 이동</a>
+  {% else %}
+  <a class="btn btn--primary" href="{% url 'users:main' %}">로그인</a>
+  <a class="btn btn--secondary" href="{% url 'users:signup' %}">회원가입</a>
+  {% endif %}
+</div>
+{% endblock content %}

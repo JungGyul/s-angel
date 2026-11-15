@@ -1,559 +1,193 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>회계 장부</title>
+{% extends "layouts/app.html" %}
+{% load humanize %}
+{% block title %}{{ budget_year.year }}년 회계{% endblock %}
+{% block page_title %}회계{% endblock %}
+{% block page_class %}page page--wide{% endblock %}
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  {% load humanize %}
-
+{% block css %}
 <style>
-  :root{
-    --navy:#1E3A8A;
-    --bg:#F9FAFB;
-    --card:#FFFFFF;
-    --border:#E5E7EB;
-    --text:#334155;
-    --muted:#64748B;
-    --green:#10B981;
-    --red:#EF4444;
+  .year-bar { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; margin-bottom: var(--s-5); }
+  .year-bar .field-label { margin: 0; }
+  .year-bar .select { width: auto; min-width: 160px; }
+  .year-new > summary { list-style: none; }
+  .year-new > summary::-webkit-details-marker { display: none; }
+  .year-new__form { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: flex-end; margin-top: var(--s-3); padding: var(--s-4); }
+  .year-new__form .field { flex: 1 1 140px; }
+  .year-new__form p { flex-basis: 100%; }
 
-    --shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
-  }
+  .stat--lead { grid-column: 1 / -1; }
+  @media (min-width: 640px) { .stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .stat--lead { grid-column: auto; } }
 
-  .acc-page{
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 1.75rem 0;
+  /* ledger list */
+  .ledger-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px var(--s-4); align-items: center; padding: 14px var(--s-5); }
+  .ledger-row.is-event { background: var(--surface-sunken); }
+  .ledger-row__title { font-weight: 650; line-height: 1.4; }
+  .ledger-row__title a { color: var(--text); text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
+  .ledger-row__title a:hover { color: var(--accent); text-decoration: underline; }
+  .ledger-row__title .fa-folder-open { color: var(--accent); margin-right: 6px; }
+  .ledger-row__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; font-size: var(--fs-sm); color: var(--text-3); }
+  .ledger-row__amt { display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ledger-row__sub { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); margin-top: 2px; }
+  .ledger-row__actions { grid-column: 1 / -1; display: flex; gap: 4px; margin: 4px 0 -6px -10px; }
+  .ledger-row__actions form { margin: 0; }
+  @media (min-width: 640px) {
+    .ledger-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+    .ledger-row__actions { grid-column: auto; margin: 0 -8px 0 0; }
   }
-  .acc-wrap{
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 1rem;
-  }
-
-  .acc-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap: 1rem;
-    margin-bottom: 1.1rem;
-  }
-
-  .acc-title{
-    margin:0;
-    font-size: 1.45rem;
-    font-weight: 900;
-    border-left: 4px solid var(--navy);
-    padding-left: .85rem;
-    line-height: 1.15;
-  }
-  .acc-subtitle{
-    margin-top: .35rem;
-    color: var(--muted);
-    font-size: .95rem;
-    padding-left: .95rem;
-    line-height: 1.4;
-  }
-
-  .btn-ghost{
-    background: var(--card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-weight: 800;
-    padding: .55rem .9rem;
-    border-radius: .65rem;
-    text-decoration:none;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:.45rem;
-    transition: .15s ease;
-    white-space: nowrap;
-  }
-  .btn-ghost:hover{ background:#F1F5F9; }
-
-  .top-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap: .8rem;
-    margin: .75rem 0 1.1rem;
-    flex-wrap: wrap;
-  }
-
-  .year-select{
-    display:flex;
-    align-items:center;
-    gap:.6rem;
-    flex-wrap: wrap;
-  }
-  .select{
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: .75rem;
-    padding: .55rem .75rem;
-    font-weight: 900;
-    color: var(--text);
-    outline: none;
-    box-shadow: var(--shadow);
-  }
-  .year-chip{
-    display:inline-flex;
-    align-items:center;
-    gap:.45rem;
-    padding:.5rem .75rem;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: #fff;
-    font-weight: 900;
-    color: var(--muted);
-    text-decoration:none;
-  }
-  .year-chip.active{
-    border-color: rgba(30,58,138,.35);
-    background: rgba(30,58,138,.07);
-    color: var(--navy);
-  }
-
-  .acc-actions{
-    display:flex;
-    justify-content:flex-end;
-    gap: .6rem;
-    flex-wrap: wrap;
-  }
-
-  .btn-action{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:.5rem;
-    padding: .65rem 1rem;
-    border-radius: .7rem;
-    font-weight: 900;
-    text-decoration:none;
-    border: 1px solid transparent;
-    transition: .15s ease;
-    white-space: nowrap;
-  }
-
-  .btn-excel{
-    background: transparent;
-    border-color: #22C55E;
-    color: #166534;
-  }
-  .btn-excel:hover{ background: rgba(34,197,94,.08); }
-
-  .btn-add{
-    background: var(--navy);
-    color: #fff;
-    border: none;
-    box-shadow: 0 10px 18px rgba(30,58,138,.18);
-  }
-  .btn-add:hover{ filter: brightness(.97); }
-
-  .btn-event{
-    background: transparent;
-    border-color: rgba(30,58,138,.28);
-    color: var(--navy);
-  }
-  .btn-event:hover{ background: rgba(30,58,138,.06); }
-
-  .sum-grid{
-    display:grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: .85rem;
-    margin-bottom: 1.25rem;
-  }
-  .sum-card{
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 1rem;
-    padding: 1.1rem 1.05rem;
-    box-shadow: var(--shadow);
-  }
-  .sum-label{
-    font-size: .88rem;
-    color: var(--muted);
-    margin-bottom: .35rem;
-    font-weight: 800;
-  }
-  .sum-value{
-    font-size: 1.35rem;
-    font-weight: 1000;
-    letter-spacing: -0.02em;
-  }
-  .sum-balance{ color: var(--navy); }
-  .sum-income{ color: var(--green); }
-  .sum-expense{ color: var(--red); }
-
-  .table-card{
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 1rem;
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
-
-  .acc-table{
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .acc-table thead th{
-    background: #F8FAFC;
-    color: var(--muted);
-    font-size: .85rem;
-    font-weight: 900;
-    padding: .95rem .9rem;
-    border-bottom: 1px solid var(--border);
-    vertical-align: middle;
-    white-space: nowrap;
-    text-align: center;
-  }
-
-  .acc-table td{
-    padding: .9rem .9rem;
-    border-bottom: 1px solid #F1F5F9;
-    vertical-align: middle;
-    text-align: center;
-  }
-
-  .acc-table td[data-label="금액"]{
-    text-align: right;
-  }
-
-  .acc-table tbody tr:hover{
-    background: #FBFDFF;
-  }
-
-  .badge-cat{
-    display:inline-flex;
-    align-items:center;
-    padding: .28rem .55rem;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: #F8FAFC;
-    color: #334155;
-    font-weight: 800;
-    font-size: .82rem;
-    justify-self: start;
-    max-width: 100%;
-    width: auto;
-  }
-
-  .badge-event{
-    border-color: rgba(30,58,138,.25);
-    background: rgba(30,58,138,.07);
-    color: var(--navy);
-  }
-
-  .money{
-    font-weight: 1000;
-    white-space: nowrap;
-  }
-  .money.income{ color: var(--green); }
-  .money.expense{ color: var(--red); }
-  .money.total{ color: var(--navy); }
-
-  .link-row{
-    text-decoration:none;
-    color: inherit;
-    font-weight: 1000;
-  }
-
-  .manage-wrap{
-    display:flex;
-    justify-content:center;
-    gap:.5rem;
-    flex-wrap:nowrap;
-  }
-
-  .action-pill{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:.45rem;
-    padding:.48rem .8rem;
-    border-radius:.8rem;
-    font-weight: 900;
-    font-size: .9rem;
-    border: 1px solid var(--border);
-    background: #fff;
-    text-decoration:none;
-    transition: .15s ease;
-    white-space: nowrap;
-    cursor: pointer;
-    text-align:center;
-  }
-  .action-pill:hover{ background:#F1F5F9; }
-
-  .action-pill.edit{
-    border-color: rgba(37,99,235,.25);
-    background: rgba(37,99,235,.06);
-    color:#1D4ED8;
-  }
-  .action-pill.edit:hover{ background: rgba(37,99,235,.10); }
-
-  .action-pill.del{
-    border-color: rgba(220,38,38,.25);
-    background: rgba(239,68,68,.07);
-    color:#DC2626;
-  }
-  .action-pill.del:hover{ background: rgba(239,68,68,.12); }
-
-  .empty{
-    padding: 3.5rem 1rem;
-    text-align:center;
-    color: var(--muted);
-    font-weight: 800;
-  }
-
-  @media (max-width: 768px){
-    .acc-page{ padding: 1.1rem 0; }
-    .acc-title{ font-size: 1.25rem; }
-
-    .top-row{
-      align-items: stretch;
-    }
-
-    .acc-actions{
-      justify-content: stretch;
-      gap: .6rem;
-      width: 100%;
-    }
-    .btn-action{ flex: 1 1 auto; }
-
-    .sum-grid{
-      grid-template-columns: 1fr;
-      gap: .75rem;
-    }
-
-    .acc-table thead{ display:none; }
-    .acc-table, .acc-table tbody, .acc-table tr{ display:block; width:100%; }
-    .acc-table tr{
-      padding: .95rem .95rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .acc-table td{
-      display:grid;
-      grid-template-columns: 92px 1fr;
-      gap: .5rem;
-      padding: .35rem 0;
-      border: 0;
-      text-align: left;
-    }
-    .acc-table td::before{
-      content: attr(data-label);
-      color: var(--muted);
-      font-weight: 1000;
-      font-size: .9rem;
-    }
-    .acc-table td[data-label="금액"]{ text-align: left; }
-
-    .manage-wrap{
-      justify-content:flex-start;
-      flex-wrap: wrap;
-      gap: .55rem;
-    }
-    .action-pill{
-      padding: .55rem .9rem;
-      font-size: .92rem;
-    }
-  }
+  .btn--ghost.is-danger { --_fg: var(--bad-text); color: var(--bad-text); }
+  .btn--ghost.is-danger:hover { background: var(--bad-soft); }
 </style>
-</head>
+{% endblock %}
 
-<body>
-<div class="acc-page">
-  <div class="acc-wrap">
-
-    <div class="acc-header">
-      <div>
-        <h2 class="acc-title">S-ANGEL 회계 장부</h2>
-        <div class="acc-subtitle">
-          {{ budget_year.year }}년도 S-ANGEL 회계 장부
-        </div>
-      </div>
-
-      <a href="{% url 'applications:dashboard' %}" class="btn-ghost">
-        <i class="fas fa-arrow-left"></i>대시보드
+{% block content %}
+<header class="page-head">
+  <div class="page-head__text">
+    <h1 class="page-title">{{ budget_year.year }}년 회계</h1>
+    <p class="page-sub">S-ANGEL 회계 장부{% if budget_year.is_active %} · 활성 연도{% endif %}</p>
+  </div>
+  <div class="page-actions">
+    {% if is_admin %}
+    <a class="btn btn--secondary" href="{% url 'applications:export_accounting_excel' year=budget_year.year %}">
+      <i class="fa-solid fa-file-excel" aria-hidden="true"></i>엑셀 다운로드
+    </a>
+      <a class="btn btn--secondary" href="{% url 'applications:event_create' %}">
+        <i class="fa-solid fa-folder-plus" aria-hidden="true"></i>행사 만들기
       </a>
-    </div>
+      <a class="btn btn--primary" href="{% url 'applications:accounting_create' %}">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>내역 추가
+      </a>
+    {% endif %}
+  </div>
+</header>
 
-    <!-- 기수 이동 + 액션 -->
-    <div class="top-row">
-      <div class="year-select">
-        <span class="badge-cat badge-event">
-          <i class="fas fa-layer-group"></i>&nbsp;기수 선택
-        </span>
-
-        <!-- 드롭다운(가장 깔끔) -->
-        <select class="select" onchange="if(this.value) location.href=this.value;">
-          {% for y in all_years %}
-            <option value="{% url 'applications:accounting_year_list' year=y.year %}"
-                    {% if y.year == budget_year.year %}selected{% endif %}>
-              {{ y.year }}년도{% if y.is_active %} (활성){% endif %}
-            </option>
-          {% endfor %}
-        </select>
-
-        <!-- ✅ 칩: 이전 / 현재 / 다음 (최대 3개) -->
-        {% for y in year_buttons %}
-        <a class="year-chip {% if y.year == budget_year.year %}active{% endif %}"
-            href="{% url 'applications:accounting_year_list' year=y.year %}">
-            {{ y.year }}{% if y.is_active %} · 활성{% endif %}
-        </a>
-        {% endfor %}
-
+<div class="year-bar">
+  <label class="field-label" for="yearJump">연도</label>
+  <select id="yearJump" class="select" data-year-jump>
+    {% for y in all_years %}
+      <option value="{% url 'applications:accounting_year_list' year=y.year %}" {% if y.year == budget_year.year %}selected{% endif %}>{{ y.year }}년{% if y.is_active %} (활성){% endif %}</option>
+    {% endfor %}
+  </select>
+  {% if is_admin %}
+  <details class="year-new" style="flex-basis: 100%">
+    <summary class="btn btn--ghost btn--sm"><i class="fa-solid fa-plus" aria-hidden="true"></i>새 회계 연도</summary>
+    <form class="panel year-new__form" action="{% url 'applications:create_budget_year' %}" method="post"
+          data-confirm-title="새 회계 연도를 만드시겠습니까?"
+          data-confirm="생성 즉시 이 연도가 활성화되고, 기존 활성 연도는 비활성화됩니다." data-confirm-ok="생성">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'applications:accounting_main' %}">
+      <div class="field">
+        <label class="field-label" for="newYear">연도</label>
+        <input id="newYear" type="number" name="year" inputmode="numeric" min="2000" max="2100" placeholder="예: {{ budget_year.year|add:1 }}" required>
       </div>
-
-      <div class="acc-actions">
-        <a href="{% url 'applications:export_accounting_excel' year=budget_year.year %}" class="btn-action btn-excel">
-          <i class="fas fa-file-excel"></i>엑셀 다운로드
-        </a>
-
-        {% if is_admin %}
-          <a href="{% url 'applications:event_create' %}" class="btn-action btn-event">
-            <i class="fas fa-calendar-plus"></i>행사 생성
-          </a>
-          <a href="{% url 'applications:accounting_create' %}" class="btn-action btn-add">
-            <i class="fas fa-plus"></i>내역 추가
-          </a>
-        {% endif %}
+      <div class="field">
+        <label class="field-label" for="newYearReason">생성 사유</label>
+        <textarea id="newYearReason" class="textarea" name="reason" rows="3" placeholder="예: 2027년 회계 시작" required></textarea>
       </div>
-    </div>
-
-    <!-- 총합 -->
-    <div class="sum-grid">
-      <div class="sum-card">
-        <div class="sum-label">현재 잔액</div>
-        <div class="sum-value sum-balance">{{ balance|intcomma }}원</div>
-      </div>
-      <div class="sum-card">
-        <div class="sum-label">총 수입</div>
-        <div class="sum-value sum-income">+ {{ total_income|intcomma }}원</div>
-      </div>
-      <div class="sum-card">
-        <div class="sum-label">총 지출</div>
-        <div class="sum-value sum-expense">- {{ total_expense|intcomma }}원</div>
-      </div>
-    </div>
-
-    <!-- 타임라인 -->
-    <div class="table-card">
-  <table class="acc-table">
-    <thead>
-      <tr>
-        <th style="width: 120px;">날짜</th>
-        <th>항목</th>
-        <th style="width: 140px;">구분</th>
-        <th style="width: 150px;">금액</th>
-        <th style="width: 180px;">관리/이동</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {% for item in timeline %}
-        {% if item.transaction_type %}
-          <tr>
-            <td data-label="날짜">{{ item.date|date:"Y-m-d" }}</td>
-            <td data-label="항목">
-              <strong>{{ item.item_name }}</strong>
-              {% if item.description %}
-                <div style="margin-top:.25rem; font-size:.86rem; color:var(--muted); font-weight:800;">
-                  {{ item.description|truncatechars:60 }}
-                </div>
-              {% endif %}
-            </td>
-            <td data-label="구분">
-              <span class="badge-cat">
-                {% if item.transaction_type == 'INCOME' %}수입{% else %}지출{% endif %}
-              </span>
-            </td>
-            <td data-label="금액">
-              {% if item.transaction_type == 'INCOME' %}
-                <span class="money income">+ {{ item.amount|intcomma }}원</span>
-              {% else %}
-                <span class="money expense">- {{ item.amount|intcomma }}원</span>
-              {% endif %}
-            </td>
-            <td data-label="관리/이동">
-              <div class="manage-wrap">
-                {% if is_admin %}
-                  <a href="{% url 'applications:accounting_update' item.id %}" class="action-pill edit">
-                    <i class="fas fa-pen"></i>수정
-                  </a>
-                  <form action="{% url 'applications:accounting_delete' item.id %}" method="post"
-                        onsubmit="return confirm('정말 삭제하시겠습니까?');" style="margin:0;">
-                    {% csrf_token %}
-                    <button type="submit" class="action-pill del">
-                      <i class="fas fa-trash"></i>삭제
-                    </button>
-                  </form>
-                {% else %}-{% endif %}
-              </div>
-            </td>
-          </tr>
-
-        {% else %}
-          {% with s=item.get_summary %}
-          <tr class="event-row" style="background-color: #f0f4ff;">
-            <td data-label="날짜">{{ item.date|date:"Y-m-d" }}</td>
-            <td data-label="항목">
-              <a href="{% url 'applications:accounting_event_detail' item.id %}" style="text-decoration:none; color:inherit;">
-                <strong style="color: var(--navy);">
-                  <i class="fas fa-folder-open"></i> {{ item.name }}
-                </strong>
-              </a>
-              {% if item.description %}
-                <div style="margin-top:.25rem; font-size:.86rem; color:var(--muted); font-weight:800;">
-                  {{ item.description|truncatechars:60 }}
-                </div>
-              {% endif %}
-            </td>
-            <td data-label="구분">
-              <span class="badge-cat badge-event">행사 요약</span>
-            </td>
-            <td data-label="금액">
-              <div class="money income" style="font-size: 0.85rem;">+ {{ s.income|intcomma }}</div>
-              <div class="money expense" style="font-size: 0.85rem;">- {{ s.expense|intcomma }}</div>
-              <div class="money total" style="border-top: 1px solid var(--border);">{{ s.total|intcomma }}원</div>
-            </td>
-            <td data-label="관리/이동">
-                <div class="manage-wrap">
-                    {% if is_admin %}
-                    <a href="{% url 'applications:accounting_event_update' item.id %}" class="action-pill edit">
-                        <i class="fas fa-edit"></i> 수정
-                    </a>
-                    
-                    <form action="{% url 'applications:accounting_event_delete' item.id %}" method="post" 
-                            onsubmit="return confirm('행사를 삭제하면 그 안의 모든 내역도 함께 삭제됩니다. 정말 삭제할까요?');" style="margin:0;">
-                        {% csrf_token %}
-                        <button type="submit" class="action-pill del">
-                        <i class="fas fa-trash"></i> 삭제
-                        </button>
-                    </form>
-                    {% else %}<a href="{% url 'applications:accounting_event_detail' item.id %}" class="action-pill" style="background: var(--navy); color:white; border:none;">
-                        상세보기
-                        </a>
-                    {% endif %}
-                </div>
-                </td>
-          </tr>
-          {% endwith %}
-        {% endif %}
-
-      {% empty %}
-        <tr><td colspan="5" class="empty">기록된 회계 내역/행사가 없습니다.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      <button type="submit" class="btn btn--primary">등록</button>
+      <p class="field-help">기존 활성 연도는 자동으로 비활성화됩니다.</p>
+    </form>
+  </details>
+  {% endif %}
 </div>
 
+<div class="stats stats--3">
+  <div class="stat stat--accent stat--lead">
+    <div class="stat__label"><i class="fa-solid fa-wallet" aria-hidden="true"></i>현재 잔액</div>
+    <div class="stat__value">{% if balance < 0 %}−{{ balance|intcomma|slice:"1:" }}{% else %}{{ balance|intcomma }}{% endif %}<small>원</small></div>
+  </div>
+  <div class="stat stat--ok">
+    <div class="stat__label">총 수입</div>
+    <div class="stat__value">+{{ total_income|intcomma }}<small>원</small></div>
+  </div>
+  <div class="stat stat--bad">
+    <div class="stat__label">총 지출</div>
+    <div class="stat__value">−{{ total_expense|intcomma }}<small>원</small></div>
   </div>
 </div>
-</body>
-</html>
+
+<section class="section">
+  <div class="section-head">
+    <h2 class="section-title">내역 <span class="count">{{ timeline|length }}</span></h2>
+  </div>
+
+  {% if timeline %}
+  <div class="panel panel--flush">
+    <ul class="list">
+      {% for item in timeline %}
+        {% if item.transaction_type %}
+        <li class="ledger-row">
+          <div>
+            <div class="ledger-row__title">{{ item.item_name }}</div>
+            <div class="ledger-row__meta">
+              {% if item.transaction_type == 'INCOME' %}<span class="chip chip--income">수입</span>{% else %}<span class="chip chip--expense">지출</span>{% endif %}
+              <span class="tnum">{{ item.date|date:"n월 j일" }}</span>
+              {% if item.category %}<span>· {{ item.category }}</span>{% endif %}
+              {% if item.description %}<span>· {{ item.description|truncatechars:60 }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="ledger-row__amt">
+            {% if item.transaction_type == 'INCOME' %}<span class="ok-text">+{{ item.amount|intcomma }}원</span>{% else %}<span class="bad-text">−{{ item.amount|intcomma }}원</span>{% endif %}
+          </div>
+          {% if is_admin %}
+          <div class="ledger-row__actions">
+            <a class="btn btn--ghost btn--sm" href="{% url 'applications:accounting_update' item.id %}"><i class="fa-solid fa-pen" aria-hidden="true"></i>수정</a>
+            <form action="{% url 'applications:accounting_delete' item.id %}" method="post"
+                  data-confirm-title="‘{{ item.item_name }}’ 내역을 삭제하시겠습니까?"
+                  data-confirm="삭제한 내역은 되돌릴 수 없습니다." data-confirm-ok="삭제" data-danger>
+              {% csrf_token %}
+              <button type="submit" class="btn btn--ghost btn--sm is-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i>삭제</button>
+            </form>
+          </div>
+          {% endif %}
+        </li>
+        {% else %}
+        {% with s=item.get_summary %}
+        <li class="ledger-row is-event">
+          <div>
+            <div class="ledger-row__title"><a href="{% url 'applications:accounting_event_detail' item.id %}"><i class="fa-solid fa-folder-open" aria-hidden="true"></i>{{ item.name }}</a></div>
+            <div class="ledger-row__meta">
+              <span class="chip chip--navy">행사</span>
+              <span class="tnum">{{ item.date|date:"n월 j일" }}</span>
+              {% if item.description %}<span>· {{ item.description|truncatechars:60 }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="ledger-row__amt">
+            <span>{% if s.total < 0 %}−{{ s.total|intcomma|slice:"1:" }}{% else %}{{ s.total|intcomma }}{% endif %}원</span>
+            <span class="ledger-row__sub"><span class="ok-text">+{{ s.income|intcomma }}</span> · <span class="bad-text">−{{ s.expense|intcomma }}</span></span>
+          </div>
+          {% if is_admin %}
+          <div class="ledger-row__actions">
+            <a class="btn btn--ghost btn--sm" href="{% url 'applications:accounting_event_update' item.id %}"><i class="fa-solid fa-pen" aria-hidden="true"></i>수정</a>
+            <form action="{% url 'applications:accounting_event_delete' item.id %}" method="post"
+                  data-confirm-title="‘{{ item.name }}’ 행사를 삭제하시겠습니까?"
+                  data-confirm="행사 안의 모든 회계 내역도 함께 삭제되며 되돌릴 수 없습니다." data-confirm-ok="모두 삭제" data-danger>
+              {% csrf_token %}
+              <button type="submit" class="btn btn--ghost btn--sm is-danger"><i class="fa-solid fa-trash" aria-hidden="true"></i>삭제</button>
+            </form>
+          </div>
+          {% endif %}
+        </li>
+        {% endwith %}
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+  {% else %}
+  <div class="panel">
+    <div class="empty">
+      <div class="empty__icon"><i class="fa-solid fa-receipt" aria-hidden="true"></i></div>
+      <div class="empty__title">기록된 내역이 없습니다</div>
+      <p class="empty__text">{{ budget_year.year }}년에 등록된 회계 내역이나 행사가 없습니다.</p>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block javascript %}
+<script>
+  document.querySelectorAll("[data-year-jump]").forEach(function (sel) {
+    sel.addEventListener("change", function () { if (sel.value) window.location.assign(sel.value); });
+  });
+</script>
+{% endblock %}

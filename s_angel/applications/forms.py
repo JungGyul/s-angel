@@ -11,7 +11,7 @@ class EventCreateForm(forms.ModelForm):
         fields = ['title', 'description', 'start_date', 'end_date', 'total_slots', 'male_slots', 'female_slots']
 
         labels = {
-            'title': '의전 활동',
+            'title': '의전 의전',
             'description': '설명',
             'start_date': '시작 날짜',
             'end_date': '마감 날짜',
@@ -21,8 +21,8 @@ class EventCreateForm(forms.ModelForm):
         }
 
         widgets = {
-            'start_date': forms.DateInput(attrs={'placeholder': '시작 날짜 (YYYY-MM-DD)', 'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'placeholder': '마감 날짜 (YYYY-MM-DD)', 'type': 'date'}),
+            'start_date': forms.DateInput(format='%Y-%m-%d', attrs={'placeholder': '시작 날짜 (YYYY-MM-DD)', 'type': 'date'}),
+            'end_date': forms.DateInput(format='%Y-%m-%d', attrs={'placeholder': '마감 날짜 (YYYY-MM-DD)', 'type': 'date'}),
             'male_slots': forms.NumberInput(attrs={'placeholder': '성비 맞추는 용도(필수 아님)'}),
             'female_slots': forms.NumberInput(attrs={'placeholder': '성비 맞추는 용도(필수 아님)'}),
         }
@@ -32,6 +32,33 @@ class EventCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['male_slots'].required = False
         self.fields['female_slots'].required = False
+
+    def clean_male_slots(self):
+        return self.cleaned_data.get('male_slots') or 0
+
+    def clean_female_slots(self):
+        return self.cleaned_data.get('female_slots') or 0
+
+    def clean(self):
+        cleaned_data = super().clean()
+        total_slots = cleaned_data.get('total_slots')
+        male_slots = cleaned_data.get('male_slots')
+        female_slots = cleaned_data.get('female_slots')
+        if total_slots is not None and total_slots < 1:
+            self.add_error('total_slots', '총 모집 인원은 1명 이상이어야 합니다.')
+        if (
+            total_slots is not None
+            and male_slots is not None
+            and female_slots is not None
+            and male_slots + female_slots > total_slots
+        ):
+            self.add_error(None, '남자·여자 모집 인원의 합은 총 모집 인원을 넘을 수 없습니다.')
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        if start_date and end_date and end_date < start_date:
+            self.add_error('end_date', '모집 마감일은 시작일보다 빠를 수 없습니다.')
+        return cleaned_data
+
 
 class UserInfoUpdateForm(forms.ModelForm):
     class Meta:
@@ -47,8 +74,8 @@ class SpecialLotteryGroupForm(forms.ModelForm):
     events = forms.ModelMultipleChoiceField(
         queryset=Event.objects.none(),
         widget=forms.CheckboxSelectMultiple,
-        label="함께 추첨할 활동",
-        help_text="최종 확정되지 않은 활동을 두 개 이상 선택하세요.",
+        label="함께 추첨할 의전",
+        help_text="최종 확정되지 않은 의전을 두 개 이상 선택해 주십시오.",
     )
 
     class Meta:
@@ -95,7 +122,7 @@ class SpecialLotteryGroupForm(forms.ModelForm):
         events = self.cleaned_data["events"]
         if events.count() < 2:
             raise forms.ValidationError(
-                "특별추첨에는 활동을 두 개 이상 선택해야 합니다.",
+                "특별추첨에는 의전을 두 개 이상 선택해야 합니다.",
             )
         return events
 

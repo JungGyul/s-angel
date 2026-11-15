@@ -1,7 +1,6 @@
 # ruff: noqa: E501
 from .base import *  # noqa: F403
 from .base import DATABASES
-from .base import INSTALLED_APPS
 from .base import REDIS_URL
 from .base import env
 
@@ -29,18 +28,15 @@ DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)
 
 # CACHES
 # ------------------------------------------------------------------------------
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": REDIS_URL,
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#             # Mimicking memcache behavior.
-#             # https://github.com/jazzband/django-redis#memcached-exceptions-behavior
-#             "IGNORE_EXCEPTIONS": True,
-#         },
-#     },
-# }
+# Use a shared Redis cache when configured; otherwise inherit DatabaseCache.
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        },
+    }
 
 # SECURITY
 # ------------------------------------------------------------------------------
@@ -155,10 +151,13 @@ ADMIN_URL = env("DJANGO_ADMIN_URL")
 #     "MAILGUN_API_URL": env("MAILGUN_API_URL", default="https://api.mailgun.net/v3"),
 # }
 
-# Collectfasta
+# Static file storage
 # ------------------------------------------------------------------------------
-# https://github.com/jasongi/collectfasta#installation
-INSTALLED_APPS = ["collectfasta", *INSTALLED_APPS]
+# https://whitenoise.readthedocs.io/en/stable/django.html
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 # LOGGING
 # ------------------------------------------------------------------------------
@@ -209,4 +208,4 @@ LOGGING = {
 # ------------------------------------------------------------------------------
 STATIC_URL = '/static/'
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = env('DJANGO_STATIC_ROOT', default=os.path.join(BASE_DIR, 'staticfiles'))

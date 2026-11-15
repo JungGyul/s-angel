@@ -1,35 +1,32 @@
-# applications/views.py
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
-from .models import Event, Application, BudgetYear, AccountingEvent
-from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import redirect
-from .forms import EventCreateForm, UserInfoUpdateForm
-import random
-from django.contrib import messages
 import datetime as dt
-from django.contrib.auth import get_user_model # <--- User를 직접 import하는 대신 이 함수를 가져옵니다.
-User = get_user_model() # <--- settings.py에 설정된 User 모델을 가져와 변수에 할당합니다.
-from django.db.models import Exists, OuterRef, Q
-from .models import Transaction, ClubSchedule
-from django.db.models import Sum
-import openpyxl
-from django.http import HttpResponse
 import json
-from django.core.serializers.json import DjangoJSONEncoder
-# applications/views.py 맨 위에 추가
-
-from django.views.decorators.http import require_POST  # 👈 이 줄이 빠져서 에러가 났습니다!
-from django.http import JsonResponse # AJAX 처리를 위해 이것도 필요합니다.
-from datetime import date, timedelta
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.utils import timezone
+import random
 from itertools import chain
-from django.db import transaction
-
-
 from zoneinfo import ZoneInfo
+
+import openpyxl
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
+from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, Sum
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_POST
+
+from .accounting_forms import AccountingEventForm, AccountingTransactionForm
+from .decorators import custom_staff_required as staff_member_required
+from .forms import EventCreateForm, UserInfoUpdateForm
+from .models import AccountingEvent, Application, BudgetYear, ClubSchedule, Event, Transaction, WeightChange
+
+from .weight_service import attach_review_weights, calculate_draw_weights
+
+User = get_user_model()
 KST = ZoneInfo("Asia/Seoul")
 UTC = dt.timezone.utc
 def _get_default_budget_year():
@@ -102,6 +99,7 @@ def _dashboard_event_action_response(
 
 @login_required
 @require_POST
+@transaction.atomic
 def cancel_application(request, event_id):
     event = get_object_or_404(
         Event.objects.select_for_update(),
@@ -123,7 +121,7 @@ def cancel_application(request, event_id):
             or event.special_lottery_group.is_finalized
         )
     )
-    event_is_drawn = Application.objects.filter(
+    event_is_drawn = event.drawn_at is not None or Application.objects.filter(
         event=event,
         selected=True,
     ).exists()
@@ -146,11 +144,12 @@ def cancel_application(request, event_id):
         request,
         event=event,
         applied=False,
-        message=f"'{event.title}' 신청을 취소했습니다.",
+        message=f"‘{event.title}’ 신청을 취소했습니다.",
     )
 
 @staff_member_required
 @require_POST
+@transaction.atomic
 def delete_event(request, event_id):
     event = get_object_or_404(
         Event.objects.select_for_update(),
@@ -165,7 +164,7 @@ def delete_event(request, event_id):
         event_id=event_id,
         event_title=event_title,
         action="delete",
-        message=f"'{event_title}' 활동을 삭제했습니다.",
+        message=f"‘{event_title}’ 의전을 삭제했습니다.",
         deleted=True,
     )
 
@@ -176,12 +175,12 @@ def event_winners(request, event_id):
     # ▼▼▼ 수정: 최종 확정(is_finalized)이 안 된 경우 빈 목록을 보여주거나 메시지 처리 ▼▼▼
     if not event.is_finalized:
         winners = []
-        # (선택 사항) 관리자가 아닌 유저가 들어왔을 때 메시지를 띄우고 싶다면 아래 주석 해제
+        # (선택 사항) 운영진가 아닌 유저가 들어왔을 때 메시지를 띄우고 싶다면 아래 주석 해제
         # if not request.user.is_staff:
         #     messages.info(request, "아직 당첨자 발표 전입니다.")
         #     return redirect('applications:dashboard')
     else:
-        winners = Application.objects.filter(event=event, selected=True)
+        winners = Application.objects.filter(event=event, selected=True).select_related('participant')
 
     return render(request, 'applications/winners.html', {'event': event, 'winners': winners})
 
@@ -189,27 +188,24 @@ def event_winners(request, event_id):
 
 @staff_member_required
 def event_statistics(request):
-    events = Event.objects.all().order_by('-id')
-
+    events = Event.objects.order_by('-id').prefetch_related(
+        Prefetch('application_set', queryset=Application.objects.select_related('participant')
+                 .order_by('-selected', 'participant__username')),
+    )
     event_data = []
     for event in events:
-        # ▼▼▼ 이 부분을 수정합니다 ▼▼▼
-        # 'selected'를 기준으로 내림차순(True가 먼저), username을 기준으로 오름차순 정렬
-        applications = Application.objects.filter(event=event).select_related('participant').order_by('-selected', 'participant__username')
-
-        winners = applications.filter(selected=True)
-        is_drawn = winners.exists()
-
+        applications = list(event.application_set.all())
+        winners = [app for app in applications if app.selected]
         event_data.append({
             'event': event,
             'applications': applications,
             'winners': winners,
-            'losers': applications.filter(selected=False),
-            'total_applications': applications.count(),
-            'male_applications': applications.filter(participant__gender='M').count(),
-            'female_applications': applications.filter(participant__gender='F').count(),
-            'total_selected': winners.count(),
-            'is_drawn': is_drawn,
+            'losers': [app for app in applications if not app.selected],
+            'total_applications': len(applications),
+            'male_applications': sum(app.participant.gender == 'M' for app in applications),
+            'female_applications': sum(app.participant.gender == 'F' for app in applications),
+            'total_selected': len(winners),
+            'is_drawn': bool(winners),
         })
 
     return render(request, 'applications/statistics.html', {'event_data': event_data})
@@ -222,11 +218,11 @@ def _perform_tiered_lottery(applicants_qs, slots_to_fill):
     if not applicants_list or slots_to_fill <= 0:
         return []
 
-    priority_applicants = [app for app in applicants_list if app.participant.weight >= 3]
-    regular_applicants = [app for app in applicants_list if app.participant.weight < 3]
+    priority_applicants = [app for app in applicants_list if getattr(app, "draw_weight", app.participant.weight) >= 3]
+    regular_applicants = [app for app in applicants_list if getattr(app, "draw_weight", app.participant.weight) < 3]
 
     random.shuffle(priority_applicants)
-    priority_applicants.sort(key=lambda app: app.participant.weight, reverse=True)
+    priority_applicants.sort(key=lambda app: getattr(app, "draw_weight", app.participant.weight), reverse=True)
 
     winners = []
     slots_remaining = slots_to_fill
@@ -246,7 +242,7 @@ def _perform_tiered_lottery(applicants_qs, slots_to_fill):
         
         # 가중치 추첨을 위해 인원과 가중치를 별도 리스트로 복사합니다.
         population = list(remaining_applicants)
-        weights = [app.participant.weight for app in population]
+        weights = [max(1, getattr(app, "draw_weight", app.participant.weight)) for app in population]
 
         regular_winners = []
         # 뽑아야 하는 인원수만큼 반복합니다.
@@ -272,6 +268,7 @@ def _perform_tiered_lottery(applicants_qs, slots_to_fill):
 
 @staff_member_required
 @require_POST
+@transaction.atomic
 def draw_event(request, event_id):
     """[수정] 1단계: 임시 추첨 (가중치 업데이트 안함)"""
     event = get_object_or_404(
@@ -285,10 +282,10 @@ def draw_event(request, event_id):
                 event_id=event.pk,
                 event_title=event.title,
                 action="draw",
-                message="특별추첨 활동은 묶음 화면에서 한 번에 추첨해주세요.",
+                message="특별추첨 의전은 묶음 화면에서 한 번에 추첨해 주십시오.",
                 success=False,
             )
-        messages.info(request, "특별추첨 활동은 묶음 화면에서 추첨해주세요.")
+        messages.info(request, "특별추첨 의전은 묶음 화면에서 추첨해 주십시오.")
         return redirect(
             "applications:special_lottery_review",
             group_id=event.special_lottery_group_id,
@@ -299,7 +296,7 @@ def draw_event(request, event_id):
             event_id=event.pk,
             event_title=event.title,
             action="draw",
-            message="이미 확정된 활동입니다.",
+            message="이미 확정된 의전입니다.",
             success=False,
         )
 
@@ -311,16 +308,22 @@ def draw_event(request, event_id):
             event_id=event.pk,
             event_title=event.title,
             action="draw",
-            message="이미 임시 추첨이 완료된 활동입니다.",
+            message="이미 임시 추첨이 완료된 의전입니다.",
             drawn=True,
             winner_count=existing_winner_count,
         )
 
+    all_applicants = list(all_applicants)
+    draw_weights = calculate_draw_weights(
+        [application.participant for application in all_applicants], exclude_event_id=event.pk,
+    )
+    for application in all_applicants:
+        application.draw_weight = draw_weights[application.participant_id]
     winners = []
     if event.male_slots > 0 or event.female_slots > 0:
         # 성비 맞춤 로직 실행
-        male_apps = all_applicants.filter(participant__gender='M')
-        female_apps = all_applicants.filter(participant__gender='F')
+        male_apps = [app for app in all_applicants if app.participant.gender == 'M']
+        female_apps = [app for app in all_applicants if app.participant.gender == 'F']
         
         m_winners = _perform_tiered_lottery(male_apps, event.male_slots)
         f_winners = _perform_tiered_lottery(female_apps, event.female_slots)
@@ -328,11 +331,19 @@ def draw_event(request, event_id):
         combined = m_winners + f_winners
         # 총 T/O가 성비 합보다 작을 경우를 대비해 최종 샘플링
         winners = random.sample(combined, min(len(combined), event.total_slots))
+        selected_ids = {application.pk for application in winners}
+        remaining = [app for app in all_applicants if app.pk not in selected_ids]
+        winners.extend(_perform_tiered_lottery(remaining, event.total_slots - len(winners)))
     else:
         # 성비 없는 전체 추첨 실행
         winners = _perform_tiered_lottery(all_applicants, event.total_slots)
 
     if winners:
+        for application in all_applicants:
+            application.weight = max(1, application.draw_weight)
+        Application.objects.bulk_update(all_applicants, ['weight'])
+        event.drawn_at = timezone.now()
+        event.save(update_fields=["drawn_at"])
         selected_ids = [w.id for w in winners]
         Application.objects.filter(id__in=selected_ids).update(selected=True)
         return _dashboard_event_action_response(
@@ -342,7 +353,7 @@ def draw_event(request, event_id):
             action="draw",
             message=(
                 f"임시 추첨으로 {len(winners)}명을 선발했습니다. "
-                "명단을 검토해주세요."
+                "명단을 검토해 주십시오."
             ),
             drawn=True,
             winner_count=len(winners),
@@ -360,11 +371,12 @@ def draw_event(request, event_id):
     )
 
 @staff_member_required
+@transaction.atomic
 def review_winners(request, event_id):
     
-    """2단계: 관리자가 명단을 확인하고 수동으로 변경하는 페이지"""
+    """2단계: 운영진가 명단을 확인하고 수동으로 변경하는 페이지"""
     event = get_object_or_404(
-        Event.objects.select_related("special_lottery_group"),
+        Event.objects.select_for_update(),
         id=event_id,
     )
     if event.special_lottery_group:
@@ -374,26 +386,47 @@ def review_winners(request, event_id):
         )
     
     # 당첨자와 탈락자를 나누어 가져옴
-    applicants = Application.objects.filter(event=event).select_related('participant').order_by('participant__name')
+    applicants = Application.objects.filter(event=event).select_related('participant', 'event').order_by('participant__name')
     
     if request.method == 'POST':
+        if event.is_finalized:
+            messages.error(request, '이미 확정된 의전의 명단은 수정할 수 없습니다.')
+            return redirect('applications:dashboard')
         # 체크박스 등으로 선택된 ID 목록을 가져와서 업데이트
-        selected_ids = request.POST.getlist('selected_applicants')
-        valid_selected_ids = Application.objects.filter(
+        try:
+            selected_ids = {int(value) for value in request.POST.getlist('selected_applicants')}
+        except (TypeError, ValueError):
+            messages.error(request, '잘못된 신청 정보가 포함되어 있습니다.')
+            return redirect('applications:review_winners', event_id=event.id)
+        valid_selected_ids = set(Application.objects.filter(
             event=event,
             id__in=selected_ids,
-        ).values_list("id", flat=True)
+        ).values_list('id', flat=True))
+        if selected_ids != valid_selected_ids:
+            messages.error(request, '다른 의전의 신청 정보가 포함되어 있습니다.')
+            return redirect('applications:review_winners', event_id=event.id)
         applicants.update(selected=False)
         Application.objects.filter(
             event=event,
             id__in=valid_selected_ids,
         ).update(selected=True)
+        if event.drawn_at is None:
+            event.drawn_at = timezone.now()
+            event.save(update_fields=['drawn_at'])
+        messages.success(request, '명단을 임시저장했습니다.')
         return redirect('applications:review_winners', event_id=event.id)
 
+    applicants = list(applicants)
+    has_drawn = event.drawn_at is not None or any(app.selected for app in applicants)
+    applicants = attach_review_weights(
+        applicants, exclude_event_id=event.pk,
+        before_draw=(event.drawn_at, event.pk, 0) if has_drawn else None,
+    )
     context = {
         'event': event,
         'applicants': applicants,
-        'winners_count': applicants.filter(selected=True).count(),
+        'winners_count': sum(app.selected for app in applicants),
+        'draw_weights_recorded': bool(applicants) and all(app.weight is not None for app in applicants),
     }
     return render(request, 'applications/review_winners.html', context)
 
@@ -413,7 +446,7 @@ def finalize_event(request, event_id):
         if event.special_lottery_group:
             messages.info(
                 request,
-                "특별추첨 활동은 묶음 전체를 한 번에 확정해주세요.",
+                "특별추첨 의전은 묶음 전체를 한 번에 확정해 주십시오.",
             )
             return redirect(
                 "applications:special_lottery_review",
@@ -421,7 +454,7 @@ def finalize_event(request, event_id):
             )
 
         if event.is_finalized:
-            messages.warning(request, "이미 최종 확정된 활동입니다.")
+            messages.warning(request, "이미 최종 확정된 의전입니다.")
             return redirect('applications:dashboard')
 
         try:
@@ -442,7 +475,7 @@ def finalize_event(request, event_id):
             ).values_list("id", flat=True),
         )
         if valid_selected_ids != selected_ids:
-            messages.error(request, "다른 활동의 신청 정보가 포함되어 있습니다.")
+            messages.error(request, "다른 의전의 신청 정보가 포함되어 있습니다.")
             return redirect('applications:review_winners', event_id=event.id)
 
         winner_count = len(valid_selected_ids)
@@ -463,9 +496,10 @@ def finalize_event(request, event_id):
         participant_ids = list(
             applications.values_list("participant_id", flat=True),
         )
-        list(
-            User.objects.select_for_update().filter(id__in=participant_ids),
-        )
+        participants = {
+            participant.pk: participant
+            for participant in User.objects.select_for_update().filter(id__in=participant_ids).order_by("pk")
+        }
 
         applications.update(selected=False)
         applications.filter(id__in=valid_selected_ids).update(selected=True)
@@ -476,7 +510,6 @@ def finalize_event(request, event_id):
         )
         User.objects.filter(id__in=winner_user_ids).update(weight=1)
 
-        from django.db.models import F
         loser_user_ids = applications.filter(selected=False).values_list(
             'participant_id',
             flat=True,
@@ -485,15 +518,26 @@ def finalize_event(request, event_id):
             weight=F('weight') + 1,
         )
 
+        WeightChange.objects.bulk_create([
+            WeightChange(
+                user_id=participant_id, source=WeightChange.Source.EVENT, source_id=event.pk,
+                before=participants[participant_id].weight,
+                after=1 if application_id in valid_selected_ids else participants[participant_id].weight + 1,
+                created_by=request.user,
+            )
+            for application_id, participant_id in applications.values_list('pk', 'participant_id')
+        ])
+
         event.is_finalized = True
         event.save(update_fields=["is_finalized"])
 
-    messages.success(request, f"'{event.title}' 명단이 확정되었습니다.")
+    messages.success(request, f"‘{event.title}’ 명단이 확정되었습니다.")
     return redirect('applications:dashboard')
 
 
 @login_required
 @require_POST
+@transaction.atomic
 def apply_event(request, event_id):
     event = get_object_or_404(
         Event.objects.select_for_update(),
@@ -508,7 +552,7 @@ def apply_event(request, event_id):
             or event.special_lottery_group.is_finalized
         )
     )
-    event_is_drawn = Application.objects.filter(
+    event_is_drawn = event.drawn_at is not None or Application.objects.filter(
         event=event,
         selected=True,
     ).exists()
@@ -532,9 +576,9 @@ def apply_event(request, event_id):
         participant=request.user,
     )
     message = (
-        f"'{event.title}' 신청이 완료되었습니다."
+        f"‘{event.title}’ 신청이 완료되었습니다."
         if created
-        else "이미 신청한 활동입니다."
+        else "이미 신청한 의전입니다."
     )
     return _application_action_response(
         request,
@@ -558,6 +602,7 @@ def create_event(request):
                 event.female_slots = 0
 
             event.save()  # 이제 저장!
+            messages.success(request, f"‘{event.title}’ 의전을 등록했습니다.")
             return redirect('applications:dashboard')
     else:
         form = EventCreateForm()
@@ -566,17 +611,20 @@ def create_event(request):
 
 @login_required
 def dashboard(request):
-    today = dt.date.today()
+    today = timezone.localdate()
     
     # is_admin 변수와 불필요한 if/else를 제거하여 코드를 단순화합니다.
-    # 이벤트 목록은 관리자든 일반 사용자든 동일하게 가져옵니다.
+    # 이벤트 목록은 운영진든 일반 부원든 동일하게 가져옵니다.
     selected_applications = Application.objects.filter(
         event_id=OuterRef("pk"),
         selected=True,
     )
     events = (
         Event.objects.select_related("special_lottery_group")
-        .annotate(has_selected_application=Exists(selected_applications))
+        .annotate(
+            has_selected_application=Exists(selected_applications),
+            applicant_count=Count("application"),
+        )
         .order_by("-id")
     )
 
@@ -599,7 +647,7 @@ def dashboard(request):
         if event.special_lottery_group:
             is_drawn = event.special_lottery_group.is_drawn
         else:
-            is_drawn = event.has_selected_application
+            is_drawn = event.drawn_at is not None or event.has_selected_application
         # 2. 모델에 추가한 is_finalized 필드 확인
         is_finalized = event.is_finalized 
         
@@ -607,6 +655,8 @@ def dashboard(request):
             'event': event,
             'is_drawn': is_drawn,
             'is_finalized': is_finalized,
+            'applicant_count': event.applicant_count,
+            'is_open': event.end_date >= today and not is_drawn,
         })
 
     context = {
@@ -614,6 +664,7 @@ def dashboard(request):
         'my_applications': my_applications,
         'applied_event_ids': applied_event_ids,
         'today': today,
+        'my_weight': request.user.weight,
     }
 
     return render(request, 'applications/dashboard.html', context)
@@ -624,7 +675,7 @@ def dashboard(request):
 
 @staff_member_required
 def admin_page(request):
-    """관리자 페이지: 검색 및 기수 필터링 기능 추가"""
+    """운영진 페이지: 검색 및 기수 필터링 기능 추가"""
     search_query = request.GET.get('q', '')
     gen_filter = request.GET.get('gen', '') # 기수 필터 파라미터
 
@@ -632,7 +683,10 @@ def admin_page(request):
 
     # 1. 기수 필터링
     if gen_filter:
-        active_users = active_users.filter(generation=gen_filter)
+        try:
+            active_users = active_users.filter(generation=int(gen_filter))
+        except ValueError:
+            active_users = active_users.none()
 
     # 2. 검색어 필터링
     if search_query:
@@ -653,86 +707,111 @@ def admin_page(request):
     }
     return render(request, 'applications/admin_page.html', context)
 
-# 권한 토글 뷰 추가
+def _admin_user_response(request, *, ok, message, status=200, **extra):
+    """부원 관리 액션 응답: fetch(XHR)면 JSON, 아니면 메시지 + 관리 페이지로 이동."""
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        payload = {"ok": ok, "message": message}
+        payload.update(extra)
+        return JsonResponse(payload, status=status if not ok else 200)
+    (messages.success if ok else messages.error)(request, message)
+    return redirect('applications:admin_page')
+
+
+# 권한 토글 뷰
 @staff_member_required
+@require_POST
+@transaction.atomic
 def toggle_accounting_permission(request, user_id):
-    if request.method == 'POST':
-        target_user = get_object_or_404(User, id=user_id)
-        target_user.can_view_accounting = not target_user.can_view_accounting
-        target_user.save()
-        status = "부여" if target_user.can_view_accounting else "회수"
-        messages.success(request, f"{target_user.name}님의 회계 열람 권한이 {status}되었습니다.")
-    return redirect(request.META.get('HTTP_REFERER', 'applications:admin_page'))
+    target_user = get_object_or_404(User.objects.select_for_update(), id=user_id)
+    target_user.can_view_accounting = not target_user.can_view_accounting
+    target_user.save(update_fields=["can_view_accounting"])
+    status = "부여" if target_user.can_view_accounting else "회수"
+    return _admin_user_response(
+        request,
+        ok=True,
+        message=f"{target_user.name or target_user.username}님의 회계 열람 권한을 {status}했습니다.",
+        user_id=target_user.pk,
+        can_view_accounting=target_user.can_view_accounting,
+    )
 
 @staff_member_required
+@require_POST
 def approve_user(request, user_id):
-    """선택한 사용자를 활성화(가입 승인)하는 뷰"""
-    if request.method == 'POST':
-        user_to_approve = get_object_or_404(User, id=user_id)
-        user_to_approve.is_active = True
-        user_to_approve.save()
-        messages.success(request, f"사용자 '{user_to_approve.username}'의 가입을 승인했습니다.")
-    return redirect('applications:admin_page')
+    """선택한 부원를 활성화(가입 승인)하는 뷰"""
+    user_to_approve = get_object_or_404(User, id=user_id)
+    user_to_approve.is_active = True
+    user_to_approve.save(update_fields=["is_active"])
+    return _admin_user_response(
+        request, ok=True,
+        message=f"{user_to_approve.name or user_to_approve.username}님의 가입을 승인했습니다.",
+        user_id=user_to_approve.pk, action="approve",
+    )
 
 @staff_member_required
+@require_POST
+@transaction.atomic
 def update_user_weight(request, user_id):
-    """관리자가 사용자의 누적 가중치를 수정하는 요청을 처리"""
-    if request.method == 'POST':
-        user_to_update = get_object_or_404(User, id=user_id)
-        new_weight = int(request.POST.get('weight'))
-        if new_weight >= 1:
-            user_to_update.weight = new_weight
-            user_to_update.save()
-            messages.success(request, f"{user_to_update.username}님의 누적 가중치가 {new_weight}(으)로 수정되었습니다.")
-        else:
-            messages.error(request, "가중치는 1 이상이어야 합니다.")
-    return redirect('applications:admin_page')
+    """운영진가 부원의 누적 가중치를 수정하는 요청을 처리"""
+    user_to_update = get_object_or_404(User.objects.select_for_update(), id=user_id)
+    try:
+        new_weight = int(request.POST.get('weight', ''))
+    except (ValueError, TypeError):
+        return _admin_user_response(request, ok=False, status=400, message='올바른 가중치를 입력해 주십시오.')
+    if new_weight < 1:
+        return _admin_user_response(request, ok=False, status=400, message="가중치는 1 이상이어야 합니다.")
+    previous_weight = user_to_update.weight
+    user_to_update.weight = new_weight
+    user_to_update.save(update_fields=["weight"])
+    WeightChange.objects.create(
+        user=user_to_update, source=WeightChange.Source.MANUAL, source_id=user_to_update.pk,
+        before=previous_weight, after=new_weight, created_by=request.user,
+    )
+    return _admin_user_response(
+        request, ok=True,
+        message=f"{user_to_update.name or user_to_update.username}님의 가중치를 {new_weight}점으로 수정했습니다.",
+        user_id=user_to_update.pk, weight=new_weight,
+    )
 
 @staff_member_required
+@require_POST
 def delete_user(request, user_id):
-    """관리자가 사용자를 삭제하는 요청을 처리"""
-    if request.method == 'POST':
-        if request.user.id == user_id:
-            messages.error(request, "자기 자신의 계정은 삭제할 수 없습니다.")
-            return redirect('applications:admin_page')
-
-        user_to_delete = get_object_or_404(User, id=user_id)
-        username = user_to_delete.username
-        user_to_delete.delete()
-        messages.success(request, f"사용자 '{username}'이(가) 성공적으로 삭제되었습니다.")
-    return redirect('applications:admin_page')
+    """운영진가 부원를 삭제하는 요청을 처리"""
+    if request.user.id == user_id:
+        return _admin_user_response(request, ok=False, status=409, message="자기 자신의 계정은 삭제할 수 없습니다.")
+    user_to_delete = get_object_or_404(User, id=user_id)
+    if user_to_delete.is_staff:
+        return _admin_user_response(request, ok=False, status=409, message="운영진 계정은 여기서 삭제할 수 없습니다.")
+    label = user_to_delete.name or user_to_delete.username
+    user_to_delete.delete()
+    return _admin_user_response(request, ok=True, message=f"{label}님을 삭제했습니다.", user_id=user_id, action="delete")
 
 @staff_member_required
+@require_POST
 def reject_user(request, user_id):
-    """선택한 사용자의 가입을 거절 (삭제)하는 뷰"""
-    if request.method == 'POST':
-        user_to_reject = get_object_or_404(User, id=user_id)
-        username = user_to_reject.username
-        user_to_reject.delete()
-        messages.success(request, f"사용자 '{username}'의 가입 요청을 거절했습니다.")
-    return redirect('applications:admin_page')
-# applications/views.py 파일 하단에 추가
+    """선택한 부원의 가입을 거절 (삭제)하는 뷰"""
+    user_to_reject = get_object_or_404(User, id=user_id, is_active=False)
+    label = user_to_reject.name or user_to_reject.username
+    user_to_reject.delete()
+    return _admin_user_response(request, ok=True, message=f"{label}님의 가입 요청을 거절했습니다.", user_id=user_id, action="reject")
 
-def introduction(request):
-    """소개 페이지를 렌더링하는 뷰"""
-    return render(request, 'applications/introduction.html')
 
 @staff_member_required
+@transaction.atomic
 def event_update(request, event_id):
-    """기존 의전 활동을 수정하는 뷰"""
+    """기존 의전 의전을 수정하는 뷰"""
     event = get_object_or_404(
-        Event.objects.select_related("special_lottery_group"),
+        Event.objects.select_for_update(),
         id=event_id,
     )
 
     # ▼▼▼ 이 부분을 추가합니다 ▼▼▼
     # 추첨이 완료되었는지 확인
-    is_drawn = (
+    is_drawn = event.drawn_at is not None or (
         event.special_lottery_group
         and event.special_lottery_group.is_drawn
     ) or Application.objects.filter(event=event, selected=True).exists()
-    if is_drawn:
-        messages.error(request, "이미 추첨이 완료된 활동은 수정할 수 없습니다.")
+    if event.is_finalized or is_drawn:
+        messages.error(request, "이미 추첨이 완료된 의전은 수정할 수 없습니다.")
         return redirect('applications:dashboard')
     # ▲▲▲ 여기까지 ▲▲▲
 
@@ -740,7 +819,7 @@ def event_update(request, event_id):
         form = EventCreateForm(request.POST, instance=event)
         if form.is_valid():
             form.save()
-            messages.success(request, f"'{event.title}' 활동이 성공적으로 수정되었습니다.")
+            messages.success(request, f"‘{event.title}’ 의전이 수정되었습니다.")
             return redirect('applications:dashboard')
     else:
         form = EventCreateForm(instance=event)
@@ -762,8 +841,9 @@ def update_user_info(request, user_id):
         # UserInfoUpdateForm으로 이름 변경 권장
         form = UserInfoUpdateForm(request.POST, instance=user_to_update)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"'{user_to_update.name}'님의 정보(기수: {user_to_update.generation}기)가 수정되었습니다.")
+            user = form.save(commit=False)
+            user.save(update_fields=form._meta.fields)
+            messages.success(request, f"‘{user_to_update.name}’님의 정보(기수: {user_to_update.generation}기)가 수정되었습니다.")
             return redirect('applications:admin_page')
     else:
         form = UserInfoUpdateForm(instance=user_to_update)
@@ -785,6 +865,8 @@ def update_user_info(request, user_id):
 @login_required
 def accounting_main(request):
     """/accounting/ 접속 시 가장 최신(혹은 활성) 연도로 이동"""
+    if not (request.user.is_staff or request.user.can_view_accounting):
+        return render(request, 'access_denied.html', status=403)
     active_year = BudgetYear.objects.filter(is_active=True).first()
     if not active_year:
         active_year = BudgetYear.objects.order_by('-year').first()
@@ -803,12 +885,15 @@ def accounting_list(request, year):
     """해당 연도의 일반 내역 + 행사 요약을 시간순으로 병합하여 출력"""
 
     if not (request.user.is_staff or getattr(request.user, 'can_view_accounting', False)):
-        return render(request, 'applications/unauthorized.html')
+        return render(request, 'access_denied.html', status=403)
 
     budget_year = get_object_or_404(BudgetYear, year=year)
 
     generals = Transaction.objects.filter(budget_year=budget_year, event__isnull=True)
-    events = AccountingEvent.objects.filter(budget_year=budget_year)
+    events = AccountingEvent.objects.filter(budget_year=budget_year).select_related("budget_year").annotate(
+        summary_income=Sum('transactions__amount', filter=Q(transactions__transaction_type='INCOME')),
+        summary_expense=Sum('transactions__amount', filter=Q(transactions__transaction_type='EXPENSE')),
+    )
 
     timeline = sorted(
         chain(generals, events),
@@ -856,6 +941,8 @@ def accounting_list(request, year):
 @login_required
 def event_detail(request, event_id):
     """특정 행사(예: 축제)를 클릭했을 때 그 안의 세부 영수증 목록 표시"""
+    if not (request.user.is_staff or request.user.can_view_accounting):
+        return render(request, 'access_denied.html', status=403)
     event = get_object_or_404(AccountingEvent, pk=event_id)
     transactions = event.transactions.all().order_by('date')
     
@@ -874,39 +961,27 @@ def event_detail(request, event_id):
 @staff_member_required
 def accounting_create(request):
     if request.method == 'POST':
-        # 어떤 기수와 행사에 저장할지 ID를 가져옴
-        year_id = request.POST.get('budget_year')
-        event_id = request.POST.get('accounting_event')
-
-        budget_year = get_object_or_404(BudgetYear, pk=year_id)
-        event = AccountingEvent.objects.filter(pk=event_id).first() if event_id else None
-
-        # 리스트 데이터 처리 (정결님의 기존 로직 유지)
-        dates = request.POST.getlist('date[]')
-        item_names = request.POST.getlist('item_name[]')
-        amounts = request.POST.getlist('amount[]')
-        categories = request.POST.getlist('category[]')
-        types = request.POST.getlist('transaction_type[]')
-        descriptions = request.POST.getlist('description[]')
-
+        fields = ('date', 'item_name', 'amount', 'category', 'transaction_type', 'description')
+        columns = {field: request.POST.getlist(field + '[]') for field in fields}
+        count = len(columns['item_name'])
+        if not columns['description']:
+            columns['description'] = [''] * count
+        if count == 0 or any(len(values) != count for values in columns.values()):
+            messages.error(request, '회계 내역의 입력 항목 수가 일치하지 않습니다.')
+            return redirect('applications:accounting_create')
         transactions_to_create = []
-        for i in range(len(item_names)):
-            if item_names[i]:
-                transactions_to_create.append(Transaction(
-                    budget_year=budget_year,
-                    event=event,  # 행사 주머니에 쏙 넣기
-                    date=dates[i],
-                    item_name=item_names[i],
-                    amount=amounts[i],
-                    category=categories[i],
-                    transaction_type=types[i],
-                    description=descriptions[i]
-                ))
-
-        if transactions_to_create:
+        for i in range(count):
+            data = {field: columns[field][i] for field in fields}
+            data.update(budget_year=request.POST.get('budget_year'), event=request.POST.get('accounting_event', ''))
+            form = AccountingTransactionForm(data)
+            if not form.is_valid():
+                messages.error(request, f'{i + 1}행의 날짜, 금액, 항목, 구분 및 행사·연도를 확인해 주십시오.')
+                return redirect('applications:accounting_create')
+            transactions_to_create.append(form.save(commit=False))
+        with transaction.atomic():
             Transaction.objects.bulk_create(transactions_to_create)
-            messages.success(request, f"{len(transactions_to_create)}건의 내역이 추가되었습니다.")
-
+        budget_year = transactions_to_create[0].budget_year
+        messages.success(request, f'{len(transactions_to_create)}건의 내역이 추가되었습니다.')
         return redirect('applications:accounting_year_list', year=budget_year.year)
 
     # ✅ GET: 활성 기수를 기본으로 선택 + (행사 상세에서 넘어온 경우) 프리셀렉트
@@ -952,7 +1027,7 @@ def export_accounting_excel(request, year):
     headers = ['날짜', '행사명', '항목명', '카테고리', '구분', '금액', '상세내용']
     ws.append(headers)
 
-    transactions = Transaction.objects.filter(budget_year=budget_year).order_by('date')
+    transactions = Transaction.objects.filter(budget_year=budget_year).select_related('event').order_by('date')
     for tx in transactions:
         ws.append([
             tx.date.strftime('%Y-%m-%d'),
@@ -971,17 +1046,12 @@ def export_accounting_excel(request, year):
 def event_create(request):
     """'축제', 'MT' 같은 행사 주머니를 생성하는 뷰"""
     if request.method == 'POST':
-        year_id = request.POST.get('budget_year')
-        name = request.POST.get('name')
-        date = request.POST.get('date')
-
-        budget_year = get_object_or_404(BudgetYear, pk=year_id)
-        AccountingEvent.objects.create(
-            budget_year=budget_year,
-            name=name,
-            date=date
-        )
-        return redirect('applications:accounting_year_list', year=budget_year.year)
+        form = AccountingEventForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, '행사명, 날짜 및 회계 연도를 확인해 주십시오.')
+            return redirect('applications:event_create')
+        event = form.save()
+        return redirect('applications:accounting_year_list', year=event.budget_year.year)
 
     # ✅ GET: 활성 기수를 기본으로 선택
     default_year = _get_default_budget_year()
@@ -997,29 +1067,16 @@ def accounting_update(request, pk):
     transaction = get_object_or_404(Transaction, pk=pk)
     
     if request.method == 'POST':
-        # 1. 외래키(연도, 행사) 데이터 가져오기
-        year_id = request.POST.get('budget_year')
-        event_id = request.POST.get('accounting_event')
-
-        # 2. 데이터 업데이트
-        transaction.budget_year = get_object_or_404(BudgetYear, pk=year_id)
-        # 행사는 '선택 안 함(일반 내역)'일 수 있으므로 filter().first() 처리
-        transaction.event = AccountingEvent.objects.filter(pk=event_id).first() if event_id else None
-        
-        transaction.date = request.POST.get('date')
-        transaction.item_name = request.POST.get('item_name')
-        transaction.amount = request.POST.get('amount')
-        transaction.category = request.POST.get('category')
-        transaction.transaction_type = request.POST.get('transaction_type')
-        transaction.description = request.POST.get('description')
-        
-        transaction.save()
-        
-        messages.success(request, f"'{transaction.item_name}' 내역이 수정되었습니다.")
-        
-        # 3. 중요: 수정된 내역이 속한 기수의 리스트 페이지로 리다이렉트
+        data = request.POST.copy()
+        data['event'] = request.POST.get('accounting_event', '')
+        form = AccountingTransactionForm(data, instance=transaction)
+        if not form.is_valid():
+            messages.error(request, '날짜, 금액, 항목, 구분 및 행사·연도를 확인해 주십시오.')
+            return redirect('applications:accounting_update', pk=transaction.pk)
+        transaction = form.save()
+        messages.success(request, f"‘{transaction.item_name}’ 내역이 수정되었습니다.")
         return redirect('applications:accounting_year_list', year=transaction.budget_year.year)
-    
+
     # GET 요청 시: 폼에 필요한 연도/행사 목록 함께 전달
     context = {
         'transaction': transaction,
@@ -1030,6 +1087,7 @@ def accounting_update(request, pk):
 
 # views.py 수정 제안
 @staff_member_required
+@require_POST
 def accounting_delete(request, pk):
     """회계 내역 삭제: 삭제 후 원래 있던 연도 페이지로 유지"""
     if request.method == 'POST':
@@ -1056,28 +1114,31 @@ def accounting_events_api(request):
     data = [{'id': e.id, 'name': e.name, 'date': e.date.strftime('%Y-%m-%d')} for e in events]
     return JsonResponse({'events': data})
 
-# [관리자 전용] 행사 정보 수정
+# [운영진 전용] 행사 정보 수정
 @staff_member_required
 def accounting_event_update(request, pk):
     event = get_object_or_404(AccountingEvent, pk=pk)
     
     if request.method == 'POST':
-        event.name = request.POST.get('name')
-        event.date = request.POST.get('date')
-        event.description = request.POST.get('description')
-        event.save()
-        
-        messages.success(request, f"행사 '{event.name}' 정보가 수정되었습니다.")
+        data = request.POST.copy()
+        data['budget_year'] = event.budget_year_id
+        form = AccountingEventForm(data, instance=event)
+        if not form.is_valid():
+            messages.error(request, '행사명과 날짜를 확인해 주십시오.')
+            return redirect('applications:accounting_event_update', pk=event.pk)
+        event = form.save()
+        messages.success(request, f"행사 ‘{event.name}’ 정보가 수정되었습니다.")
         return redirect('applications:accounting_year_list', year=event.budget_year.year)
-    
+
     context = {
         'event': event,
         'years': BudgetYear.objects.all().order_by('-year'),
     }
     return render(request, 'applications/accounting_event_update_form.html', context)
 
-# [관리자 전용] 행사 삭제 (삭제 시 그 안의 내역들도 같이 지워짐)
+# [운영진 전용] 행사 삭제 (삭제 시 그 안의 내역들도 같이 지워짐)
 @staff_member_required
+@require_POST
 def accounting_event_delete(request, pk):
     if request.method == 'POST':
         event = get_object_or_404(AccountingEvent, pk=pk)
@@ -1135,6 +1196,19 @@ def calendar_view(request):
 
 
 
+def _schedule_payload(schedule):
+    return {
+        "id": schedule.pk,
+        "title": schedule.title,
+        "start": schedule.start_at.astimezone(KST).isoformat(),
+        "end": schedule.end_at.astimezone(KST).isoformat() if schedule.end_at else None,
+        "color": schedule.color or "#1E3A8A",
+        "content": schedule.content or "",
+        "allDay": False,
+        "extendedProps": {"content": schedule.content or ""},
+    }
+
+
 @staff_member_required
 @require_POST
 def add_schedule(request):
@@ -1151,14 +1225,14 @@ def add_schedule(request):
         if end_at and end_at <= start_at:
             end_at = None
 
-        ClubSchedule.objects.create(
+        schedule = ClubSchedule.objects.create(
             title=(data.get("title", "").strip() or "제목 없음"),
             start_at=start_at,
             end_at=end_at,
             content=data.get("content", "") or "",
             color=data.get("color", "#1E3A8A") or "#1E3A8A",
         )
-        return JsonResponse({"status": "success"})
+        return JsonResponse({"status": "success", **_schedule_payload(schedule)})
 
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
@@ -1185,7 +1259,7 @@ def update_schedule(request, pk):
         schedule.color = data.get("color", schedule.color or "#1E3A8A") or "#1E3A8A"
         schedule.save()
 
-        return JsonResponse({"status": "success"})
+        return JsonResponse({"status": "success", **_schedule_payload(schedule)})
 
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
@@ -1198,41 +1272,57 @@ def delete_schedule(request, pk):
     return JsonResponse({"status": "success"})
 
 # -----------------------------------------------------------
-# [관리자 전용] 1. 새 회계 연도(기수) 생성 및 활성화
+# [운영진 전용] 1. 새 회계 연도(기수) 생성 및 활성화
 # -----------------------------------------------------------
 @staff_member_required
+@require_POST
 def create_budget_year(request):
+    next_url = request.POST.get('next', '')
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse('applications:accounting_main')
+
     if request.method == 'POST':
-        year_val = request.POST.get('year')
-        
-        if not year_val:
-            messages.error(request, "연도를 입력해주세요.")
-            return redirect('applications:admin_page')
+        reason = request.POST.get('reason', '').strip()
+        if not reason:
+            messages.error(request, '생성 사유를 입력해 주십시오.')
+            return HttpResponseRedirect(next_url)
+        try:
+            year_val = int(request.POST.get('year', ''))
+        except (ValueError, TypeError):
+            year_val = None
+        if year_val is None or not 1 <= year_val <= 9999:
+            messages.error(request, "연도를 입력해 주십시오.")
+            return HttpResponseRedirect(next_url)
 
         with transaction.atomic():
-            # 1. 기존에 활성화된 모든 연도를 비활성화 (새 기수 집중을 위해)
+            # 기존 활성 연도를 모두 비활성화한 뒤 새 연도를 활성화
             BudgetYear.objects.filter(is_active=True).update(is_active=False)
-            
-            # 2. 새 연도 생성 또는 업데이트 (이미 있으면 활성화만)
             budget_year, created = BudgetYear.objects.update_or_create(
                 year=year_val,
-                defaults={'is_active': True}
+                defaults={'is_active': True},
+                create_defaults={'is_active': True, 'reason': reason, 'created_by': request.user},
             )
-            
-        status_msg = "생성" if created else "활성화"
-        messages.success(request, f"{year_val}년 회계 기수가 성공적으로 {status_msg}되었습니다.")
-        return redirect('applications:admin_page')
 
-    return redirect('applications:admin_page')
+        status_msg = "생성" if created else "활성화"
+        messages.success(request, f"{year_val}년 회계 연도를 {status_msg}했습니다.")
+        return HttpResponseRedirect(next_url)
+
+    return HttpResponseRedirect(next_url)
 
 # -----------------------------------------------------------
-# [관리자 전용] 2. 현재 활성 기수 데이터 전체 초기화
+# [운영진 전용] 2. 현재 활성 기수 데이터 전체 초기화
 # -----------------------------------------------------------
 @staff_member_required
+@require_POST
+@transaction.atomic
 def initialize_accounting_data(request):
     """현재 활성화된 기수의 모든 내역과 행사를 삭제"""
     if request.method == 'POST':
-        active_year = BudgetYear.objects.filter(is_active=True).first()
+        active_year = BudgetYear.objects.select_for_update().filter(is_active=True).first()
         
         if active_year:
             # 1. 해당 연도에 속한 모든 내역(Transaction) 삭제

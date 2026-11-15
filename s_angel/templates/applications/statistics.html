@@ -1,267 +1,128 @@
+{% extends "layouts/app.html" %}
+{% block title %}의전 통계{% endblock %}
+{% block page_title %}통계{% endblock %}
+
+{% block css %}
+<style>
+  .st-event > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: var(--s-3); padding: var(--s-4) var(--s-5); min-height: 64px; }
+  .st-event > summary::-webkit-details-marker { display: none; }
+  .st-event > summary:hover { background: var(--surface-hover); }
+  .st-event__main { flex: 1; min-width: 0; }
+  .st-event__title { font-weight: 700; font-size: var(--fs-base); line-height: 1.35; }
+  .st-event__meta { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .st-event__chev { color: var(--text-3); font-size: 0.8rem; transition: transform var(--dur-2) var(--ease-out); }
+  .st-event[open] .st-event__chev { transform: rotate(180deg); }
+  .st-event__body { padding: 0 var(--s-5) var(--s-5); }
+  .st-ratio { margin-top: var(--s-3); }
+  .st-ratio__bar { display: flex; height: 8px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-sunken); }
+  .st-ratio__bar span { display: block; height: 100%; }
+  .st-ratio__bar .m { background: var(--accent); }
+  .st-ratio__bar .f { background: var(--navy-200); }
+  .st-ratio__legend { display: flex; justify-content: space-between; margin-top: 6px; font-size: var(--fs-xs); font-weight: 650; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .st-ratio__legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .st-key { width: 8px; height: 8px; border-radius: 2px; }
+  .st-key--m { background: var(--accent); }
+  .st-key--f { background: var(--navy-200); }
+  .st-table { margin-top: var(--s-4); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+  .st-table .table th, .st-table .table td { padding: 10px 14px; }
+  .st-table .table td:last-child, .st-table .table th:last-child { text-align: right; }
+  .st-table tr.is-winner td:first-child { font-weight: 700; }
+  .st-list > * + * { margin-top: var(--s-3); }
+</style>
+{% endblock %}
 
 {% block content %}
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>통계페이지</title>
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-    /* 그라데이션 & 클린 테마 (다른 페이지와 동일) */
-    :root {
-        --gradient-start: #3B82F6;
-        --gradient-end: #6366F1;
-        --background-color: #F9FAFB;
-        --card-bg: #FFFFFF;
-        --border-color: #E5E7EB;
-        --text-dark: #111827;
-        --text-medium: #374151;
-        --text-light: #6B7280;
-    }
+<header class="page-head page-head--back">
+  <a class="back-btn" href="{% url 'applications:dashboard' %}" aria-label="뒤로 가기: 홈" title="홈"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
+  <div class="page-head__text">
+    <h1 class="page-title">의전 통계</h1>
+    <p class="page-sub">의전별 신청·당첨 현황{% if event_data %} · 의전 {{ event_data|length }}개{% endif %}</p>
+  </div>
+</header>
 
-    .stats-body {
-        background-color: var(--background-color);
-        font-family: 'Inter', 'Pretendard', sans-serif;
-    }
+{% if event_data %}
+<div class="st-list">
+  {% for data in event_data %}
+  <details class="panel panel--flush st-event" {% if forloop.first %}open{% endif %}>
+    <summary>
+      <div class="st-event__main">
+        <div class="st-event__title">{{ data.event.title }}</div>
+        <div class="st-event__meta">
+          {% if data.event.is_finalized %}<span class="chip chip--final">확정</span>{% elif data.is_drawn %}<span class="chip chip--neutral">추첨 완료</span>{% else %}<span class="chip chip--pending">추첨 전</span>{% endif %}
+          <span class="chip chip--neutral chip--plain"><i class="fa-solid fa-users" aria-hidden="true"></i>신청 {{ data.total_applications }}</span>
+          {% if data.is_drawn %}<span class="chip chip--won chip--plain"><i class="fa-solid fa-trophy" aria-hidden="true"></i>당첨 {{ data.total_selected }}</span>{% endif %}
+        </div>
+      </div>
+      <i class="fa-solid fa-chevron-down st-event__chev" aria-hidden="true"></i>
+    </summary>
 
-    .stats-container {
-        max-width: 960px;
-        margin: auto;
-        padding: 3rem 1.5rem;
-    }
+    <div class="st-event__body">
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__label"><i class="fa-solid fa-users" aria-hidden="true"></i>신청자</div>
+          <div class="stat__value">{{ data.total_applications }}<small>명</small></div>
+        </div>
+        <div class="stat stat--ok">
+          <div class="stat__label"><i class="fa-solid fa-trophy" aria-hidden="true"></i>당첨 인원</div>
+          <div class="stat__value">{{ data.total_selected }}<small>명</small></div>
+        </div>
+      </div>
 
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        margin-bottom: 2.5rem;
-    }
-    .page-header h1 {
-        font-weight: 800;
-        font-size: 2.25rem;
-        color: var(--text-dark);
-    }
-    .btn-dashboard {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        color: var(--text-medium);
-        font-weight: 600;
-        padding: 0.6rem 1.2rem;
-        border-radius: 0.5rem;
-        text-decoration: none;
-        transition: all 0.2s ease;
-    }
-    .btn-dashboard:hover {
-        background-color: var(--text-dark);
-        color: var(--card-bg);
-        border-color: var(--text-dark);
-    }
+      {% if data.total_applications %}
+      <div class="st-ratio">
+        <div class="st-ratio__bar" role="img" aria-label="남 {{ data.male_applications }}명, 여 {{ data.female_applications }}명">
+          <span class="m" style="flex: {{ data.male_applications }} 0 0"></span>
+          <span class="f" style="flex: {{ data.female_applications }} 0 0"></span>
+        </div>
+        <div class="st-ratio__legend">
+          <span><span class="st-key st-key--m" aria-hidden="true"></span>남 {{ data.male_applications }}</span>
+          <span><span class="st-key st-key--f" aria-hidden="true"></span>여 {{ data.female_applications }}</span>
+        </div>
+      </div>
 
-    .event-stats-card {
-        background: var(--card-bg);
-        border-radius: 1rem;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-        margin-bottom: 2.5rem;
-    }
-    .event-stats-card h2 {
-        padding: 1.25rem 1.75rem;
-        margin: 0;
-        font-size: 1.5rem;
-        font-weight: 700;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .summary-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1.5rem;
-        padding: 1.75rem;
-    }
-    .stat-item {
-        background-color: var(--background-color);
-        padding: 1.25rem;
-        border-radius: 0.75rem;
-        text-align: center;
-    }
-    .stat-item .icon { font-size: 1.75rem; margin-bottom: 0.75rem; color: var(--gradient-start); }
-    .stat-item .value { font-size: 2rem; font-weight: 700; color: var(--text-dark); }
-    .stat-item .label { font-size: 0.9rem; color: var(--text-light); font-weight: 500; }
-
-    /* ▼▼▼ 테이블 스타일 수정/추가 ▼▼▼ */
-    .applicant-table-wrapper {
-        padding: 0 1.75rem 1.75rem;
-    }
-    .applicant-table {
-        width: 100%;
-        border-collapse: collapse;
-        border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        overflow: hidden; /* 테두리 둥글게 처리하기 위함 */
-    }
-    .applicant-table th, .applicant-table td {
-        padding: 0.9rem 1.25rem;
-        text-align: left;
-        border-bottom: 1px solid var(--border-color);
-    }
-    .applicant-table thead th {
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        color: var(--text-light);
-        background-color: #F9FAFB;
-        border-bottom: 2px solid var(--border-color);
-    }
-    .applicant-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-    .applicant-table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-    .applicant-table .text-center {
-        text-align: center;
-    }
-    .applicant-table .table-row-winner {
-    background-color: #F0FDF4; /* 연한 녹색 배경 */
-    font-weight: 600; /* 글씨를 약간 두껍게 */
-    color: #166534; /* 진한 녹색 글씨 */
-    }
-    /* 당첨자 행에 마우스를 올렸을 때의 색상 */
-    .applicant-table .table-row-winner:hover {
-        background-color: #DCFCE7;
-    }
-    .applicant-table .icon-text i {
-        margin-right: 0.5rem;
-    }
-    /* ▲▲▲ 여기까지 ▲▲▲ */
-    /* 기존 @media 블록을 아래 내용으로 교체 */
-
-@media (max-width: 768px) {
-    .stats-container { padding: 1.5rem 1rem; }
-
-    /* ▼▼▼ 이 부분을 수정합니다 ▼▼▼ */
-    .page-header {
-        /* 세로로 쌓는 flex-direction: column 제거 -> 가로 배치 유지 */
-        gap: 1rem; /* 제목과 버튼 사이 간격 */
-        margin-bottom: 2rem;
-    }
-    .page-header h1 {
-        font-size: 1.5rem; /* 제목 폰트 크기 축소 */
-    }
-    .btn-dashboard {
-        /* 너비 40% 대신, 내용에 맞게 크기를 자동 조정 */
-        padding: 0.5rem 0.8rem; /* 버튼 내부 여백 축소 */
-        font-size: 0.85rem; /* 버튼 폰트 크기 축소 */
-        /* justify-content는 버튼이 flex 컨테이너가 아니므로 불필요 */
-    }
-    /* ▲▲▲ 여기까지 ▲▲▲ */
-
-    .event-stats-card { margin-bottom: 1.5rem; }
-    .event-stats-card h2 { font-size: 1.25rem; padding: 1rem 1.25rem; }
-    .summary-grid { padding: 1.25rem; gap: 1rem; }
-    
-    /* 테이블 가로 스크롤 스타일은 그대로 유지 */
-    .applicant-table-wrapper {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding: 0 1.25rem 1.25rem;
-    }
-    .applicant-table {
-        white-space: nowrap;
-    }
-    .applicant-table th, .applicant-table td {
-        padding: 0.75rem 0.5rem;
-        font-size: 0.85rem;
-    }
-
-}
-</style>
-</head> 
-<body class="stats-body">
-    <div class="stats-container">
-        <header class="page-header">
-            <h1><i class="fas fa-chart-pie text-primary"></i> 활동 통계</h1>
-            <a href="{% url 'applications:dashboard' %}" class="btn-dashboard">
-                <i class="fas fa-arrow-left me-2"></i>대시보드
-            </a>
-        </header>
-
-        {% for data in event_data %}
-            <section class="event-stats-card">
-                <h2>{{ data.event.title }}</h2>
-
-                <div class="summary-grid">
-                    <div class="stat-item">
-                        <div class="icon"><i class="fas fa-users"></i></div>
-                        <div class="value">{{ data.total_applications }}</div>
-                        <div class="label">총 지원자</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="icon"><i class="fas fa-venus-mars"></i></div>
-                        <div class="value">{{ data.male_applications }} / {{ data.female_applications }}</div>
-                        <div class="label">남 / 여</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="icon"><i class="fas fa-trophy"></i></div>
-                        <div class="value">{{ data.total_selected }}</div>
-                        <div class="label">당첨 인원</div>
-                    </div>
-                </div>
-
-                <div class="applicant-table-wrapper">
-                    <table class="applicant-table">
-                        <thead>
-                            <tr>
-                                <th>이름</th>
-                                <th class="text-center">성별</th>
-                                <th class="text-center">결과</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for app in data.applications %}
-                                <tr class="{% if app.selected %}table-row-winner{% endif %}">
-                                    <td>{{ app.participant.name }}</td>
-                                    <td class="text-center">
-                                        {% if app.participant.gender == 'M' %}
-                                            <span class="icon-text text-primary"><i class="fas fa-mars"></i> 남자</span>
-                                        {% elif app.participant.gender == 'F' %}
-                                            <span class="icon-text text-danger"><i class="fas fa-venus"></i> 여자</span>
-                                        {% else %} - {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        {% if data.is_drawn %}
-                                            {% if app.selected %}
-                                                <span class="badge bg-success-subtle text-success-emphasis"><i class="fas fa-check-circle me-1"></i> 당첨</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary-subtle text-secondary-emphasis"><i class="fas fa-times-circle me-1"></i> 미당첨</span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="badge bg-warning-subtle text-warning-emphasis"><i class="fas fa-hourglass-half me-1"></i> 대기</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted">아직 신청자가 없습니다.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        {% empty %}
-            <div class="text-center py-5">
-                <p class="text-muted">아직 통계를 표시할 이벤트가 없습니다.</p>
-            </div>
-        {% endfor %}
+      <div class="st-table table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th scope="col">이름</th><th scope="col">성별</th><th scope="col">결과</th></tr>
+          </thead>
+          <tbody>
+            {% for app in data.applications %}
+            <tr {% if app.selected %}class="is-winner"{% endif %}>
+              <td>{{ app.participant.name }}</td>
+              <td class="text-2">
+                {% if app.participant.gender == 'M' %}남
+                {% elif app.participant.gender == 'F' %}여
+                {% else %}-{% endif %}
+              </td>
+              <td>
+                {% if data.is_drawn %}
+                  {% if app.selected %}<span class="chip chip--won">당첨</span>{% else %}<span class="chip chip--lost">미당첨</span>{% endif %}
+                {% else %}
+                  <span class="chip chip--pending">대기</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty" style="padding-bottom: var(--s-4)">
+        <div class="empty__icon"><i class="fa-solid fa-user-clock" aria-hidden="true"></i></div>
+        <div class="empty__title">신청자가 없습니다</div>
+      </div>
+      {% endif %}
     </div>
-</body>
-
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  </details>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel">
+  <div class="empty">
+    <div class="empty__icon"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i></div>
+    <div class="empty__title">표시할 통계가 없습니다</div>
+    <p class="empty__text">의전이 생성되고 신청이 들어오면 현황이 표시됩니다.</p>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

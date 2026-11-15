@@ -1,13 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}Forbidden (403){% endblock title %}
+{% block title %}접근 권한 없음 (403){% endblock title %}
+
 {% block content %}
-  <h1>Forbidden (403)</h1>
-  <p>
-    {% if exception %}
-      {{ exception }}
-    {% else %}
-      You're not allowed to access this page.
-    {% endif %}
-  </p>
+<div class="message-page__code">403</div>
+<h1 class="message-page__title">접근 권한이 없습니다</h1>
+<p class="message-page__text">
+  {% if exception %}
+    {{ exception }}
+  {% else %}
+    요청하신 페이지에 접근할 수 있는 권한이 없습니다.
+  {% endif %}
+</p>
+<div class="btn-row">
+  {% if user.is_authenticated %}
+  <a class="btn btn--primary" href="{% url 'applications:dashboard' %}">
+    <i class="fa-solid fa-house" aria-hidden="true"></i>홈으로 돌아가기
+  </a>
+  {% else %}
+  <a class="btn btn--primary" href="{% url 'users:main' %}">
+    <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>로그인 페이지로 이동
+  </a>
+  {% endif %}
+</div>
 {% endblock content %}

@@ -1,97 +1,52 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>성별 수정</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-    *, *::before, *::after { box-sizing: border-box; }
-    :root {
-        --gradient-start: #1E3A8A; --gradient-end: #312E81; --background-color: #F9FAFB;
-        --card-bg: #FFFFFF; --border-color: #E5E7EB; --text-dark: #111827;
-        --navy-dark: #1E3A8A; --text-medium: #374151; --text-light: #6B7280;
-    }
-    body { background-color: var(--background-color); font-family: 'Inter', 'Pretendard', sans-serif; }
-    .form-container { max-width: 600px; margin: auto; padding: 3rem 1.5rem; }
-    .page-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 2.5rem; }
-    .page-header h1 { font-weight: 800; font-size: 2.25rem; color: var(--navy-dark); }
-    .btn-dashboard { background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-medium); font-weight: 600; padding: 0.6rem 1.2rem; border-radius: 0.5rem; text-decoration: none; transition: all 0.2s ease; }
-    .btn-dashboard:hover { background-color: var(--text-dark); color: var(--card-bg); border-color: var(--text-dark); }
-    .form-card { background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05); padding: 2.5rem; }
-    .form-group { margin-bottom: 1.5rem; }
-    .form-label { display: block; font-weight: 600; color: var(--text-medium); margin-bottom: 0.5rem; }
-    .form-control { width: 100%; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); background-color: #F9FAFB; font-size: 1rem; transition: all 0.2s ease; }
-    .form-control:focus { border-color: var(--gradient-start); background-color: var(--card-bg); box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.25); outline: none; }
-    .btn-gradient { width: 100%; padding: 0.9rem; font-size: 1.1rem; font-weight: 700; background-image: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-end) 100%); border: none; color: white; transition: all 0.3s ease; background-size: 200% auto; border-radius: 0.5rem; cursor: pointer; }
-    .btn-gradient:hover { background-position: right center; }
+{% extends "layouts/app.html" %}
 
-    /* style 태그 맨 아래에 추가할 코드 */
+{% block title %}부원 정보 수정{% endblock %}
+{% block page_title %}관리{% endblock %}
+{% block page_class %}page page--narrow{% endblock %}
 
-/* 화면 너비가 768px 이하일 때 (모바일 환경) 아래 스타일을 적용 */
-@media (max-width: 768px) {
-    .form-container {
-        /* 모바일에서는 상하좌우 여백을 줄여 공간 확보 */
-        padding: 1.5rem 1rem;
-    }
+{% block content %}
+<header class="page-head page-head--back">
+  <a class="back-btn" href="{% url 'applications:admin_page' %}" aria-label="뒤로 가기: 부원 관리" title="부원 관리"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
+  <div class="page-head__text">
+    <h1 class="page-title">부원 정보 수정</h1>
+    <p class="page-sub">성별과 기수는 추첨 인원 배정과 검색 필터에 사용됩니다.</p>
+  </div>
+</header>
 
-    .page-header {
-        /* 헤더의 가로 배치는 유지하되, 간격만 조정 */
-        margin-bottom: 2rem;
-    }
-
-    .page-header h1 {
-        /* 페이지 제목 크기를 모바일에 맞게 조정 */
-        font-size: 1.5rem;
-    }
-    
-    .btn-dashboard {
-        /* 버튼 내부 여백과 글자 크기 축소 */
-        padding: 0.5rem 0.8rem;
-        font-size: 0.85rem;
-    }
-
-    .form-card {
-        /* 폼 카드의 내부 여백을 줄임 */
-        padding: 1.5rem;
-    }
-}
-</style>
-</head>
-<body class="form-body">
-    <div class="form-container">
-    <header class="page-header">
-        <h1><i class="fas fa-user-cog"></i> 사용자 정보 수정</h1>
-        <a href="{% url 'applications:admin_page' %}" class="btn-dashboard">
-            <i class="fas fa-arrow-left me-2"></i>관리자 페이지
-        </a>
-    </header>
-
-    <div class="form-card">
-        <form method="post">
-            {% csrf_token %}
-            <p class="mb-4"><strong>대상 사용자:</strong> {{ user_to_update.name }} ({{ user_to_update.username }})</p>
-            
-            <div class="form-group">
-                <label for="{{ form.gender.id_for_label }}" class="form-label">성별</label>
-                <select name="gender" class="form-control" id="{{ form.gender.id_for_label }}">
-                    <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>남자</option>
-                    <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>여자</option>
-                </select>
-                <div class="error-text">{{ form.gender.errors }}</div>
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.generation.id_for_label }}" class="form-label">기수</label>
-                <input type="number" name="generation" value="{{ form.generation.value|default:21 }}" class="form-control" required id="{{ form.generation.id_for_label }}">
-                <div class="error-text">{{ form.generation.errors }}</div>
-            </div>
-
-            <div class="mt-4">
-                <button type="submit" class="btn-gradient">수정사항 저장</button>
-            </div>
-        </form>
+<section class="panel panel--pad">
+  <div class="cluster mb-6">
+    <span class="avatar" aria-hidden="true">{{ user_to_update.name|default:user_to_update.username|slice:":1" }}</span>
+    <div>
+      <div class="strong">{{ user_to_update.name|default:user_to_update.username }}</div>
+      <div class="small muted">{{ user_to_update.username }} · 현재 가중치 {{ user_to_update.weight }}</div>
     </div>
-</div>
-</body>
-</html>
+  </div>
+
+  <form method="post" data-busy novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert--error mb-4"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><span>{{ form.non_field_errors|join:" " }}</span></div>{% endif %}
+
+    <fieldset class="field{% if form.gender.errors %} has-error{% endif %}" style="border:0;padding:0;margin:0">
+      <legend class="field-label" style="margin-bottom:6px">성별</legend>
+      <div class="segmented" style="width:100%">
+        <input type="radio" name="gender" id="gender-m" value="M" {% if form.gender.value == 'M' %}checked{% endif %}>
+        <label for="gender-m">남자</label>
+        <input type="radio" name="gender" id="gender-f" value="F" {% if form.gender.value == 'F' %}checked{% endif %}>
+        <label for="gender-f">여자</label>
+      </div>
+      {% if form.gender.errors %}<p class="field-error">{{ form.gender.errors|join:" " }}</p>{% endif %}
+    </fieldset>
+
+    <div class="field{% if form.generation.errors %} has-error{% endif %}" style="margin-top:var(--s-5)">
+      <label class="field-label" for="{{ form.generation.id_for_label }}">기수</label>
+      <input type="number" name="generation" id="{{ form.generation.id_for_label }}" class="input" value="{{ form.generation.value|default:21 }}" min="1" inputmode="numeric" required>
+      {% if form.generation.errors %}<p class="field-error">{{ form.generation.errors|join:" " }}</p>{% endif %}
+    </div>
+
+    <div class="form-actions form-actions--sticky">
+      <a class="btn btn--ghost" href="{% url 'applications:admin_page' %}">취소</a>
+      <button type="submit" class="btn btn--primary">저장</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

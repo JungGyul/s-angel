@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from .models import WeightChange
+from .models import BudgetYear
 from .models import Event
 from .models import SpecialLotteryGroup
 from .models import SpecialLotterySettlement
@@ -47,6 +49,7 @@ class SpecialLotteryGroupAdmin(admin.ModelAdmin):
 
 @admin.register(SpecialLotterySettlement)
 class SpecialLotterySettlementAdmin(admin.ModelAdmin):
+    list_select_related = ("group", "participant")
     list_display = (
         "group",
         "participant",
@@ -80,6 +83,43 @@ class SpecialLotterySettlementAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return request.method in {"GET", "HEAD", "OPTIONS"}
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(BudgetYear)
+class BudgetYearAdmin(admin.ModelAdmin):
+    list_display = ("year", "is_active", "reason", "created_at", "created_by")
+    list_filter = ("is_active",)
+    search_fields = ("reason", "created_by__username", "created_by__name")
+    list_select_related = ("created_by",)
+    readonly_fields = ("created_at", "created_by")
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "reason":
+            kwargs["required"] = True
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(WeightChange)
+class WeightChangeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'source', 'source_id', 'before', 'after', 'created_at', 'created_by')
+    list_filter = ('source', 'created_at')
+    list_select_related = ('user', 'created_by')
+    search_fields = ('user__username', 'user__name', 'created_by__username')
+    readonly_fields = ('user', 'source', 'source_id', 'before', 'after', 'created_at', 'created_by')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.method in {'GET', 'HEAD', 'OPTIONS'}
 
     def has_delete_permission(self, request, obj=None):
         return False

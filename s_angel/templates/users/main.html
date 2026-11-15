@@ -1,205 +1,82 @@
-{% load static %}
+{% extends "layouts/auth.html" %}
 
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8" />
-    <title>S-ANGEL Login</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-        }
+{% block title %}로그인{% endblock title %}
+{% block auth_heading %}<h1 class="auth__login">로그인</h1>{% endblock auth_heading %}
 
-        /* ▼▼▼ 그라데이션 색상을 한 단계 더 진한 색으로 변경 ▼▼▼ */
-        :root {
-            --gradient-start: #1E3A8A; /* 로고와 비슷한 진한 네이비 */
-            --gradient-end: #312E81;   /* 더 진한 다크 인디고 */
-            --background-color: #F9FAFB;
-            --card-bg: #FFFFFF;
-            --border-color: #E5E7EB;
-            --text-dark: #111827;
-            --text-medium: #374151;
-            --text-light: #6B7280;
-            --danger-red: #EF4444;
-            --info-blue: #1E3A8A;     /* 정보 박스 색상도 통일 */
-        }
-        /* ▲▲▲ 여기까지 ▲▲▲ */
+{% block css %}
+<style>
+  .pw-wrap { position: relative; display: flex; align-items: center; }
+  .pw-wrap input { padding-right: 46px !important; }
+  .pw-toggle {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--r-xs);
+    background: transparent;
+    color: var(--text-3);
+    cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+    transition: color var(--dur-1), background var(--dur-1);
+  }
+  .pw-toggle:hover { color: var(--text); background: var(--surface-hover); }
+</style>
+{% endblock css %}
 
-        body {
-            background-color: var(--background-color);
-            font-family: 'Inter', 'Pretendard', sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 1.5rem;
-        }
+{% block content %}
+{% if error %}
+<div class="alert alert--error mb-4" role="alert">
+  <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+  <span>{{ error }}</span>
+</div>
+{% endif %}
 
-        .login-container {
-            width: 100%;
-            max-width: 420px;
-        }
+<form action="{% url 'users:main' %}" method="post" data-busy>
+  {% csrf_token %}
+  {% firstof request.GET.next request.POST.next as next_url %}
+  {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
 
-        .site-title {
-            text-align: center;
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 2rem;
-            letter-spacing: -1px;
-            background-image: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
+  <div class="field">
+    <label class="field-label" for="id_username">아이디</label>
+    <input class="input" type="text" id="id_username" name="username" placeholder="아이디" autocomplete="username" required autofocus>
+  </div>
 
-        .login-card {
-            background: var(--card-bg);
-            border-radius: 1rem;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
-            padding: 2.5rem;
-        }
-        .login-card h2 {
-            text-align: center;
-            font-weight: 700;
-            color: var(--text-medium);
-            margin-top: 0;
-            margin-bottom: 2rem;
-            font-size: 1.5rem;
-        }
-
-        .message-box {
-            padding: 0.9rem 1.25rem;
-            margin-bottom: 1.5rem;
-            border-radius: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-        }
-        .message-box i { margin-right: 0.75rem; }
-        .info-box { background-color: #DBEAFE; color: var(--info-blue); }
-        .error-box { background-color: #FEF2F2; color: var(--danger-red); }
-
-        .form-group { position: relative; margin-bottom: 1.25rem; }
-        .form-control {
-            width: 100%;
-            padding: 0.9rem 1rem 0.9rem 2.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-            background-color: var(--background-color);
-            font-size: 1rem;
-            transition: all 0.2s ease;
-        }
-        /* ▼▼▼ 포커스 색상도 새로운 테마에 맞게 변경 ▼▼▼ */
-        .form-control:focus {
-            border-color: var(--gradient-start);
-            background-color: var(--card-bg);
-            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.25);
-            outline: none;
-        }
-        .form-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-light);
-        }
-        
-        .btn-gradient {
-            width: 100%;
-            padding: 0.9rem;
-            font-size: 1.1rem;
-            font-weight: 700;
-            background-image: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-end) 100%);
-            border: none;
-            color: white;
-            transition: all 0.3s ease;
-            background-size: 200% auto;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            margin-top: 0.5rem;
-        }
-        .btn-gradient:hover { background-position: right center; }
-
-        .signup-link {
-            text-align: center;
-            margin-top: 2rem;
-            font-size: 0.9rem;
-            color: var(--text-light);
-        }
-        .signup-link a {
-            color: var(--gradient-end);
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .forgot-wrap{
-  text-align: center;
-  margin-top: 1rem;
-}
-.forgot-link{
-  font-size: 0.9rem;
-  color: var(--text-light);
-  text-decoration: none;
-  font-weight: 600;
-}
-.forgot-link:hover{
-  text-decoration: underline;
-}
-
-    </style>
-</head>
-<body>
-    <div class="login-container">
-        <h1 class="site-title">S-ANGEL</h1>
-        <div class="login-card">
-            <h2>로그인</h2>
-            
-            {% if messages %}
-                {% for message in messages %}
-                  <div class="message-box info-box">
-                    <i class="fas fa-info-circle"></i>{{ message|safe }}
-                </div>
-                {% endfor %}
-            {% endif %}
-
-            {% if error %}
-                <div class="message-box error-box">
-                    <i class="fas fa-exclamation-triangle"></i>{{ error }}
-                </div>
-            {% endif %}
-
-            <form action="{% url 'users:main' %}" method="post">
-                {% csrf_token %}
-                <div class="form-group">
-                    <i class="fas fa-user form-icon"></i>
-                    <input type="text" name="username" class="form-control" placeholder="아이디" required />
-                </div>
-
-                <div class="form-group">
-                    <i class="fas fa-lock form-icon"></i>
-                    <input type="password" name="password" class="form-control" placeholder="비밀번호" required />
-                </div>
-
-                <button type="submit" class="btn-gradient">로그인</button>
-
-                <div class="forgot-wrap">
-                    <a class="forgot-link" href="{% url 'users:password_reset_verify' %}">
-                        비밀번호를 잊으셨나요?
-                    </a>
-                </div>
-            </form>
-
-        </div>
-        <div class="signup-link">
-            <span>계정이 없으신가요?</span>
-            <a href="{% url 'users:signup' %}">회원가입</a>
-        </div>
+  <div class="field">
+    <label class="field-label" for="id_password">비밀번호</label>
+    <div class="pw-wrap">
+      <input class="input" type="password" id="id_password" name="password" placeholder="비밀번호" autocomplete="current-password" required>
+      <button type="button" class="pw-toggle" data-pw-toggle aria-label="비밀번호 표시" aria-pressed="false">
+        <i class="fa-regular fa-eye" aria-hidden="true"></i>
+      </button>
     </div>
-</body>
-</html>
+  </div>
+
+  <button type="submit" class="btn btn--primary btn--lg btn--block mt-6">로그인</button>
+</form>
+{% endblock content %}
+
+{% block auth_foot %}
+<a href="{% url 'users:password_reset_verify' %}">비밀번호를 잊으셨나요?</a>
+<div>계정이 없으신가요? <a href="{% url 'users:signup' %}">회원가입</a></div>
+{% endblock auth_foot %}
+
+{% block javascript %}
+<script>
+document.querySelectorAll("[data-pw-toggle]").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var input = btn.parentElement.querySelector("input");
+    if (!input) return;
+    var show = input.type === "password";
+    input.type = show ? "text" : "password";
+    btn.setAttribute("aria-label", show ? "비밀번호 숨기기" : "비밀번호 표시");
+    btn.setAttribute("aria-pressed", show ? "true" : "false");
+    var icon = btn.querySelector("i");
+    if (icon) icon.className = show ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
+  });
+});
+</script>
+{% endblock javascript %}

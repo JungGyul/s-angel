@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+{% comment %}
+  Signed-out layout (login, signup, password reset).
+  Blocks: title, auth_title, auth_sub, content (form), auth_foot (links under the card)
+{% endcomment %}
+{% block body %}
+<main class="auth">
+  <div class="auth__card panel">
+    <div class="auth__brand">
+      <img class="auth__logo" src="{% static 'images/logo-mark-lg.webp' %}" alt="" width="120" height="97">
+      <span class="brand__word auth__word">S-ANGEL</span>
+      {% block auth_heading %}<div>
+        <h1 class="auth__title">{% block auth_title %}{% endblock auth_title %}</h1>
+        <p class="auth__sub">{% block auth_sub %}{% endblock auth_sub %}</p>
+      </div>{% endblock auth_heading %}
+    </div>
+    {% include "partials/messages.html" %}
+    {% block content %}{% endblock content %}
+    <div class="auth__foot">{% block auth_foot %}{% endblock auth_foot %}</div>
+  </div>
+</main>
+{% endblock body %}

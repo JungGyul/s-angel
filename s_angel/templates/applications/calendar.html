@@ -1,603 +1,746 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>캘린더 페이지</title>
+{% extends "layouts/app.html" %}
+{% block title %}캘린더{% endblock %}
+{% block page_title %}캘린더{% endblock %}
+{% block page_class %}page page--wide{% endblock %}
 
-  <!-- Flatpickr -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+{% block css %}
+<style>
+  .cal-layout { display: grid; gap: var(--s-5); }
+  @media (min-width: 900px) { .cal-layout { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; } }
 
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  .cal-head { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-3) var(--s-3) var(--s-3) var(--s-5); border-bottom: 1px solid var(--line); }
+  .cal-title { flex: 1; font-size: var(--fs-lg); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 8px 0 4px; }
+  .cal-week span { text-align: center; font-size: var(--fs-xs); font-weight: 700; color: var(--text-3); }
+  .cal-week span:first-child, .cal-day.is-sun .cal-day__num { color: var(--bad-text); }
+  .cal-week span:last-child, .cal-day.is-sat .cal-day__num { color: var(--info-text); }
+  .cal-grid { touch-action: pan-y; }
 
-  <!-- FontAwesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
-  <!-- FullCalendar -->
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-
-  <!-- Pretendard -->
-  <link rel="stylesheet" as="style" crossorigin
-        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/static/pretendard.css" />
-
-  <style>
-    :root{
-      --navy:#1E3A8A; --navy2:#312E81; --bg:#F8FAFC; --card:#FFFFFF; --border:#E5E7EB;
-      --text:#0F172A; --muted:#64748B; --shadow:0 14px 28px rgba(15,23,42,.08);
-      --shadow-sm:0 8px 18px rgba(15,23,42,.06); --ring:0 0 0 3px rgba(30,58,138,.16);
-      --radius:16px;
-    }
-    html,body{max-width:100%;overflow-x:hidden;}
-    body{
-      font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",Arial,sans-serif;
-      background:
-        radial-gradient(1200px 500px at 20% -10%, rgba(30,58,138,.10), transparent 60%),
-        radial-gradient(900px 400px at 95% 0%, rgba(49,46,129,.08), transparent 55%),
-        var(--bg);
-      color:var(--text);
-    }
-    .page-wrap{max-width:1050px;margin:0 auto;padding:2.2rem 1rem 3rem;}
-    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1rem;}
-    .title-block h2{margin:0;font-weight:900;font-size:1.65rem;letter-spacing:-.02em;line-height:1.2;}
-    .title-block p{margin:.35rem 0 0;color:var(--muted);font-weight:500;font-size:.95rem;}
-    .btn-back{
-      display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1rem;border-radius:14px;
-      background:rgba(255,255,255,.85);border:1px solid var(--border);color:var(--text);
-      text-decoration:none;font-weight:700;transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
-      box-shadow:var(--shadow-sm);white-space:nowrap;user-select:none;
-    }
-    .btn-back:hover{transform:translateY(-1px);background:#fff;box-shadow:var(--shadow);}
-
-    .calendar-card{
-      background:rgba(255,255,255,.88);backdrop-filter:blur(10px);
-      border:1px solid rgba(229,231,235,.92);border-radius:var(--radius);
-      box-shadow:var(--shadow);overflow:hidden;
-    }
-    .calendar-head{
-      padding:1rem 1.25rem;border-bottom:1px solid var(--border);
-      background:linear-gradient(135deg, rgba(30,58,138,.06), rgba(49,46,129,.04));
-      display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;
-    }
-    .calendar-head .tag{
-      display:inline-flex;align-items:center;gap:.5rem;padding:.45rem .75rem;border-radius:999px;
-      font-weight:800;font-size:.9rem;border:1px solid rgba(30,58,138,.20);
-      background:rgba(30,58,138,.06);color:var(--navy);
-    }
-    .calendar-body{padding:1rem 1.25rem 1.25rem;}
-
-    /* FullCalendar */
-    .fc{--fc-border-color:rgba(226,232,240,.95);--fc-today-bg-color:rgba(30,58,138,.06);--fc-page-bg-color:transparent;font-weight:500;}
-    .fc .fc-toolbar-title{font-weight:900;letter-spacing:-.02em;color:var(--text);}
-    .fc .fc-button{
-      border:1px solid var(--border)!important;background:#fff!important;color:var(--text)!important;
-      border-radius:12px!important;padding:.55rem .8rem!important;font-weight:800!important;box-shadow:none!important;
-      transition:transform .12s ease, background .12s ease;
-    }
-    .fc .fc-button:hover{background:#F1F5F9!important;transform:translateY(-1px);}
-    .fc .fc-button-primary:not(:disabled).fc-button-active{
-      background:linear-gradient(135deg,var(--navy),var(--navy2))!important;border-color:transparent!important;color:#fff!important;
-    }
-    .fc .fc-button:focus{box-shadow:var(--ring)!important;outline:none!important;}
-    .fc .fc-col-header-cell-cushion{padding:.6rem 0;color:#334155;font-weight:800;text-decoration:none;}
-    .fc .fc-daygrid-day-number{color:#334155;font-weight:700;text-decoration:none;padding:.35rem .45rem;border-radius:10px;margin:.25rem;}
-    .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number{background:rgba(30,58,138,.10);color:var(--navy);}
-    .fc .fc-daygrid-day-frame{padding:.15rem;border-radius:14px;transition:background .12s ease;}
-    .fc .fc-daygrid-day:hover .fc-daygrid-day-frame{background:rgba(2,6,23,.02);}
-    .fc .fc-daygrid-event{
-      border:none!important;border-radius:10px!important;padding:2px 6px!important;margin:2px 4px!important;
-      cursor:pointer;box-shadow:0 6px 14px rgba(15,23,42,.10);
-    }
-    .fc .fc-event-title{font-weight:800;letter-spacing:-.01em;font-size:.86rem;}
-    .fc .fc-daygrid-more-link{font-weight:800;color:var(--navy);text-decoration:none;}
-
-    /* Modal */
-    .modal-content{
-      border-radius:18px;border:1px solid rgba(226,232,240,.9);box-shadow:0 22px 50px rgba(0,0,0,.18);
-      /* ✅ flatpickr 팝업이 잘리는 문제 방지 */
-      overflow:visible;
-    }
-    .modal-header{background:linear-gradient(135deg, rgba(30,58,138,.08), rgba(49,46,129,.05));border-bottom:1px solid rgba(226,232,240,.9);padding:1rem 1.25rem;}
-    .modal-title{font-weight:900;letter-spacing:-.02em;}
-    .modal-body{padding:1rem 1.25rem;}
-    .modal-body label{font-weight:800;color:#475569;}
-    .form-control,.form-control-color{border-radius:12px;border:1px solid rgba(203,213,225,.9);font-weight:600;}
-    .form-control:focus,.form-control-color:focus{border-color:rgba(30,58,138,.5);box-shadow:var(--ring);outline:none;}
-    .btn-primary-custom{
-      background:linear-gradient(135deg,var(--navy),var(--navy2));border:none;font-weight:900;border-radius:14px;padding:.7rem 1rem;
-      transition:transform .12s ease, filter .12s ease;
-    }
-    .btn-primary-custom:hover{transform:translateY(-1px);filter:brightness(.98);}
-    .btn-danger-soft{
-      background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.20);color:#B91C1C;font-weight:900;border-radius:14px;padding:.7rem 1rem;
-      transition:transform .12s ease, background .12s ease;
-    }
-    .btn-danger-soft:hover{transform:translateY(-1px);background:rgba(239,68,68,.12);}
-
-    /* flatpickr highlight */
-    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
-      background: var(--navy) !important;
-      border-color: var(--navy) !important;
-    }
-
-    /* ✅ 시간패널 입력이 클릭/타이핑 막히는 경우 방지 */
-    .flatpickr-time input { pointer-events:auto !important; user-select:text !important; }
-    .flatpickr-time .numInputWrapper { pointer-events:auto !important; }
-
-    @media (max-width: 768px) {
-      .topbar{flex-direction:column;align-items:stretch;}
-      .btn-back{width:100%;justify-content:center;}
-      .calendar-body{padding:1rem;}
-      .calendar-head{padding:0.75rem 1rem!important;justify-content:space-between!important;}
-      .calendar-head .tag{font-size:0.75rem!important;padding:0.3rem 0.6rem!important;}
-      .title-block h2{font-size:1.35rem;}
-
-      .fc .fc-toolbar-title{font-size:1.1rem!important;}
-      .fc .fc-col-header-cell-cushion{font-size:0.7rem!important;padding:2px 0!important;}
-      .fc .fc-daygrid-day-number{font-size:0.65rem!important;padding:2px!important;font-weight:600;}
-      .fc-daygrid-event{margin:0.5px 0!important;padding:0 2px!important;border-radius:2px!important;min-height:12px!important;line-height:12px!important;}
-      .fc-event-title{font-size:0.55rem!important;font-weight:700!important;letter-spacing:-0.02em!important;line-height:12px!important;}
-      .fc-daygrid-more-link{font-size:0.5rem!important;margin-top:0!important;line-height:1!important;}
-      .fc .fc-button{font-size:0.7rem!important;padding:0.35rem 0.5rem!important;border-radius:8px!important;}
-
-      .btn-primary-custom{padding:0.4rem 0.7rem!important;font-size:0.75rem!important;border-radius:10px!important;height:auto!important;}
-      .btn-primary-custom i{font-size:0.75rem!important;margin-right:0.3rem!important;}
-      .calendar-card {
-    margin-bottom: 2rem;
+  /* one row per week: day buttons fill the row, event bars sit in lanes on top */
+  .cal-wk {
+    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: 34px repeat(3, 17px) 15px; row-gap: 2px;
+    min-height: 78px; padding-bottom: 3px; border-top: 1px solid var(--line);
   }
-    }
-    /* 날짜 선택기가 모달 안에서 입력창 바로 아래 예쁘게 붙도록 */
-.flatpickr-wrapper {
-  display: block;
-  width: 100%;
-}
+  .cal-day {
+    grid-row: 1 / -1; position: relative; min-width: 0;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 3px 0 0; border: 0; background: none; color: var(--text);
+    cursor: pointer; font: inherit; transition: background var(--dur-1);
+  }
+  .cal-day:hover { background: var(--surface-hover); }
+  .cal-day:active { background: var(--surface-press); }
+  .cal-day__num {
+    width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%;
+    font-size: var(--fs-sm); font-weight: 650; font-variant-numeric: tabular-nums;
+    transition: background var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+  }
+  .cal-day.is-out .cal-day__num { opacity: 0.38; }
+  .cal-day.is-selected { background: color-mix(in oklab, var(--accent) 5%, transparent); }
+  .cal-day.is-selected .cal-day__num { box-shadow: inset 0 0 0 2px var(--accent); }
+  .cal-day.is-today .cal-day__num { background: var(--accent); color: var(--text-on-accent) !important; }
 
-/* 캘린더 팝업이 모달 뒤로 숨지 않도록 z-index 조절 */
-.flatpickr-calendar.static {
-  top: 100% !important;
-  z-index: 9999;
-}
+  .cal-bar {
+    position: relative; z-index: 1; min-width: 0; margin: 0 2px;
+    height: 17px; line-height: 17px; padding: 0 4px; border-radius: 4px;
+    font-size: 10.5px; font-weight: 650; letter-spacing: -0.02em;
+    color: #fff; background: var(--c, var(--accent));
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    pointer-events: none;   /* phones: a tap falls through to the day underneath */
+  }
+  .cal-bar.is-light { color: #111827; }
+  .cal-bar.is-out { opacity: 0.45; }
+  .cal-bar.cont-l { margin-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+  .cal-bar.cont-r { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  .cal-more { position: relative; z-index: 1; grid-row: 5; font-size: 10px; line-height: 15px; font-weight: 700; color: var(--text-3); text-align: center; pointer-events: none; }
+  @media (min-width: 640px) {
+    .cal-wk { grid-template-rows: 36px repeat(3, 21px) 18px; min-height: 116px; padding-bottom: 6px; }
+    .cal-week span { display: block; width: 28px; margin-left: 6px; text-align: center; }
+    .cal-day { align-items: flex-start; padding: 4px 6px 0; }
+    .cal-bar { height: 21px; line-height: 21px; padding: 0 7px; margin: 0 4px; font-size: var(--fs-xs); pointer-events: auto; cursor: pointer; }
+    .cal-bar:hover { filter: brightness(1.08); }
+    .cal-more { font-size: var(--fs-xs); line-height: 18px; text-align: left; padding-left: 10px; }
+  }
 
-/* 시작/종료 배지 스타일 살짝 조정 */
-.badge.bg-light.text-dark {
-  min-width: 45px;
-  font-weight: 800;
-  border: 1px solid var(--border);
-}
-  </style>
-</head>
+  .agenda__date { font-size: var(--fs-lg); font-weight: 800; }
+  .agenda__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c, var(--accent)); flex: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--c, var(--accent)) 22%, transparent); }
+  .agenda .list-row__meta { font-variant-numeric: tabular-nums; }
+  @media (min-width: 900px) { .agenda { position: sticky; top: calc(var(--appbar-h) + 28px); } }
 
-<body>
-  <div class="page-wrap">
-    <div class="topbar">
-      <div class="title-block">
-        <h2>📅 S-ANGEL 일정 캘린더</h2>
-        <p>S-ANGEL 전체 일정을 확인 할 수 있어요.</p>
-      </div>
-      <a href="{% url 'applications:dashboard' %}" class="btn-back">
-        <i class="fas fa-arrow-left"></i> 대시보드
-      </a>
-    </div>
+  /* event sheet */
+  .sheet__card.ev-card { width: min(100% - 16px, 480px); max-height: calc(100dvh - 16px - var(--safe-b)); overflow-y: auto; overscroll-behavior: contain; padding-top: 18px; }
+  .ev-card__top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); margin-bottom: var(--s-4); }
+  .ev-card__grip { position: absolute; top: 8px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 4px; background: var(--line-strong); }
+  @media (min-width: 640px) { .ev-card__grip { display: none; } }
+  .ev-card .sheet__actions { flex-wrap: wrap; }
+  .ev-card .sheet__actions .btn--danger-ghost { flex: 0 0 auto; }
+  .ev-view__title { font-size: var(--fs-xl); font-weight: 800; display: flex; align-items: center; gap: 10px; }
+  .ev-view__when { margin-top: 8px; color: var(--text-2); font-size: var(--fs-md); display: flex; gap: 8px; align-items: center; font-variant-numeric: tabular-nums; }
+  .ev-view__content { margin-top: var(--s-4); padding-top: var(--s-4); border-top: 1px solid var(--line); color: var(--text-2); white-space: pre-line; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .swatch {
+    width: 44px; height: 44px; border-radius: 50%; border: 0; padding: 0; flex: none;
+    display: grid; place-items: center; background: var(--c); color: #fff; cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.10);
+    transition: transform var(--dur-1), box-shadow var(--dur-2) var(--ease-out);
+  }
+  .swatch:active { transform: scale(0.9); }
+  .swatch.is-light { color: #111827; }
+  .swatch i { font-size: 0.95rem; opacity: 0; transform: scale(0.5); transition: opacity var(--dur-1), transform var(--dur-2) var(--ease-spring); }
+  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--surface-solid), 0 0 0 5px var(--c); }
+  .swatch[aria-pressed="true"] i { opacity: 1; transform: none; }
+  .swatch-sub { margin-top: 10px; font-size: var(--fs-xs); font-weight: 650; color: var(--text-3); }
+  .swatch-other { position: relative; overflow: hidden; align-self: flex-start; margin-top: 6px; }
+  .swatch-other input[type="color"] { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+  .ev-times { display: grid; gap: var(--s-3); margin-top: var(--s-4); }
+  .ev-times .field + .field { margin-top: 0; }
+  .ev-times + .field { margin-top: var(--s-4); }
+  .cal-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px var(--s-5) 12px; border-top: 1px solid var(--line); font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); }
+  .cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .cal-legend i { display: inline-block; flex: none; border-radius: 50%; }
+  .cal-legend__today { width: 12px; height: 12px; background: var(--accent); }
+  .cal-legend__sel { width: 12px; height: 12px; box-shadow: inset 0 0 0 2px var(--accent); }
+</style>
+{% endblock %}
 
-    <div class="calendar-card">
-      <div class="calendar-head">
-        <span class="tag"><i class="fas fa-calendar-check"></i> S-ANGEL SCHEDULE</span>
-        <div style="display:flex; gap:.5rem; align-items:center;">
-          {% if is_admin %}
-            <button type="button" class="btn btn-primary-custom text-white" onclick="openCreateModal()">
-              <i class="fas fa-plus"></i> 일정 추가
-            </button>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="calendar-body">
-        <div id="calendar"></div>
-      </div>
-    </div>
+{% block content %}
+<header class="page-head">
+  <div class="page-head__text">
+    <h1 class="page-title">캘린더</h1>
+    <p class="page-sub">S-ANGEL 일정</p>
   </div>
+  {% if is_admin %}
+  <div class="page-actions">
+    <button type="button" class="btn btn--primary" data-create><i class="fa-solid fa-plus" aria-hidden="true"></i>일정 추가</button>
+  </div>
+  {% endif %}
+</header>
 
-  <!-- CSRF 토큰 (DOM에서 읽어오기용) -->
-  <form style="display:none">{% csrf_token %}</form>
+<div class="cal-layout">
+  <section class="panel panel--flush" aria-labelledby="calTitle">
+    <div class="cal-head">
+      <h2 class="cal-title" id="calTitle" aria-live="polite"></h2>
+      <button type="button" class="btn btn--sm cal-today" data-nav="today">오늘</button>
+      <button type="button" class="btn btn--ghost btn--icon" data-nav="-1" aria-label="이전 달"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" class="btn btn--ghost btn--icon" data-nav="1" aria-label="다음 달"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+    </div>
+    <div class="cal-week" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-legend" aria-hidden="true">
+      <span><i class="cal-legend__today"></i>오늘</span>
+      <span><i class="cal-legend__sel"></i>선택한 날짜</span>
+    </div>
+  </section>
 
-  <!-- Modal -->
-  <div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true" data-bs-focus="false">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalTitle">일정 상세</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  <section class="agenda" aria-labelledby="agendaTitle">
+    <div class="section-head">
+      <h2 class="agenda__date" id="agendaTitle"></h2>
+    </div>
+    <div class="panel panel--flush" id="agendaBody"></div>
+  </section>
+</div>
+
+<form hidden>{% csrf_token %}</form>
+
+<dialog class="sheet" id="eventSheet" aria-labelledby="sheetTitle">
+  <div class="sheet__card glass ev-card">
+    <span class="ev-card__grip" aria-hidden="true"></span>
+    <div class="ev-card__top">
+      <h2 class="sheet__title" id="sheetTitle">일정</h2>
+      <button type="button" class="icon-btn" data-close aria-label="닫기"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+
+    {% if is_admin %}
+    <form id="eventForm" novalidate>
+      <input type="hidden" id="eventId">
+      <div class="field">
+        <label class="field-label" for="editTitle">제목 <span class="req" aria-hidden="true">*</span></label>
+        <input type="text" id="editTitle" maxlength="200" autocomplete="off" required aria-describedby="titleErr">
+        <p class="field-error" id="titleErr" hidden>제목을 입력해 주십시오.</p>
+      </div>
+      <div class="ev-times">
+        <div class="field">
+          <label class="field-label" for="editStart">시작 <span class="req" aria-hidden="true">*</span></label>
+          <input type="datetime-local" id="editStart" step="300" required>
         </div>
-
-        <div class="modal-body">
-          <form id="eventForm">
-            <input type="hidden" id="eventId">
-
-            <div class="mb-3">
-              <label class="small text-muted">일정 제목</label>
-              <input type="text" id="editTitle" class="form-control" {% if not is_admin %}readonly{% endif %}>
-            </div>
-
-            <div class="mb-3">
-              <label class="small text-muted">일시</label>
-              <div class="d-flex flex-column gap-2">
-                <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-light text-dark">시작</span>
-                  <input type="text" id="editStart" class="form-control bg-white"
-                         placeholder="날짜와 시간을 선택하세요" {% if not is_admin %}readonly{% endif %}>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-light text-dark">종료</span>
-                  <input type="text" id="editEnd" class="form-control bg-white"
-                         placeholder="날짜와 시간을 선택하세요" {% if not is_admin %}readonly{% endif %}>
-                </div>
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="small text-muted">상세 내용</label>
-              <textarea id="editContent" class="form-control" rows="3" {% if not is_admin %}readonly{% endif %}></textarea>
-            </div>
-
-            {% if is_admin %}
-            <div class="mb-1">
-              <label class="small text-muted">강조 색상</label>
-              <input type="color" id="editColor" class="form-control form-control-color w-100" value="#1E3A8A">
-            </div>
-            {% endif %}
-          </form>
-        </div>
-
-        <div class="modal-footer border-0 justify-content-between px-4 pb-4">
-          {% if is_admin %}
-            <button type="button" class="btn-danger-soft" onclick="deleteEvent()">
-              <i class="fas fa-trash-alt"></i> 삭제
-            </button>
-            <button type="button" class="btn btn-primary-custom text-white" onclick="saveEvent()">
-              저장
-            </button>
-          {% else %}
-            <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">닫기</button>
-          {% endif %}
+        <div class="field">
+          <label class="field-label" for="editEnd">종료</label>
+          <input type="datetime-local" id="editEnd" step="300">
         </div>
       </div>
+      <div class="field">
+        <label class="field-label" for="editContent">상세 내용</label>
+        <textarea id="editContent" rows="3" placeholder="장소, 준비물, 담당자 등"></textarea>
+      </div>
+      <div class="field">
+        <span class="field-label" id="colorLabel">색상</span>
+        <div class="swatches" role="group" aria-labelledby="colorLabel" id="swatchPresets"></div>
+        <div id="swatchRecentWrap" hidden>
+          <div class="swatch-sub" id="recentLabel">최근 사용한 색</div>
+          <div class="swatches mt-2" role="group" aria-labelledby="recentLabel" id="swatchRecent"></div>
+        </div>
+        <label class="btn btn--ghost btn--sm swatch-other">
+          <i class="fa-solid fa-palette" aria-hidden="true"></i>다른 색 고르기
+          <input type="color" id="editColor" value="#1E3A8A" aria-label="다른 색 고르기">
+        </label>
+      </div>
+      <div class="sheet__actions">
+        <button type="button" class="btn btn--danger-ghost btn--icon" id="deleteBtn" aria-label="일정 삭제" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+        <button type="button" class="btn btn--secondary" data-close>취소</button>
+        <button type="submit" class="btn btn--primary" id="saveBtn">저장</button>
+      </div>
+    </form>
+    {% else %}
+    <div id="eventView">
+      <div class="ev-view__title"><span class="agenda__dot" id="viewDot"></span><span id="viewTitle"></span></div>
+      <div class="ev-view__when"><i class="fa-regular fa-clock" aria-hidden="true"></i><span id="viewWhen"></span></div>
+      <div class="ev-view__content" id="viewContent"></div>
+      <div class="sheet__actions"><button type="button" class="btn btn--secondary" data-close>닫기</button></div>
     </div>
+    {% endif %}
   </div>
+</dialog>
 
-  <script>
-    // ===== 서버 템플릿 값 =====
-    const IS_ADMIN = {{ is_admin|yesno:"true,false" }};
+{{ schedules_json|json_script:"schedules-data" }}
+{% endblock %}
 
-    // ===== Utilities =====
-    function getCookie(name) {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop().split(';').shift();
-    }
+{% block javascript %}
+<script>
+(function () {
+  "use strict";
+  const IS_ADMIN = {{ is_admin|yesno:"true,false" }};
+  const URLS = {
+    add: "{% url 'applications:add_schedule' %}",
+    update: (id) => "{% url 'applications:update_schedule' 0 %}".replace(/0\/$/, `${id}/`),
+    del: (id) => "{% url 'applications:delete_schedule' 0 %}".replace(/0\/$/, `${id}/`),
+  };
+  const TZ = "Asia/Seoul";
+  const DEFAULT_COLOR = "#1E3A8A";
+  const PRESETS = ["#1E3A8A", "#3A5CC9", "#2563EB", "#0F8A5F", "#C27A00", "#D93A3A", "#475569"];
+  const WD = ["일", "월", "화", "수", "목", "금", "토"];
+  const HOUR = 3600000;
 
-    function getCsrfToken() {
-      const el = document.querySelector('[name=csrfmiddlewaretoken]');
-      if (el && el.value) return el.value;
-      return getCookie('csrftoken');
-    }
+  /* ---------- data ---------- */
+  const safeColor = (c) => (/^#[0-9a-f]{6}$/i.test(c || "") ? c.toUpperCase() : /^#[0-9a-f]{3}$/i.test(c || "") ? ("#" + c.slice(1).split("").map((x) => x + x).join("")).toUpperCase() : DEFAULT_COLOR);
+  function normalize(e) {
+    const content = e.extendedProps && e.extendedProps.content != null ? e.extendedProps.content : e.content;
+    const start = new Date(e.start);
+    const end = e.end ? new Date(e.end) : null;
+    return {
+      id: e.id,
+      title: e.title || "제목 없음",
+      start,
+      end: end && !isNaN(end) && end > start ? end : null,
+      color: safeColor(e.color),
+      content: content || "",
+    };
+  }
+  let raw = [];
+  try { raw = JSON.parse(JSON.parse(document.getElementById("schedules-data").textContent)) || []; } catch (e) { raw = []; }
+  let events = raw.map(normalize).filter((e) => !isNaN(e.start));
 
-    async function safeJson(res) {
-      const text = await res.text();
-      try { return JSON.parse(text); }
-      catch { return { _raw: text }; }
-    }
-function toKstISO(date) {
-  if (!date) return null;
+  /* ---------- KST helpers ---------- */
+  const partsFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  function kst(date) {
+    const p = {};
+    partsFmt.formatToParts(date).forEach((x) => { p[x.type] = x.value; });
+    return { y: +p.year, m: +p.month, d: +p.day, hh: p.hour, mm: p.minute, key: `${p.year}-${p.month}-${p.day}` };
+  }
+  const pad = (n) => String(n).padStart(2, "0");
+  const keyOf = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`;
+  const toInput = (date) => { const k = kst(date); return `${k.key}T${k.hh}:${k.mm}`; };
+  const fromInput = (v) => (v ? `${v.length === 16 ? v + ":00" : v}+09:00` : null);
+  const inputDate = (v) => (v ? new Date(fromInput(v)) : null);
+  function addDaysKey(key, n) {
+    const [y, m, d] = key.split("-").map(Number);
+    const t = new Date(Date.UTC(y, m - 1, d + n));
+    return keyOf(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate());
+  }
+  function weekdayOf(key) { const [y, m, d] = key.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); }
 
-  // Asia/Seoul 기준으로 "YYYY-MM-DD HH:mm:ss" 만들기
-  const s = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Seoul",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit",
-    hour12: false
-  }).format(date); // "2026-01-09 19:00:00"
+  // day key -> events (multi-day events appear on every day they cover)
+  let byDay = new Map();
+  function rebuildIndex() {
+    events.sort((a, b) => a.start - b.start);
+    byDay = new Map();
+    events.forEach((ev) => {
+      const s = kst(ev.start);
+      let lastKey = s.key;
+      if (ev.end) {
+        const e = kst(ev.end);
+        lastKey = e.key;
+        if (e.hh === "00" && e.mm === "00" && e.key !== s.key) lastKey = addDaysKey(e.key, -1); // ends at midnight
+      }
+      ev._s = s.key;
+      ev._e = lastKey < s.key ? s.key : lastKey;
+      let k = s.key;
+      for (let i = 0; i < 92; i++) {
+        if (!byDay.has(k)) byDay.set(k, []);
+        byDay.get(k).push(ev);
+        if (k >= lastKey) break;
+        k = addDaysKey(k, 1);
+      }
+    });
+  }
+  rebuildIndex();
 
-  return s.replace(" ", "T") + "+09:00"; // "2026-01-09T19:00:00+09:00"
-}
+  function whenText(ev) {
+    const s = kst(ev.start);
+    if (!ev.end) return `${s.m}월 ${s.d}일 ${s.hh}:${s.mm}`;
+    const e = kst(ev.end);
+    if (e.key === s.key) return `${s.m}월 ${s.d}일 ${s.hh}:${s.mm} – ${e.hh}:${e.mm}`;
+    return `${s.m}월 ${s.d}일 ${s.hh}:${s.mm} – ${e.m}월 ${e.d}일 ${e.hh}:${e.mm}`;
+  }
+  function timeText(ev, dayKey) {
+    const s = kst(ev.start);
+    const e = ev.end ? kst(ev.end) : null;
+    if (!e) return `${s.hh}:${s.mm}`;
+    if (s.key === e.key) return `${s.hh}:${s.mm} – ${e.hh}:${e.mm}`;
+    if (dayKey === s.key) return `${s.hh}:${s.mm} 시작 · ${e.m}/${e.d}까지`;
+    if (dayKey === e.key) return `${e.hh}:${e.mm} 종료 · ${s.m}/${s.d}부터`;
+    return `종일 · ${s.m}/${s.d} – ${e.m}/${e.d}`;
+  }
 
-function pickerToKstIso(picker) {
-  const d = picker?.selectedDates?.[0];
-  return toKstISO(d);
-}
+  /* ---------- state (restored after a full reload) ---------- */
+  const todayKey = kst(new Date()).key;
+  let restore = null;
+  try { restore = JSON.parse(sessionStorage.getItem("sa-cal") || "null"); sessionStorage.removeItem("sa-cal"); } catch (e) {}
+  const validKey = (k) => typeof k === "string" && /^\d{4}-\d{2}-\d{2}$/.test(k);
+  let selected = restore && validKey(restore.sel) ? restore.sel : todayKey;
+  let view = restore && restore.y && restore.m ? { y: +restore.y, m: +restore.m } : { y: +selected.slice(0, 4), m: +selected.slice(5, 7) };
 
+  const grid = document.getElementById("calGrid");
+  const titleEl = document.getElementById("calTitle");
+  const agendaTitle = document.getElementById("agendaTitle");
+  const agendaBody = document.getElementById("agendaBody");
 
+  /* ---------- render month ---------- */
+  function isLight(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 170;
+  }
+  const LANES = 3;
+  function renderMonth() {
+    titleEl.textContent = `${view.y}년 ${view.m}월`;
+    const firstKey = keyOf(view.y, view.m, 1);
+    const daysInMonth = new Date(Date.UTC(view.y, view.m, 0)).getUTCDate();
+    const lead = weekdayOf(firstKey);
+    const weeks = Math.ceil((lead + daysInMonth) / 7);
+    const frag = document.createDocumentFragment();
+    let weekKey = addDaysKey(firstKey, -lead);
+    for (let w = 0; w < weeks; w++) {
+      const row = document.createElement("div");
+      row.className = "cal-wk";
+      const keys = [];
+      for (let i = 0; i < 7; i++) keys.push(addDaysKey(weekKey, i));
+      const lastKey = keys[6];
 
-    /**
-     * ✅ flatpickr 하단 시간패널(시/분)만 "직접 타이핑" 안정화
-     * - input.type 변경 금지(브라우저/flatpickr 충돌 방지)
-     * - blur/enter 시 값 클램프 후 fp.setDate로 반영
-     */
-    function enableTypingInTimePanel(fp) {
-      if (!fp?.calendarContainer) return;
-
-      const hour = fp.calendarContainer.querySelector(".flatpickr-hour");
-      const minute = fp.calendarContainer.querySelector(".flatpickr-minute");
-      if (!hour || !minute) return;
-
-      const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
-      const pad2 = (n) => String(n).padStart(2, "0");
-
-      // 중복 바인딩 방지
-      if (hour.dataset.typingBound === "1" && minute.dataset.typingBound === "1") return;
-      hour.dataset.typingBound = "1";
-      minute.dataset.typingBound = "1";
-
-      const bind = (el, min, max) => {
-        el.readOnly = false;
-        el.disabled = false;
-        el.tabIndex = 0;
-        el.inputMode = "numeric";   // 모바일 숫자 키패드 유도(가능한 경우)
-        el.autocomplete = "off";
-
-        el.addEventListener("focus", () => setTimeout(() => el.select?.(), 0));
-
-        const commit = () => {
-          let v = parseInt(el.value, 10);
-          if (Number.isNaN(v)) v = 0;
-          v = clamp(v, min, max);
-          el.value = pad2(v);
-
-          const base = fp.selectedDates?.[0] ? new Date(fp.selectedDates[0]) : new Date();
-          const h = clamp(parseInt(hour.value, 10) || 0, 0, 23);
-          const m = clamp(parseInt(minute.value, 10) || 0, 0, 59);
-          base.setHours(h, m, 0, 0);
-
-          // 선택 날짜/시간 반영
-          fp.setDate(base, true);
-        };
-
-        el.addEventListener("blur", commit);
-        el.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            el.blur();
-          }
-        });
-      };
-
-      bind(hour, 0, 23);
-      bind(minute, 0, 59);
-
-      // minuteIncrement 스냅 (원하면 유지)
-      const inc = fp.config.minuteIncrement || 1;
-      minute.addEventListener("blur", () => {
-        let m = parseInt(minute.value || "0", 10);
-        if (Number.isNaN(m)) m = 0;
-        m = Math.round(m / inc) * inc;
-        if (m >= 60) m = 60 - inc;
-        minute.value = pad2(clamp(m, 0, 59));
-      });
-    }
-
-    let calendar;
-    let eventModal;
-    let startPicker;
-    let endPicker;
-
-    document.addEventListener('DOMContentLoaded', function () {
-      // ✅ data-bs-focus="false"가 먹지 않는 환경 대비: JS로도 focus 옵션 꺼줌
-      eventModal = new bootstrap.Modal(document.getElementById('eventModal'), { focus: false });
-
-      const calendarEl = document.getElementById('calendar');
-      const modalContent = document.querySelector('#eventModal .modal-content');
-
-      // ===== Flatpickr =====
-      const fpBase = {
-        enableTime: true,
-        dateFormat: "Y-m-d H:i",
-        time_24hr: true,
-        locale: "ko",
-        disableMobile: true,
-        allowInput: false,      // ✅ 입력칸(editStart/editEnd) 자체 타이핑 비활성
-        clickOpens: IS_ADMIN,   // 관리자만 picker 열기
-        minuteIncrement: 5,
-        monthSelectorType: 'static',
-        static: true, // 이 옵션이 있어야 입력창 바로 아래에 팝업이 붙습니다.
-
-        // ✅ 모달 포커스 트랩/밖으로 append 되면서 생기던 클릭 문제 방지
-        // (모달 안으로 넣되, modal-content overflow를 visible로 변경해 잘림도 방지)
-        appendTo: modalContent
-      };
-
-      startPicker = flatpickr("#editStart", {
-        ...fpBase,
-        onReady: function(_, __, inst) { enableTypingInTimePanel(inst); },
-        onOpen: function(_, __, inst) { setTimeout(() => enableTypingInTimePanel(inst), 0); },
-        onValueUpdate: function(_, __, inst) { enableTypingInTimePanel(inst); },
-
-        // ✅ 시작/종료 제약 제거 (요청사항)
-        onChange: function() { /* no constraints */ }
-      });
-
-      endPicker = flatpickr("#editEnd", {
-        ...fpBase,
-        onReady: function(_, __, inst) { enableTypingInTimePanel(inst); },
-        onOpen: function(_, __, inst) { setTimeout(() => enableTypingInTimePanel(inst), 0); },
-        onValueUpdate: function(_, __, inst) { enableTypingInTimePanel(inst); },
-
-        // ✅ 시작/종료 제약 제거 (요청사항)
-        onChange: function() { /* no constraints */ }
+      // day buttons
+      keys.forEach((key, i) => {
+        const [, m, d] = key.split("-").map(Number);
+        const list = byDay.get(key) || [];
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "cal-day" + (m !== view.m ? " is-out" : "") + (key === todayKey ? " is-today" : "") +
+          (key === selected ? " is-selected" : "") + (i === 0 ? " is-sun" : i === 6 ? " is-sat" : "");
+        btn.style.gridColumn = String(i + 1);
+        btn.dataset.key = key;
+        btn.setAttribute("aria-pressed", String(key === selected));
+        btn.setAttribute("aria-label", `${m}월 ${d}일 ${WD[i]}요일${key === todayKey ? ", 오늘" : ""}` +
+          (list.length ? `, 일정 ${list.length}개: ${list.map((ev) => ev.title).join(", ")}` : ""));
+        const num = document.createElement("span");
+        num.className = "cal-day__num";
+        num.textContent = d;
+        num.setAttribute("aria-hidden", "true");
+        btn.appendChild(num);
+        row.appendChild(btn);
       });
 
-      // ===== FullCalendar =====
-      calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        locale: 'ko',
-        timeZone: 'local',
-        fixedWeekCount: false,
-        dayMaxEvents: 5,
-        displayEventTime: false,
-        eventDisplay: 'block',
-        events: {{ schedules_json|safe }},
-        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
-        height: 'auto',
-        eventClick: function (info) {
-          fillModalFromEvent(info.event);
-          eventModal.show();
-        }
+      // events overlapping this week → segments in lanes (multi-day = one continuous bar)
+      const segs = events
+        .filter((ev) => ev._s <= lastKey && ev._e >= weekKey)
+        .map((ev) => ({
+          ev,
+          from: ev._s < weekKey ? 0 : keys.indexOf(ev._s),
+          to: ev._e > lastKey ? 6 : keys.indexOf(ev._e),
+          contL: ev._s < weekKey,
+          contR: ev._e > lastKey,
+        }))
+        .sort((x, y) => x.from - y.from || (y.to - y.from) - (x.to - x.from) || x.ev.start - y.ev.start);
+      const laneEnd = [];
+      const hidden = [0, 0, 0, 0, 0, 0, 0];
+      segs.forEach((sg) => {
+        let lane = laneEnd.findIndex((end) => end < sg.from);
+        if (lane === -1) lane = laneEnd.length;
+        if (lane >= LANES) { for (let i = sg.from; i <= sg.to; i++) hidden[i]++; return; }
+        laneEnd[lane] = sg.to;
+        const bar = document.createElement("span");
+        const outside = keys.slice(sg.from, sg.to + 1).every((k) => +k.slice(5, 7) !== view.m);
+        bar.className = "cal-bar" + (isLight(sg.ev.color) ? " is-light" : "") + (sg.contL ? " cont-l" : "") +
+          (sg.contR ? " cont-r" : "") + (outside ? " is-out" : "");
+        bar.style.setProperty("--c", sg.ev.color);
+        bar.style.gridColumn = `${sg.from + 1} / ${sg.to + 2}`;
+        bar.style.gridRow = String(lane + 2);
+        bar.dataset.id = sg.ev.id;
+        bar.dataset.key = keys[sg.from];
+        bar.setAttribute("aria-hidden", "true");
+        bar.title = sg.ev.title;
+        bar.textContent = sg.ev.title;
+        row.appendChild(bar);
+      });
+      hidden.forEach((n, i) => {
+        if (!n) return;
+        const more = document.createElement("span");
+        more.className = "cal-more";
+        more.style.gridColumn = String(i + 1);
+        more.textContent = `+${n}`;
+        more.setAttribute("aria-hidden", "true");
+        row.appendChild(more);
       });
 
-      calendar.render();
+      frag.appendChild(row);
+      weekKey = addDaysKey(weekKey, 7);
+    }
+    grid.replaceChildren(frag);
+  }
+
+  /* ---------- render agenda for the selected day ---------- */
+  function renderAgenda() {
+    const [, m, d] = selected.split("-").map(Number);
+    agendaTitle.textContent = `${m}월 ${d}일 ${WD[weekdayOf(selected)]}요일${selected === todayKey ? " · 오늘" : ""}`;
+    const list = byDay.get(selected) || [];
+    if (!list.length) {
+      agendaBody.innerHTML =
+        '<div class="empty"><div class="empty__icon"><i class="fa-regular fa-calendar" aria-hidden="true"></i></div>' +
+        '<div class="empty__title">일정이 없습니다</div><p class="empty__text">' +
+        (IS_ADMIN ? "날짜를 한 번 더 누르면 이 날짜에 일정을 추가합니다." : "다른 날짜를 누르면 해당 날짜의 일정이 표시됩니다.") + "</p></div>";
+      return;
+    }
+    const ul = document.createElement("ul");
+    ul.className = "list";
+    list.forEach((ev) => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "list-row";
+      b.dataset.id = ev.id;
+      b.innerHTML = '<span class="agenda__dot" aria-hidden="true"></span><div class="list-row__main"><div class="list-row__title"></div><div class="list-row__meta"></div></div><i class="fa-solid fa-chevron-right list-row__chev" aria-hidden="true"></i>';
+      b.querySelector(".agenda__dot").style.setProperty("--c", ev.color);
+      b.querySelector(".list-row__title").textContent = ev.title;
+      b.querySelector(".list-row__meta").textContent = timeText(ev, selected);
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+    agendaBody.replaceChildren(ul);
+  }
+  function rerender() { renderMonth(); renderAgenda(); }
+
+  function select(key) {
+    selected = key;
+    const y = +key.slice(0, 4), m = +key.slice(5, 7);
+    if (y !== view.y || m !== view.m) view = { y, m };
+    rerender();
+  }
+  function shiftMonth(n) {
+    let m = view.m + n, y = view.y;
+    while (m < 1) { m += 12; y--; }
+    while (m > 12) { m -= 12; y++; }
+    // keep the selection inside the visible month
+    const keepDay = Math.min(+selected.slice(8, 10), new Date(Date.UTC(y, m, 0)).getUTCDate());
+    const thisMonth = todayKey.slice(0, 7) === `${y}-${pad(m)}`;
+    select(thisMonth ? todayKey : keyOf(y, m, keepDay));
+  }
+  const findEvent = (id) => events.find((ev) => String(ev.id) === String(id));
+  let openCreate = null;  // admin only
+
+  grid.addEventListener("click", (e) => {
+    // wide screens: bars are clickable and open the event (phones: taps fall through to the day)
+    const bar = e.target.closest(".cal-bar");
+    if (bar) { select(bar.dataset.key); openEvent(findEvent(bar.dataset.id)); return; }
+    const day = e.target.closest(".cal-day");
+    if (!day) return;
+    const key = day.dataset.key;
+    const wasSelected = key === selected;
+    select(key);
+    const again = grid.querySelector(`.cal-day[data-key="${key}"]`);
+    if (again) again.focus({ preventScroll: true });
+    // admin: a second tap on the selected day → add on that day
+    if (openCreate && wasSelected) openCreate(key);
+  });
+  // arrow-key navigation between days
+  grid.addEventListener("keydown", (e) => {
+    const day = e.target.closest(".cal-day");
+    if (!day) return;
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    select(addDaysKey(day.dataset.key, step));
+    const next = grid.querySelector(`.cal-day[data-key="${selected}"]`);
+    if (next) next.focus();
+  });
+  // swipe to change month on touch screens
+  let touch = null;
+  grid.addEventListener("touchstart", (e) => { const t = e.touches[0]; touch = { x: t.clientX, y: t.clientY }; }, { passive: true });
+  grid.addEventListener("touchend", (e) => {
+    if (!touch) return;
+    const t = e.changedTouches[0], dx = t.clientX - touch.x, dy = t.clientY - touch.y;
+    touch = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftMonth(dx < 0 ? 1 : -1);
+  });
+  document.querySelectorAll("[data-nav]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.nav === "today") select(todayKey); else shiftMonth(+b.dataset.nav);
+  }));
+  agendaBody.addEventListener("click", (e) => {
+    const row = e.target.closest(".list-row[data-id]");
+    if (row) openEvent(findEvent(row.dataset.id));
+  });
+
+  /* ---------- sheet ---------- */
+  const sheet = document.getElementById("eventSheet");
+  const sheetTitle = document.getElementById("sheetTitle");
+  let busy = false;
+  function openSheet() {
+    if (typeof sheet.showModal === "function") { if (!sheet.open) sheet.showModal(); }
+    else sheet.setAttribute("open", "");
+  }
+  function closeSheet() { if (sheet.open) sheet.close(); }
+  sheet.addEventListener("click", (e) => { if (busy) return; if (e.target === sheet || e.target.closest("[data-close]")) closeSheet(); });
+  sheet.addEventListener("cancel", (e) => { if (busy) e.preventDefault(); });
+
+  let openEvent = function (ev) {
+    if (!ev) return;
+    sheetTitle.textContent = "일정 상세";
+    document.getElementById("viewDot").style.setProperty("--c", ev.color);
+    document.getElementById("viewTitle").textContent = ev.title;
+    document.getElementById("viewWhen").textContent = whenText(ev);
+    const c = document.getElementById("viewContent");
+    c.textContent = ev.content;
+    c.hidden = !ev.content;
+    openSheet();
+  };
+
+  if (IS_ADMIN) {
+    const f = {
+      form: document.getElementById("eventForm"),
+      id: document.getElementById("eventId"),
+      title: document.getElementById("editTitle"),
+      start: document.getElementById("editStart"),
+      end: document.getElementById("editEnd"),
+      content: document.getElementById("editContent"),
+      color: document.getElementById("editColor"),
+      del: document.getElementById("deleteBtn"),
+      save: document.getElementById("saveBtn"),
+    };
+    const presetBox = document.getElementById("swatchPresets");
+    const recentWrap = document.getElementById("swatchRecentWrap");
+    const recentBox = document.getElementById("swatchRecent");
+    let currentColor = DEFAULT_COLOR;
+    let pickedExtra = null;  // a colour chosen from the palette this session
+
+    function swatch(c) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "swatch" + (isLight(c) ? " is-light" : "");
+      b.dataset.color = c;
+      b.style.setProperty("--c", c);
+      b.setAttribute("aria-label", c === DEFAULT_COLOR ? "기본 네이비" : `색상 ${c}`);
+      b.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+      return b;
+    }
+    // colours already used by saved schedules (most recently created first), minus presets
+    function recentColors() {
+      const seen = new Set(PRESETS);
+      const out = [];
+      if (pickedExtra && !seen.has(pickedExtra)) { out.push(pickedExtra); seen.add(pickedExtra); }
+      if (!seen.has(currentColor)) { out.push(currentColor); seen.add(currentColor); }
+      events.slice().sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0)).forEach((ev) => {
+        if (!seen.has(ev.color)) { seen.add(ev.color); out.push(ev.color); }
+      });
+      return out.slice(0, 8);
+    }
+    function renderSwatches() {
+      presetBox.replaceChildren(...PRESETS.map(swatch));
+      const recent = recentColors();
+      recentBox.replaceChildren(...recent.map(swatch));
+      recentWrap.hidden = !recent.length;
+      markColor();
+    }
+    function markColor() {
+      f.form.querySelectorAll(".swatch").forEach((s) => s.setAttribute("aria-pressed", String(s.dataset.color === currentColor)));
+    }
+    function setColor(c, { rebuild = false } = {}) {
+      currentColor = safeColor(c);
+      f.color.value = currentColor.toLowerCase();
+      if (rebuild || !f.form.querySelector(`.swatch[data-color="${currentColor}"]`)) renderSwatches(); else markColor();
+    }
+    f.form.addEventListener("click", (e) => { const s = e.target.closest(".swatch"); if (s) setColor(s.dataset.color); });
+    f.color.addEventListener("input", () => { pickedExtra = safeColor(f.color.value); setColor(pickedExtra, { rebuild: true }); });
+
+    // moving the start keeps the duration (default 1 hour)
+    let lastStart = null;
+    f.start.addEventListener("change", () => {
+      const s = inputDate(f.start.value);
+      if (!s || isNaN(s)) return;
+      const prevS = inputDate(lastStart), prevE = inputDate(f.end.value);
+      const dur = prevS && prevE && prevE > prevS ? prevE - prevS : HOUR;
+      f.end.value = toInput(new Date(s.getTime() + dur));
+      lastStart = f.start.value;
     });
 
-function toKstYmdHi(date) {
-  const s = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Seoul",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit",
-    hour12: false
-  }).format(date); // "2026-01-09 19:00"
-  return s;
-}
+    const focusTitle = () => setTimeout(() => { f.title.focus(); const n = f.title.value.length; try { f.title.setSelectionRange(n, n); } catch (e) {} }, 60);
+    const finePointer = window.matchMedia("(pointer: fine)");
 
-function fillModalFromEvent(event) {
-  document.getElementById('eventId').value = event.id || '';
-  document.getElementById('editTitle').value = event.title || '';
-  document.getElementById('editContent').value = event.extendedProps?.content || '';
+    function setTitleError(on) {
+      f.title.toggleAttribute("aria-invalid", on);
+      if (on) f.title.setAttribute("aria-invalid", "true");
+      document.getElementById("titleErr").hidden = !on;
+      f.title.closest(".field").classList.toggle("has-error", on);
+    }
+    f.title.addEventListener("input", () => { if (f.title.value.trim()) setTitleError(false); });
+    function fill(ev) {
+      setTitleError(false);
+      f.save.textContent = ev.id ? "저장" : "등록";
+      f.id.value = ev.id || "";
+      f.title.value = ev.title || "";
+      f.content.value = ev.content || "";
+      f.start.value = toInput(ev.start);
+      f.end.value = toInput(ev.end || new Date(ev.start.getTime() + HOUR));
+      lastStart = f.start.value;
+      pickedExtra = null;
+      setColor(ev.color || DEFAULT_COLOR, { rebuild: true });
+      f.del.hidden = !ev.id;
+    }
+    openCreate = function (dayKey) {
+      let start;
+      if (dayKey && dayKey !== todayKey) start = new Date(`${dayKey}T10:00:00+09:00`);
+      else { start = new Date(Date.now() + HOUR); start.setMinutes(0, 0, 0); }
+      sheetTitle.textContent = `${kst(start).m}월 ${kst(start).d}일 일정 추가`;
+      fill({ id: "", title: "", content: "", start, end: new Date(start.getTime() + HOUR), color: DEFAULT_COLOR });
+      openSheet();
+      focusTitle();
+    };
+    openEvent = function (ev) {
+      if (!ev) return;
+      sheetTitle.textContent = "일정 수정";
+      fill(ev);
+      openSheet();
+      if (finePointer.matches) focusTitle();  // phones: don't pop the keyboard just to view
+    };
+    document.querySelectorAll("[data-create]").forEach((b) => b.addEventListener("click", () => openCreate(selected)));
+    
+    // Cmd/Ctrl+Enter saves from the memo field (Enter in other fields submits natively)
+    f.content.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !e.isComposing) { e.preventDefault(); f.form.requestSubmit ? f.form.requestSubmit() : f.save.click(); }
+    });
 
-  // ✅ Date 그대로 넣기
-  startPicker.setDate(event.start, false);
-
-  if (event.end) {
-    endPicker.setDate(event.end, false);
-  } else {
-    const defaultEnd = new Date(event.start.getTime() + 60 * 60 * 1000);
-    endPicker.setDate(defaultEnd, false);
-  }
-
-  const colorEl = document.getElementById('editColor');
-  if (colorEl) colorEl.value = event.backgroundColor || event.color || '#1E3A8A';
-}
-
-
-
-    function openCreateModal() {
-      document.getElementById('modalTitle').textContent = '새 일정 추가';
-      document.getElementById('eventId').value = '';
-      document.getElementById('editTitle').value = '';
-      document.getElementById('editContent').value = '';
-
-      const now = new Date();
-      now.setMinutes(0);
-      now.setSeconds(0);
-      now.setMilliseconds(0);
-
-      const end = new Date(now.getTime() + 60 * 60 * 1000);
-
-      // ✅ 시작/종료 제약 완전 제거
-      // startPicker.set('maxDate', null);
-      // endPicker.set('minDate', now);
-
-      startPicker.setDate(now, true);
-      endPicker.setDate(end, true);
-
-      const colorEl = document.getElementById('editColor');
-      if (colorEl) colorEl.value = '#1E3A8A';
-
-      eventModal.show();
+    function csrf() {
+      const el = document.querySelector("[name=csrfmiddlewaretoken]");
+      if (el && el.value) return el.value;
+      const m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : "";
+    }
+    async function post(url, payload) {
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrf(), "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
+        body: payload ? JSON.stringify(payload) : undefined,
+      });
+      let data = {};
+      try { data = await res.json(); } catch (e) { data = {}; }
+      if (!res.ok || (data.status && data.status !== "success") || data.ok === false) {
+        const err = new Error(data.message || (res.status === 403 ? "권한이 없거나 세션이 만료되었습니다. 새로고침 후 다시 시도해 주십시오." : `요청을 처리하지 못했습니다. (HTTP ${res.status})`));
+        err.server = true;
+        throw err;
+      }
+      return data;
+    }
+    // the server may return the saved schedule ({schedule|event|item: {...}} or the fields at top level)
+    function savedItem(data) {
+      const it = data && (data.schedule || data.event || data.item || data.data || (data.id != null ? data : null));
+      return it && it.id != null && it.start ? it : null;
+    }
+    function reloadKeepingView(message) {
+      try { sessionStorage.setItem("sa-cal", JSON.stringify({ msg: message, sel: selected, y: view.y, m: view.m })); } catch (e) {}
+      window.location.reload();
+    }
+    function done(message) {
+      busy = false;
+      SA.setBusy(f.save, false);
+      SA.setBusy(f.del, false);
+      closeSheet();
+      rebuildIndex();
+      rerender();
+      const cell = grid.querySelector(`.cal-day[data-key="${selected}"]`);
+      if (cell) cell.focus({ preventScroll: true });
+      SA.toast(message);
+    }
+    function fail(err) {
+      busy = false;
+      SA.setBusy(f.save, false);
+      SA.setBusy(f.del, false);
+      SA.toast(err && err.server ? err.message : "네트워크 상태를 확인한 뒤 다시 시도해 주십시오.", { type: "error" });
     }
 
-    // ===== CRUD =====
-    async function saveEvent() {
-      if (!IS_ADMIN) return;
-
-      const id = document.getElementById('eventId').value;
-      const colorEl = document.getElementById('editColor');
-
-      const title = (document.getElementById('editTitle').value || '').trim();
-      if (!title) {
-        alert('제목을 입력해주세요.');
-        return;
-      }
-
-      const startISO = pickerToKstIso(startPicker);
-    const endISO   = pickerToKstIso(endPicker);
-
-
-      if (!startISO) {
-        alert('시작 시간을 선택해주세요.');
-        return;
-      }
-
+    f.form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (busy) return;
+      const title = f.title.value.trim();
+      if (!title) { setTitleError(true); f.title.focus(); return; }
+      if (!f.start.value) { SA.toast("시작 시간을 선택해 주십시오.", { type: "error" }); f.start.focus(); return; }
+      const endValid = f.end.value && f.end.value > f.start.value;
+      if (f.end.value && !endValid) SA.toast("종료가 시작보다 빨라 종료 시간 없이 저장됩니다.", { type: "warning" });
       const payload = {
         title,
-        start: startISO,
-        end: endISO, // ✅ end <= start여도 null로 바꾸지 않음(요청사항: 구애 X)
-        content: document.getElementById('editContent').value || '',
-        color: colorEl ? colorEl.value : '#1E3A8A'
+        start: fromInput(f.start.value),
+        end: fromInput(f.end.value),
+        content: f.content.value || "",
+        color: currentColor,
       };
-
-      const url = id ? `/applications/calendar/update/${id}/`
-                     : `/applications/calendar/add/`;
-
+      const id = f.id.value;
+      busy = true;
+      SA.setBusy(f.save, true);
       try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-          },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await safeJson(res);
-
-        if (!res.ok) {
-          const rawHint = data && data._raw ? `\n\n(서버 응답 일부)\n${String(data._raw).slice(0, 300)}` : '';
-          alert(`저장 실패 (HTTP ${res.status})\n관리자 권한/CSRF/URL을 확인하세요.${rawHint}`);
-          return;
+        const data = await post(id ? URLS.update(id) : URLS.add, payload);
+        const item = savedItem(data);
+        if (id) {
+          const next = item ? normalize(item) : normalize({ id, title, start: payload.start, end: endValid ? payload.end : null, color: payload.color, content: payload.content });
+          events = events.map((ev) => (String(ev.id) === String(id) ? next : ev));
+          done("일정을 수정했습니다.");
+        } else if (item) {
+          events.push(normalize(item));
+          done("일정을 추가했습니다.");
+        } else {
+          reloadKeepingView("일정을 추가했습니다.");  // no id returned → reload, keeping month + selected day
         }
-
-        if (data.status === 'success') location.reload();
-        else alert(data.message || '저장에 실패했습니다.');
-      } catch (e) {
-        alert('서버와 통신 중 오류가 발생했습니다.');
+      } catch (err) {
+        fail(err);
       }
-    }
+    });
 
-    async function deleteEvent() {
-      if (!IS_ADMIN) return;
-
-      const id = document.getElementById('eventId').value;
-      if (!id) {
-        alert('아직 저장되지 않은 일정은 삭제할 수 없습니다.');
-        return;
-      }
-      if (!confirm('정말로 이 일정을 삭제하시겠습니까?')) return;
-
+    f.del.addEventListener("click", async () => {
+      const id = f.id.value;
+      if (!id || busy) return;
+      const ok = await SA.confirm({ title: `‘${f.title.value.trim() || "이 일정"}’을(를) 삭제하시겠습니까?`, message: "삭제한 일정은 되돌릴 수 없습니다.", confirmText: "삭제", danger: true });
+      if (!ok) return;
+      busy = true;
+      SA.setBusy(f.del, true);
       try {
-        const res = await fetch(`/applications/calendar/delete/${id}/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-          }
-        });
-
-        const data = await safeJson(res);
-
-        if (!res.ok) {
-          const rawHint = data && data._raw ? `\n\n(서버 응답 일부)\n${String(data._raw).slice(0, 300)}` : '';
-          alert(`삭제 실패 (HTTP ${res.status})\n관리자 권한/CSRF/URL을 확인하세요.${rawHint}`);
-          return;
-        }
-
-        if (data.status === 'success') location.reload();
-        else alert(data.message || '삭제에 실패했습니다.');
-      } catch (e) {
-        alert('네트워크 연결 문제로 삭제 요청을 보내지 못했습니다.');
+        await post(URLS.del(id));
+        events = events.filter((ev) => String(ev.id) !== String(id));
+        done("일정을 삭제했습니다.");
+      } catch (err) {
+        fail(err);
       }
-    }
-  </script>
-</body>
-</html>
+    });
+  }
+
+  rerender();
+  if (restore && restore.msg) {
+    const show = () => SA.toast(restore.msg);
+    if (window.SA && SA.toast) show(); else window.addEventListener("load", show);
+  }
+})();
+</script>
+{% endblock %}

@@ -1,10 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Server Error{% endblock title %}
+{% block title %}서버 오류 (500){% endblock title %}
+
 {% block content %}
-  <h1>Ooops!!! 500</h1>
-  <h3>Looks like something went wrong!</h3>
-  <p>
-    We track these errors automatically, but if the problem persists feel free to contact us. In the meantime, try refreshing.
-  </p>
+<div class="message-page__code">500</div>
+<h1 class="message-page__title">일시적인 서버 오류가 발생했습니다</h1>
+<p class="message-page__text">
+  요청을 처리하는 중 문제가 발생했습니다. 잠시 후 새로고침하거나 문제가 지속되면 운영진에게 문의해 주십시오.
+</p>
+<div class="btn-row">
+  <a class="btn btn--primary" href="{% url 'applications:dashboard' %}">
+    <i class="fa-solid fa-house" aria-hidden="true"></i>홈으로 이동
+  </a>
+</div>
 {% endblock content %}

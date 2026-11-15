@@ -15,3 +15,4 @@ crispy-bootstrap5==2025.4  # https://github.com/django-crispy-forms/crispy-boots
 django-redis==5.4.0  # https://github.com/jazzband/django-redis
 
 openpyxl==3.1.5 # https://openpyxl.readthedocs.io/en/stable/
+whitenoise==6.12.0  # https://whitenoise.readthedocs.io/

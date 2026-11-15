@@ -3,4 +3,5 @@ set -o errexit
 
 pip install -r requirements.txt
 python manage.py migrate --noinput --settings=config.settings.production
+python manage.py createcachetable --settings=config.settings.production
 python manage.py collectstatic --noinput --settings=config.settings.production

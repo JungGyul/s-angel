@@ -33,3 +33,14 @@ class TestUserAdminCreationForm:
         assert len(form.errors) == 1
         assert "username" in form.errors
         assert form.errors["username"][0] == _("This username has already been taken.")
+
+
+
+def test_signup_duplicate_username_uses_clear_message(user):
+    from s_angel.users.forms import SimpleUserSignupForm
+    form = SimpleUserSignupForm({
+        'username': user.username, 'name': '새 부원', 'gender': 'F', 'generation': 22,
+        'password1': 'new-safe-password-9184', 'password2': 'new-safe-password-9184',
+    })
+    assert not form.is_valid()
+    assert form.errors['username'] == ['이미 사용 중인 아이디입니다.']

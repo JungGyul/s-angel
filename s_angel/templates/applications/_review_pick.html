@@ -1,0 +1,8 @@
+{# review_winners.html 전용: 신청자 1명 행. context: app, event, forloop #}
+<label class="pick{% if app.selected %} is-selected{% endif %}{% if event.is_finalized %} is-disabled{% endif %}" data-order="{{ forloop.counter }}" data-name="{{ app.participant.name|default:app.participant.username }}">
+  <input type="checkbox" name="selected_applicants" value="{{ app.id }}" class="winner-checkbox" data-gender="{{ app.participant.gender|default:'' }}" {% if app.selected %}checked{% endif %} {% if event.is_finalized %}disabled{% endif %}>
+  <span class="pick__main">
+    <span class="pick__name">{{ app.participant.name|default:app.participant.username }}</span>
+    <span class="pick__meta">{% if app.participant.gender == "M" %}남{% elif app.participant.gender == "F" %}여{% else %}성별 미입력{% endif %}{% if not event.is_finalized %} · 추첨 가중치(임시 반영) {{ app.draw_weight|floatformat:"-2" }} · 확정 가중치 {{ app.confirmed_weight }}{% endif %}{% if app.participant.generation %} · {{ app.participant.generation }}기{% endif %}</span>
+  </span>
+</label>

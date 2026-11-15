@@ -1,161 +1,133 @@
-{% load static %}
+{% extends "layouts/auth.html" %}
 
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8" />
-    <title>S-ANGEL Sign Up</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; }
-        
-        :root {
-            --gradient-start: #1E3A8A; 
-            --gradient-end: #312E81;   
-            --background-color: #F9FAFB;
-            --card-bg: #FFFFFF;
-            --border-color: #E5E7EB;
-            --text-dark: #111827;
-            --text-medium: #374151;
-            --text-light: #6B7280;
-            --danger-red: #EF4444;
-        }
+{% block title %}회원가입{% endblock title %}
+{% block auth_title %}회원가입{% endblock auth_title %}
+{% block auth_sub %}{{ info_message|default:"에스엔젤 부원만 가입할 수 있으며 운영진 승인 후 활성화됩니다." }}{% endblock auth_sub %}
 
-        body {
-            background-color: var(--background-color);
-            font-family: 'Inter', 'Pretendard', sans-serif;
-            display: flex; align-items: center; justify-content: center;
-            min-height: 100vh; margin: 0; padding: 1.5rem;
-        }
-        .auth-container { width: 100%; max-width: 450px; }
-        .site-title {
-            text-align: center; font-size: 2.5rem; font-weight: 800;
-            margin-bottom: 2rem; letter-spacing: -1px;
-            background-image: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
-            -webkit-background-clip: text; background-clip: text; color: transparent;
-        }
-        .auth-card {
-            background: var(--card-bg); border-radius: 1rem;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
-            padding: 2.5rem;
-        }
-        .auth-card h2 {
-            text-align: center; font-weight: 700; color: var(--text-medium);
-            margin-top: 0; margin-bottom: 2rem; font-size: 1.5rem;
-        }
-        .error-box {
-            background-color: #FEF2F2; color: var(--danger-red);
-            padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.5rem;
-            font-size: 0.9rem; font-weight: 500;
-        }
-        .form-group { position: relative; margin-bottom: 1.25rem; }
-        .form-control {
-            width: 100%; padding: 0.9rem 1rem 0.9rem 2.5rem;
-            border-radius: 0.5rem; border: 1px solid var(--border-color);
-            background-color: var(--background-color); font-size: 1rem;
-            transition: all 0.2s ease;
-        }
-        .form-control:focus {
-            border-color: var(--gradient-start); background-color: var(--card-bg);
-            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.25);
-            outline: none;
-        }
-        .form-icon {
-            position: absolute; left: 1rem; top: 50%;
-            transform: translateY(-50%); color: var(--text-light);
-        }
-        .btn-gradient {
-            width: 100%; padding: 0.9rem; font-size: 1.1rem; font-weight: 700;
-            background-image: linear-gradient(to right, var(--gradient-start) 0%, var(--gradient-end) 100%);
-            border: none; color: white; transition: all 0.3s ease;
-            background-size: 200% auto; border-radius: 0.5rem;
-            cursor: pointer; margin-top: 0.5rem;
-        }
-        .btn-gradient:hover { background-position: right center; }
-        .bottom-link {
-            text-align: center; margin-top: 2rem; font-size: 0.9rem;
-            color: var(--text-light);
-        }
-        .bottom-link a { color: var(--gradient-end); font-weight: 600; text-decoration: none; }
-        
-        select.form-control {
-            -webkit-appearance: none; appearance: none;
-            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236B7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M10%2012a1%201%200%2001-.707-.293l-3-3a1%201%200%20011.414-1.414L10%209.586l2.293-2.293a1%201%200%20011.414%201.414l-3%203A1%201%200%200110%2012z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E');
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 1.25em 1.25em;
-            padding-right: 2.5rem;
-        }
-        .error-text { color: var(--danger-red); font-size: 0.8rem; margin-top: 0.25rem; margin-left: 0.5rem; }
-    </style>
-</head>
-<body>
-    <div class="auth-container">
-        <h1 class="site-title">S-ANGEL</h1>
-        <div class="auth-card">
-            <h2>회원가입</h2>
+{% block css %}
+<style>
+  .pw-wrap { position: relative; display: flex; align-items: center; }
+  .pw-wrap input { padding-right: 46px !important; }
+  .pw-toggle {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--r-xs);
+    background: transparent;
+    color: var(--text-3);
+    cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+    transition: color var(--dur-1), background var(--dur-1);
+  }
+  .pw-toggle:hover { color: var(--text); background: var(--surface-hover); }
+</style>
+{% endblock css %}
 
-            <form method="post">
-                {% csrf_token %}
+{% block content %}
+{% if form.non_field_errors %}
+<div class="alert alert--error mb-4" role="alert">
+  <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+  <div>
+    {% for error in form.non_field_errors %}
+    <div>{{ error }}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
-                {% if form.errors %}
-                    <div class="error-box">
-                        <ul style="margin: 0; padding-left: 1.25rem;">
-                        {% for field, errors in form.errors.items %}
-                            {% for error in errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-                
-                <div class="form-group">
-                    <i class="fas fa-user form-icon"></i>
-                    <input type="text" name="username" class="form-control" placeholder="아이디" required value="{{ form.username.value|default_if_none:'' }}">
-                </div>
+<form method="post" data-busy>
+  {% csrf_token %}
 
-                <div class="form-group">
-                    <i class="fas fa-address-card form-icon"></i>
-                    <input type="text" name="name" class="form-control" placeholder="이름" required value="{{ form.name.value|default_if_none:'' }}">
-                </div>
+  <div class="field{% if form.username.errors %} has-error{% endif %}">
+    <label class="field-label" for="id_username">아이디 <span class="req" aria-hidden="true">*</span></label>
+    <input class="input" type="text" id="id_username" name="username" value="{{ form.username.value|default_if_none:'' }}" placeholder="아이디 입력" autocomplete="username" required>
+    {% for error in form.username.errors %}
+    <p class="field-error">{{ error }}</p>
+    {% endfor %}
+  </div>
 
-                <div class="form-group">
-                    <i class="fas fa-lock form-icon"></i>
-                    <input type="password" name="password1" class="form-control" placeholder="비밀번호" required>
-                </div>
+  <div class="field{% if form.name.errors %} has-error{% endif %}">
+    <label class="field-label" for="id_name">이름 <span class="req" aria-hidden="true">*</span></label>
+    <input class="input" type="text" id="id_name" name="name" value="{{ form.name.value|default_if_none:'' }}" placeholder="실명 입력" autocomplete="name" required>
+    {% for error in form.name.errors %}
+    <p class="field-error">{{ error }}</p>
+    {% endfor %}
+  </div>
 
-                <div class="form-group">
-                    <i class="fas fa-check-double form-icon"></i>
-                    <input type="password" name="password2" class="form-control" placeholder="비밀번호 확인" required>
-                </div>
-
-                <div class="form-group">
-                    <i class="fas fa-venus-mars form-icon"></i>
-                    <select name="gender" class="form-control" required>
-                        <option value="" disabled selected>성별 선택</option>
-                        <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>남자</option>
-                        <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>여자</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <i class="fas fa-users form-icon"></i>
-                    <input type="number" name="generation" class="form-control" placeholder="기수 (예: 21)" required value="{{ form.generation.value|default_if_none:'' }}">
-                    {% if form.generation.errors %}
-                        <div class="error-text">{{ form.generation.errors|striptags }}</div>
-                    {% endif %}
-                </div>
-
-                <button type="submit" class="btn-gradient">가입 신청</button>
-            </form>
-        </div>
-        <div class="bottom-link">
-            <span>이미 계정이 있으신가요?</span>
-            <a href="{% url 'users:main' %}">로그인</a>
-        </div>
+  <div class="grid-2">
+    <div class="field{% if form.gender.errors %} has-error{% endif %}">
+      <label class="field-label" for="id_gender">성별 <span class="req" aria-hidden="true">*</span></label>
+      <select class="select" id="id_gender" name="gender" required>
+        <option value="" disabled {% if not form.gender.value %}selected{% endif %}>성별 선택</option>
+        <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>남자</option>
+        <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>여자</option>
+      </select>
+      {% for error in form.gender.errors %}
+      <p class="field-error">{{ error }}</p>
+      {% endfor %}
     </div>
-</body>
-</html>
+
+    <div class="field{% if form.generation.errors %} has-error{% endif %}">
+      <label class="field-label" for="id_generation">기수 <span class="req" aria-hidden="true">*</span></label>
+      <input class="input" type="number" min="1" inputmode="numeric" id="id_generation" name="generation" value="{{ form.generation.value|default_if_none:'' }}" placeholder="예: 21" required>
+      {% for error in form.generation.errors %}
+      <p class="field-error">{{ error }}</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="field{% if form.password1.errors %} has-error{% endif %}">
+    <label class="field-label" for="id_password1">비밀번호 <span class="req" aria-hidden="true">*</span></label>
+    <div class="pw-wrap">
+      <input class="input" type="password" id="id_password1" name="password1" placeholder="비밀번호 입력" autocomplete="new-password" required>
+      <button type="button" class="pw-toggle" data-pw-toggle aria-label="비밀번호 표시" aria-pressed="false">
+        <i class="fa-regular fa-eye" aria-hidden="true"></i>
+      </button>
+    </div>
+    {% for error in form.password1.errors %}
+    <p class="field-error">{{ error }}</p>
+    {% endfor %}
+  </div>
+
+  <div class="field{% if form.password2.errors %} has-error{% endif %}">
+    <label class="field-label" for="id_password2">비밀번호 확인 <span class="req" aria-hidden="true">*</span></label>
+    <div class="pw-wrap">
+      <input class="input" type="password" id="id_password2" name="password2" placeholder="비밀번호 다시 입력" autocomplete="new-password" required>
+      <button type="button" class="pw-toggle" data-pw-toggle aria-label="비밀번호 표시" aria-pressed="false">
+        <i class="fa-regular fa-eye" aria-hidden="true"></i>
+      </button>
+    </div>
+    {% for error in form.password2.errors %}
+    <p class="field-error">{{ error }}</p>
+    {% endfor %}
+  </div>
+
+  <button type="submit" class="btn btn--primary btn--lg btn--block mt-6">가입 신청</button>
+</form>
+{% endblock content %}
+
+{% block auth_foot %}
+<div>이미 계정이 있으신가요? <a href="{% url 'users:main' %}">로그인</a></div>
+{% endblock auth_foot %}
+
+{% block javascript %}
+<script>
+document.querySelectorAll("[data-pw-toggle]").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var input = btn.parentElement.querySelector("input");
+    if (!input) return;
+    var show = input.type === "password";
+    input.type = show ? "text" : "password";
+    btn.setAttribute("aria-label", show ? "비밀번호 숨기기" : "비밀번호 표시");
+    btn.setAttribute("aria-pressed", show ? "true" : "false");
+    var icon = btn.querySelector("i");
+    if (icon) icon.className = show ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
+  });
+});
+</script>
+{% endblock javascript %}

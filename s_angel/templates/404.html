@@ -1,13 +1,22 @@
 {% extends "base.html" %}
 
-{% block title %}Page not found{% endblock title %}
+{% block title %}페이지를 찾을 수 없음 (404){% endblock title %}
+
 {% block content %}
-  <h1>Page not found</h1>
-  <p>
-    {% if exception %}
-      {{ exception }}
-    {% else %}
-      This is not the page you were looking for.
-    {% endif %}
-  </p>
+<div class="message-page__code">404</div>
+<h1 class="message-page__title">페이지를 찾을 수 없습니다</h1>
+<p class="message-page__text">
+  입력하신 주소가 정확한지 다시 확인해 주십시오. 변경되었거나 삭제된 페이지일 수 있습니다.
+</p>
+<div class="btn-row">
+  {% if user.is_authenticated %}
+  <a class="btn btn--primary" href="{% url 'applications:dashboard' %}">
+    <i class="fa-solid fa-house" aria-hidden="true"></i>홈으로 돌아가기
+  </a>
+  {% else %}
+  <a class="btn btn--primary" href="{% url 'users:main' %}">
+    <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>로그인 페이지로 이동
+  </a>
+  {% endif %}
+</div>
 {% endblock content %}

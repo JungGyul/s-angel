@@ -1,31 +1,51 @@
+{% extends "layouts/app.html" %}
 
+{% block title %}{{ user.name|default:user.username }} · 정보 수정{% endblock title %}
+{% block page_title %}내 정보{% endblock page_title %}
+{% block page_class %}page page--narrow{% endblock page_class %}
 
-{% load crispy_forms_tags %}
-
-{% block title %}
-
-
-  {{ user.username }}
-
-
-{% endblock title %}
 {% block content %}
-  <h1>
-  
-  
-    {{ user.username }}
-  
-  
-</h1>
-<form class="form-horizontal"
-      method="post"
-      action="{% url 'users:update' %}">
-  {% csrf_token %}
-  {{ form|crispy }}
-  <div class="control-group">
-    <div class="controls">
-      <button type="submit" class="btn btn-primary">Update</button>
-    </div>
+<header class="page-head page-head--back">
+  <a class="back-btn" href="{% url 'applications:dashboard' %}" aria-label="뒤로 가기: 홈" title="홈"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
+  <div class="page-head__text">
+    <h1 class="page-title">{{ user.name|default:user.username }}</h1>
+    <p class="page-sub">부원 정보를 수정합니다.</p>
   </div>
-</form>
+</header>
+
+{% if form.non_field_errors %}
+<div class="alert alert--error mb-4" role="alert">
+  <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+  <div>
+    {% for error in form.non_field_errors %}
+    <div>{{ error }}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<section class="panel panel--pad" aria-label="부원 정보 폼">
+  <form method="post" action="{% url 'users:profile_update' %}" data-busy>
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="field{% if field.errors %} has-error{% endif %}">
+      <label class="field-label" for="{{ field.id_for_label }}">
+        {{ field.label }}{% if field.field.required %} <span class="req" aria-hidden="true">*</span>{% endif %}
+      </label>
+      {{ field }}
+      {% if field.help_text %}
+      <p class="field-help">{{ field.help_text }}</p>
+      {% endif %}
+      {% for error in field.errors %}
+      <p class="field-error">{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="form-actions">
+      <a class="btn btn--secondary" href="{% url 'applications:dashboard' %}">취소</a>
+      <button type="submit" class="btn btn--primary"><i class="fa-solid fa-check" aria-hidden="true"></i>저장하기</button>
+    </div>
+  </form>
+</section>
 {% endblock content %}

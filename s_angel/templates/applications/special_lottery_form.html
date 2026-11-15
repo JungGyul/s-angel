@@ -1,117 +1,103 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ page_title }}</title>
-  <style>
-    * { box-sizing: border-box; }
-    :root {
-      --navy: #1e3a8a;
-      --bg: #f8fafc;
-      --card: #fff;
-      --line: #e2e8f0;
-      --text: #1e293b;
-      --muted: #64748b;
-      --danger: #b91c1c;
-    }
-    body {
-      margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
-      font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-    .container { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
-    .header {
-      display: flex; justify-content: space-between; align-items: center;
-      gap: 16px; margin-bottom: 24px;
-    }
-    h1 { margin: 0; font-size: 28px; }
-    .card {
-      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
-      padding: 24px; box-shadow: 0 8px 24px rgb(15 23 42 / .05);
-    }
-    .field { margin-bottom: 22px; }
-    label { display: block; margin-bottom: 8px; font-weight: 800; }
-    .form-control {
-      width: 100%; min-height: 44px; border: 1px solid #cbd5e1;
-      border-radius: 10px; padding: 10px 12px; background: #fff; font: inherit;
-    }
-    textarea.form-control { resize: vertical; }
-    .help { margin-top: 7px; color: var(--muted); font-size: 14px; }
-    .errors, .errorlist { margin: 7px 0; padding-left: 20px; color: var(--danger); }
-    #id_events {
-      list-style: none; padding: 0; margin: 0; display: grid; gap: 10px;
-    }
-    #id_events li {
-      border: 1px solid var(--line); border-radius: 10px; background: #f8fafc;
-    }
-    #id_events label {
-      display: flex; align-items: center; gap: 10px; margin: 0;
-      padding: 13px 14px; cursor: pointer; font-weight: 650;
-    }
-    #id_events input { width: 18px; height: 18px; accent-color: var(--navy); }
-    .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 28px; }
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      min-height: 44px; padding: 0 18px; border-radius: 10px;
-      border: 1px solid var(--line); text-decoration: none; font-weight: 800;
-      background: #fff; color: var(--text); cursor: pointer;
-    }
-    .btn-primary { background: var(--navy); border-color: var(--navy); color: #fff; }
-    @media (max-width: 600px) {
-      .container { padding: 24px 14px; }
-      .header { align-items: flex-start; flex-direction: column; }
-      .card { padding: 18px; }
-      .actions .btn { flex: 1; }
-    }
-  </style>
-</head>
-<body>
-  <main class="container">
-    <header class="header">
-      <div>
-        <h1>{{ page_title }}</h1>
-        <p class="help">먼저 날짜별 활동을 만든 뒤 이 화면에서 하나의 묶음으로 연결합니다.</p>
-      </div>
-      <a class="btn" href="{% url 'applications:special_lottery_list' %}">목록으로</a>
-    </header>
+{% extends "layouts/app.html" %}
 
-    <form method="post" class="card">
-      {% csrf_token %}
-      {{ form.non_field_errors }}
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}특별추첨{% endblock %}
+{% block page_class %}page page--narrow{% endblock %}
 
-      <div class="field">
-        <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
-        {{ form.name }}
-        {{ form.name.errors }}
-      </div>
+{% block css %}
+<style>
+  .event-picks { border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface-solid); overflow: hidden; }
+  .event-pick { display: flex; align-items: center; gap: var(--s-3); min-height: 56px; padding: 10px var(--s-4); cursor: pointer; }
+  .event-pick + .event-pick { border-top: 1px solid var(--line); }
+  .event-pick:hover { background: var(--surface-hover); }
+  .event-pick input { width: 22px; height: 22px; margin: 0; flex: none; accent-color: var(--accent); }
+  .event-pick__main { flex: 1; min-width: 0; }
+  .event-pick__title { font-weight: 650; display: block; }
+  .event-pick__meta { font-size: var(--fs-sm); color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .event-pick:has(input:checked) { background: var(--accent-soft); }
+  .mode-help { margin: 2px 0 0; padding-left: 1.1em; display: grid; gap: 4px; }
+  .mode-help strong { color: var(--text-2); font-weight: 650; }
+  .event-picks.is-empty { padding: var(--s-5); text-align: center; color: var(--text-3); font-size: var(--fs-md); }
+</style>
+{% endblock %}
 
-      <div class="field">
-        <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
-        {{ form.description }}
-        {{ form.description.errors }}
-      </div>
+{% block content %}
+<header class="page-head page-head--back">
+  <a class="back-btn" href="{% url 'applications:special_lottery_list' %}" aria-label="뒤로 가기: 특별추첨 목록" title="특별추첨 목록"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
+  <div class="page-head__text">
+    <h1 class="page-title">{{ page_title }}</h1>
+    <p class="page-sub">날짜별 의전을 먼저 만든 뒤, 이 화면에서 하나의 묶음으로 연결합니다.</p>
+  </div>
+</header>
 
-      <div class="field">
-        <label for="{{ form.draw_mode.id_for_label }}">{{ form.draw_mode.label }}</label>
-        {{ form.draw_mode }}
-        {{ form.draw_mode.errors }}
-        <p class="help">
-          기본 방식은 현재 가중치를 반영하되, 이번 묶음에서 이미 여러 번 뽑힌 사람의 다음 확률만 완만하게 낮춥니다.
-        </p>
-      </div>
+<form method="post" data-busy>
+  {% csrf_token %}
+  <div class="panel panel--pad">
+  {% if form.non_field_errors %}<div class="alert alert--error mb-4"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><div>{{ form.non_field_errors }}</div></div>{% endif %}
 
-      <div class="field">
-        <label>{{ form.events.label }}</label>
-        {{ form.events }}
-        {{ form.events.errors }}
-        <p class="help">{{ form.events.help_text }}</p>
-      </div>
+  <div class="field{% if form.name.errors %} has-error{% endif %}">
+    <label class="field-label" for="{{ form.name.id_for_label }}">{{ form.name.label }}<span class="req" aria-hidden="true">*</span></label>
+    {{ form.name }}
+    {{ form.name.errors }}
+  </div>
 
-      <div class="actions">
-        <a class="btn" href="{% url 'applications:special_lottery_list' %}">취소</a>
-        <button class="btn btn-primary" type="submit">저장하고 명단으로</button>
-      </div>
-    </form>
-  </main>
-</body>
-</html>
+  <div class="field{% if form.description.errors %} has-error{% endif %}">
+    <label class="field-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+    {{ form.description }}
+    {{ form.description.errors }}
+  </div>
+
+  <div class="field{% if form.draw_mode.errors %} has-error{% endif %}">
+    <label class="field-label" for="{{ form.draw_mode.id_for_label }}">추첨 방식</label>
+    {{ form.draw_mode }}
+    {{ form.draw_mode.errors }}
+    <ul class="field-help mode-help">
+      <li><strong>가중치 반영 + 반복 선발 완화</strong> (기본) — 현재 가중치를 반영하되, 이번 묶음에서 이미 뽑힌 부원은 다음 날짜의 확률을 완만하게 낮춥니다.</li>
+      <li><strong>기존 가중치 그대로 반영</strong> — 날짜마다 현재 가중치만으로 추첨합니다.</li>
+      <li><strong>모든 신청자 동일 확률</strong> — 가중치와 관계없이 같은 확률로 추첨합니다.</li>
+    </ul>
+    <p class="field-help">어떤 방식이든 추첨 결과는 임시 명단이며, 확정 전까지 직접 조정할 수 있습니다.</p>
+  </div>
+
+  <fieldset class="field{% if form.events.errors %} has-error{% endif %}" style="border:0;padding:0;margin-inline:0">
+    <legend class="field-label mb-2">함께 추첨할 의전<span class="req" aria-hidden="true">*</span> <span class="muted" style="font-weight:600">· <span id="eventPickCount">0</span>개 선택</span></legend>
+    {% if form.events.field.queryset.exists %}
+    <div class="event-picks">
+      {% for cb in form.events %}
+      <label class="event-pick" for="{{ cb.id_for_label }}">
+        {{ cb.tag }}
+        <span class="event-pick__main">
+          <span class="event-pick__title">{{ cb.choice_label }}</span>
+          {% with ev=cb.data.value.instance %}{% if ev %}<span class="event-pick__meta">{{ ev.start_date|date:"n월 j일 (D)" }} · {{ ev.total_slots }}명 선발</span>{% endif %}{% endwith %}
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="event-picks is-empty">
+      묶을 수 있는 의전이 없습니다. 추첨 전인 의전을 먼저 만들어야 합니다.
+      <div class="mt-3"><a class="btn btn--secondary btn--sm" href="{% url 'applications:create_event' %}"><i class="fa-solid fa-plus" aria-hidden="true"></i>새 의전 만들기</a></div>
+    </div>
+    {% endif %}
+    {{ form.events.errors }}
+    <p class="field-help">확정되지 않은 의전을 두 개 이상 선택합니다.</p>
+  </fieldset>
+  </div>
+
+  <div class="form-actions form-actions--sticky">
+    <button class="btn btn--primary" type="submit"><i class="fa-solid fa-check" aria-hidden="true"></i>{% if group %}저장{% else %}등록{% endif %}</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block javascript %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var out = document.getElementById("eventPickCount");
+  var boxes = document.querySelectorAll('.event-picks input[type="checkbox"]');
+  function sync() { out.textContent = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length; }
+  boxes.forEach(function (b) { b.addEventListener("change", sync); });
+  sync();
+});
+</script>
+{% endblock %}

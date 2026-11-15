@@ -1,536 +1,337 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>회계 내역 추가</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  {% load humanize %}
+{% extends "layouts/app.html" %}
+{% block title %}회계 내역 추가{% endblock %}
+{% block page_title %}회계 · 내역 추가{% endblock %}
+{% block page_class %}page page--wide{% endblock %}
 
-  <style>
-    :root{
-      --navy:#1E3A8A;
-      --bg:#F9FAFB;
-      --card:#FFFFFF;
-      --border:#E5E7EB;
-      --text:#334155;
-      --muted:#64748B;
-      --green:#10B981;
-      --red:#EF4444;
-      --shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
-      --radius: 16px;
-    }
-    *{ box-sizing:border-box; }
-/* ✅ 모바일/iOS 가로 튐 방지 핵심 */
-input, select, textarea{
-  max-width: 100%;
-  min-width: 0;
-}
+{% block css %}
+<style>
+  .tx-list { list-style: none; margin: 0; padding: 0; }
+  .tx-row {
+    display: grid; gap: 10px var(--s-2);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-areas:
+      "head  head"
+      "name  name"
+      "amt   type"
+      "date  cat";
+    padding: var(--s-4) var(--s-4) var(--s-5);
+  }
+  .tx-row + .tx-row { border-top: 1px solid var(--line); }
+  .tx-row__head { grid-area: head; display: flex; align-items: center; justify-content: space-between; min-height: 36px; }
+  .tx-row__no { font-size: var(--fs-sm); font-weight: 750; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .tx-row__name { grid-area: name; }
+  .tx-row__amt  { grid-area: amt; }
+  .tx-row__type { grid-area: type; align-self: end; }
+  .tx-row__date { grid-area: date; }
+  .tx-row__cat  { grid-area: cat; }
+  .tx-row__del-desk { display: none; }
+  .tx-row .field-label { font-size: var(--fs-xs); }
+  .tx-row .segmented { min-height: 0; padding: 2px; align-items: stretch; }
+  .tx-row .segmented > button { min-width: 52px; min-height: 44px; flex: 1 1 0; }
+  .tx-row__type .segmented { display: flex; width: 100%; }
+  .segmented > button[data-val="INCOME"][aria-pressed="true"] { color: var(--ok-text); }
+  .segmented > button[data-val="EXPENSE"][aria-pressed="true"] { color: var(--bad-text); }
+  .tx-amt-preview { font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums; min-height: 1.2em; }
+  .tx-head { display: none; }
+  .tx-toolbar { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; justify-content: space-between; padding: var(--s-3) var(--s-4); border-top: 1px solid var(--line); }
+  .tx-hint { font-size: var(--fs-sm); color: var(--text-3); display: none; align-items: center; gap: 8px; }
 
-    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; background:var(--bg); color:var(--text); }
-    .wrap{ max-width: 1100px; margin: 0 auto; padding: 1.25rem 1rem 5.5rem; } /* 하단 고정 바 여유 */
-    .header{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom: 1rem; }
-    .title{ margin:0; font-size: 1.35rem; font-weight: 1000; border-left:4px solid var(--navy); padding-left:.85rem; }
-    .sub{ margin:.35rem 0 0; color:var(--muted); font-weight:800; padding-left:.95rem; }
+  /* desktop: one line per row with a header */
+  @media (min-width: 900px) {
+    .tx-head, .tx-row {
+      grid-template-columns: 40px 172px minmax(0, 1fr) 140px 160px auto 44px;
+      grid-template-areas: "no date name cat amt type del";
+      align-items: center;
+    }
+    .tx-head { display: grid; gap: var(--s-2); padding: 10px var(--s-4); border-bottom: 1px solid var(--line); font-size: var(--fs-xs); font-weight: 700; color: var(--text-3); }
+    .tx-row { padding: 10px var(--s-4); }
+    .tx-row__head { display: contents; }
+    .tx-row__no { grid-area: no; }
+    .tx-row__head .tx-row__del-mob { display: none; }
+    .tx-row__del-desk { display: inline-grid; grid-area: del; }
+    .tx-row .field-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .tx-row__type { align-self: center; }
+    .tx-amt-preview { display: none; }
+    .tx-hint { display: inline-flex; }
+  }
 
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
-      padding:.65rem 1rem; border-radius:.8rem; border:1px solid transparent;
-      font-weight: 950; text-decoration:none; cursor:pointer; transition:.15s ease;
-      white-space: nowrap;
-    }
-    .btn.ghost{ background:var(--card); border-color:var(--border); color:var(--text); }
-    .btn.ghost:hover{ background:#F1F5F9; }
-    .btn.primary{ background:var(--navy); color:#fff; box-shadow: 0 10px 18px rgba(30,58,138,.18); }
-    .btn.primary:hover{ filter:brightness(.97); }
-    .btn.danger{ background: rgba(239,68,68,.08); border-color: rgba(220,38,38,.25); color:#DC2626; }
-    .btn.danger:hover{ background: rgba(239,68,68,.12); }
-    .btn.outline{ background:transparent; border-color: rgba(30,58,138,.25); color:var(--navy); }
-    .btn.outline:hover{ background: rgba(30,58,138,.06); }
+  .tx-totals { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: var(--fs-sm); font-weight: 650; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .tx-totals b { font-weight: 800; }
+  .tx-totals .tx-bal { margin-left: auto; color: var(--text); }
+  @media (min-width: 640px) { .tx-totals { flex: 1 1 auto; align-self: center; } }
+  .segmented > input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .grid-2 > .field + .field, .tx-row .field + .field { margin-top: 0; }
+</style>
+{% endblock %}
 
-    .card{ background:var(--card); border:1px solid var(--border); border-radius: var(--radius); box-shadow:var(--shadow); }
-    .pad{ padding: 1rem; }
-
-    .grid{
-      display:grid;
-      grid-template-columns: 1.2fr 1.2fr;
-      gap: .8rem;
-      align-items:end;
-    }
-    label{ display:block; font-size:.86rem; color:var(--muted); font-weight: 900; margin: 0 0 .35rem; }
-    select, input, textarea{
-      width:100%;
-      border: 1px solid var(--border);
-      border-radius: .8rem;
-      padding: .7rem .85rem;
-      font-weight: 900;
-      outline:none;
-      background:#fff;
-    }
-    select:focus, input:focus, textarea:focus{ box-shadow: 0 0 0 3px rgba(30,58,138,.18); border-color: rgba(30,58,138,.35); }
-
-    .toolbar{ display:flex; justify-content:space-between; gap:.8rem; flex-wrap: wrap; align-items:center; margin-top:.9rem; }
-    .hint{ color:var(--muted); font-weight:800; font-size:.9rem; }
-
-    .table{ width:100%; border-collapse: collapse; }
-    .table thead th{
-      background:#F8FAFC; color:var(--muted); font-weight:1000; font-size:.85rem;
-      padding: .85rem .75rem; border-bottom:1px solid var(--border); text-align:center; white-space:nowrap;
-    }
-    .table td{
-      padding: .55rem .6rem; border-bottom:1px solid #F1F5F9; vertical-align: middle;
-    }
-    .table td.center{ text-align:center; }
-    .table td.right{ text-align:right; }
-
-    .row-input{
-      border-radius:.75rem; padding:.6rem .7rem;
-      font-weight:900;
-    }
-
-    .type-toggle{
-      display:flex; gap:.4rem; justify-content:center;
-    }
-    .type-btn{
-      flex:1 1 auto;
-      padding:.55rem .6rem;
-      border-radius:.75rem;
-      border:1px solid var(--border);
-      background:#fff;
-      font-weight:1000;
-      cursor:pointer;
-      transition:.12s ease;
-    }
-    .type-btn[data-val="INCOME"].active{
-      border-color: rgba(16,185,129,.35);
-      background: rgba(16,185,129,.10);
-      color:#047857;
-    }
-    .type-btn[data-val="EXPENSE"].active{
-      border-color: rgba(239,68,68,.35);
-      background: rgba(239,68,68,.10);
-      color:#B91C1C;
-    }
-
-    .money-preview{
-      font-weight:1000;
-      font-size:.9rem;
-      color:var(--muted);
-      margin-top:.25rem;
-      text-align:right;
-    }
-
-    .sticky-bar{
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
-      background: rgba(249,250,251,.92);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid var(--border);
-      padding: .8rem 0;
-    }
-    .sticky-inner{
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 1rem;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .totals{
-      display:flex; gap: 1rem; flex-wrap: wrap;
-      font-weight: 1000;
-    }
-    .totals span{ white-space: nowrap; }
-    .totals .in{ color: var(--green); }
-    .totals .ex{ color: var(--red); }
-    .totals .bal{ color: var(--navy); }
-
-    @media (max-width: 860px){
-      .grid{ grid-template-columns: 1fr; }
-      .table thead{ display:none; }
-      .table, .table tbody, .table tr{ display:block; width:100%; }
-      .table tr{ padding:.9rem; border-bottom:1px solid var(--border); }
-      .table td{ display:block; border:0; padding:.35rem 0; }
-      .table td.center, .table td.right{ text-align:left; }
-      .money-preview{ text-align:left; }
-    }
-  </style>
-</head>
-
-<body>
-<div class="wrap">
-  <div class="header">
-    <div>
-      <h1 class="title">회계 내역 추가</h1>
-      <div class="sub">
-        기수/행사를 선택하고, 아래에서 여러 줄을 한 번에 입력할 수 있어요.
-        {% if initial_event_id %}
-          <span style="display:inline-block; margin-left:.35rem; color:var(--navy); font-weight:1000;">
-            (행사 선택됨)
-          </span>
-        {% endif %}
-      </div>
-    </div>
-    <a class="btn ghost" href="{% url 'applications:accounting_main' %}">
-      <i class="fas fa-arrow-left"></i>돌아가기
-    </a>
+{% block content %}
+<header class="page-head page-head--back">
+  <a class="back-btn" href="{% url 'applications:accounting_main' %}" aria-label="뒤로 가기: 회계 장부" title="회계 장부"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
+  <div class="page-head__text">
+    <h1 class="page-title">내역 추가</h1>
+    <p class="page-sub">연도와 행사를 선택한 뒤 여러 건을 한 번에 입력합니다.{% if initial_event_id %} <span class="chip chip--navy">행사 선택됨</span>{% endif %}</p>
   </div>
+</header>
 
-  <form method="post" class="card pad" id="accForm">
-    {% csrf_token %}
+<form method="post" id="accForm" data-busy novalidate>
+  {% csrf_token %}
 
-    <!-- 상단 선택 영역 -->
-    <div class="grid">
-      <div>
-        <label for="budget_year">기수(연도)</label>
+  <div class="panel panel--pad">
+    <div class="grid-2">
+      <div class="field">
+        <label class="field-label" for="budget_year">연도 <span class="req" aria-hidden="true">*</span></label>
         <select id="budget_year" name="budget_year" required>
-          <option value="" disabled {% if not initial_year_id %}selected{% endif %}>기수를 선택하세요</option>
+          <option value="" disabled {% if not initial_year_id %}selected{% endif %}>연도 선택</option>
           {% for y in years %}
-            <option value="{{ y.id }}"
-              {% if initial_year_id and y.id|stringformat:"s" == initial_year_id %}selected{% endif %}>
-              {{ y.year }}년도{% if y.is_active %} (활성){% endif %}
-            </option>
+            <option value="{{ y.id }}" {% if initial_year_id and y.id|stringformat:"s" == initial_year_id %}selected{% endif %}>{{ y.year }}년{% if y.is_active %} (활성){% endif %}</option>
           {% endfor %}
         </select>
       </div>
-
-      <div>
-        <label for="accounting_event">행사(선택)</label>
+      <div class="field">
+        <label class="field-label" for="accounting_event">행사</label>
         <select id="accounting_event" name="accounting_event">
           <option value="">일반(행사 없음)</option>
         </select>
       </div>
     </div>
-
-    <div class="toolbar">
-      <div class="hint">
-        <i class="fas fa-keyboard"></i>
-        팁: 마지막 칸에서 Enter를 누르면 다음 행이 자동으로 추가돼요.
-      </div>
-      <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
-        <button type="button" class="btn outline" id="addRowBtn"><i class="fas fa-plus"></i>행 추가</button>
-        <button type="button" class="btn danger" id="clearBtn"><i class="fas fa-eraser"></i>전체 비우기</button>
-      </div>
-    </div>
-
-    <!-- 입력 테이블 -->
-    <div style="margin-top: .9rem; overflow:auto; border-radius: var(--radius);">
-      <table class="table" id="txTable">
-        <thead>
-          <tr>
-            <th style="width: 140px;">날짜</th>
-            <th>항목명</th>
-            <th style="width: 160px;">카테고리</th>
-            <th style="width: 170px;">금액</th>
-            <th style="width: 180px;">구분</th>
-            <th style="width: 90px;">삭제</th>
-          </tr>
-        </thead>
-        <tbody id="txBody">
-          <!-- JS로 초기 3행 생성 -->
-        </tbody>
-      </table>
-    </div>
-  </form>
-</div>
-
-<!-- 하단 고정 합계/제출 바 -->
-<div class="sticky-bar">
-  <div class="sticky-inner">
-    <div class="totals">
-      <span class="in">총 수입: <span id="sumIncome">0</span>원</span>
-      <span class="ex">총 지출: <span id="sumExpense">0</span>원</span>
-      <span class="bal">잔액: <span id="sumBalance">0</span>원</span>
-    </div>
-
-    <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
-      <button type="button" class="btn ghost" onclick="history.back()">
-        <i class="fas fa-times"></i>취소
-      </button>
-      <button type="submit" form="accForm" class="btn primary">
-        <i class="fas fa-check"></i>저장하기
-      </button>
-    </div>
   </div>
-</div>
 
+  <section class="section" style="margin-top: var(--s-6)">
+    <div class="section-head">
+      <h2 class="section-title">입력할 내역 <span class="count" id="rowCount">0</span></h2>
+      <button type="button" class="btn btn--ghost btn--sm" id="clearBtn"><i class="fa-solid fa-eraser" aria-hidden="true"></i>전체 비우기</button>
+    </div>
+    <div class="panel panel--flush">
+      <div class="tx-head" aria-hidden="true">
+        <span>#</span><span>날짜</span><span>항목명</span><span>카테고리</span><span class="num" style="text-align:left">금액</span><span>구분</span><span></span>
+      </div>
+      <ol class="tx-list" id="txBody"></ol>
+      <div class="tx-toolbar">
+        <button type="button" class="btn btn--secondary" id="addRowBtn"><i class="fa-solid fa-plus" aria-hidden="true"></i>행 추가</button>
+        <span class="tx-hint"><i class="fa-regular fa-keyboard" aria-hidden="true"></i>금액 칸에서 Enter를 누르면 다음 행이 추가됩니다.</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions form-actions--sticky">
+    <div class="tx-totals" aria-live="polite">
+      <span>수입 <b class="ok-text">+<span id="sumIncome">0</span></b></span>
+      <span>지출 <b class="bad-text">−<span id="sumExpense">0</span></b></span>
+      <span class="tx-bal">합계 <b><span id="sumBalance">0</span>원</b></span>
+    </div>
+    <a class="btn btn--ghost" href="{% url 'applications:accounting_main' %}">취소</a>
+    <button type="submit" class="btn btn--primary"><i class="fa-solid fa-check" aria-hidden="true"></i>등록</button>
+  </div>
+</form>
+
+<template id="rowTpl">
+  <li class="tx-row">
+    <div class="tx-row__head">
+      <span class="tx-row__no"></span>
+      <button type="button" class="btn btn--ghost btn--sm btn--icon tx-row__del-mob" data-del aria-label="이 행 삭제"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="field tx-row__name">
+      <label class="field-label">항목명</label>
+      <input type="text" name="item_name[]" placeholder="예) 식자재, 홍보물, 대관료" autocomplete="off">
+    </div>
+    <div class="field tx-row__amt">
+      <label class="field-label">금액(원)</label>
+      <input type="number" name="amount[]" min="0" inputmode="numeric" placeholder="0" class="tnum">
+      <span class="tx-amt-preview" data-preview></span>
+    </div>
+    <div class="field tx-row__type">
+      <span class="field-label">구분</span>
+      <div class="segmented" role="group">
+        <input type="hidden" name="transaction_type[]" value="EXPENSE">
+        <button type="button" data-val="INCOME" aria-pressed="false">수입</button>
+        <button type="button" data-val="EXPENSE" aria-pressed="true">지출</button>
+      </div>
+    </div>
+    <div class="field tx-row__date">
+      <label class="field-label">날짜</label>
+      <input type="date" name="date[]" required>
+    </div>
+    <div class="field tx-row__cat">
+      <label class="field-label">카테고리</label>
+      <input type="text" name="category[]" placeholder="운영 / 행사 / 홍보" autocomplete="off">
+    </div>
+    <input type="hidden" name="description[]" value="">
+    <button type="button" class="btn btn--ghost btn--icon tx-row__del-desk" data-del aria-label="이 행 삭제"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+  </li>
+</template>
+{% endblock %}
+
+{% block javascript %}
 <script>
+(function () {
   const eventsApiUrl = "{% url 'applications:accounting_events_api' %}";
-  const initialYearId = "{{ initial_year_id|default:'' }}";
-  const initialEventId = "{{ initial_event_id|default:'' }}";
+  const initialEventId = "{{ initial_event_id|default:''|escapejs }}";
 
+  const form = document.getElementById('accForm');
   const yearSelect = document.getElementById('budget_year');
   const eventSelect = document.getElementById('accounting_event');
-
   const txBody = document.getElementById('txBody');
-  const addRowBtn = document.getElementById('addRowBtn');
-  const clearBtn = document.getElementById('clearBtn');
-
+  const tpl = document.getElementById('rowTpl');
+  const rowCount = document.getElementById('rowCount');
   const sumIncomeEl = document.getElementById('sumIncome');
   const sumExpenseEl = document.getElementById('sumExpense');
   const sumBalanceEl = document.getElementById('sumBalance');
+  let uid = 0;
 
-  function formatNumber(n){
-    const num = Number(n || 0);
-    return num.toLocaleString('ko-KR');
-  }
-
-  function todayStr(){
+  const fmt = (n) => Number(n || 0).toLocaleString('ko-KR');
+  function todayStr() {
     const d = new Date();
-    const mm = String(d.getMonth()+1).padStart(2,'0');
-    const dd = String(d.getDate()).padStart(2,'0');
-    return `${d.getFullYear()}-${mm}-${dd}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  async function loadEventsByYear(yearId, { keepSelected=false } = {}){
-    const prev = keepSelected ? (eventSelect.value || "") : "";
-    eventSelect.innerHTML = `<option value="">일반(행사 없음)</option>`;
-    if(!yearId) return;
-
-    const url = `${eventsApiUrl}?year_id=${encodeURIComponent(yearId)}`;
-    const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }});
-    if(!res.ok) return;
-
-    const data = await res.json();
-    (data.events || []).forEach(ev => {
-      const opt = document.createElement('option');
-      opt.value = String(ev.id);
-      opt.textContent = `${ev.name} (${ev.date})`;
-      eventSelect.appendChild(opt);
-    });
-
-    // ✅ 우선순위: initialEventId(행사 상세에서 넘어온 경우) > keepSelected(기수만 바꾼 게 아닌 경우)
-    if(initialEventId){
-      eventSelect.value = String(initialEventId);
-      // 해당 기수에 그 이벤트가 없으면 일반으로 떨어짐
-      if(eventSelect.value !== String(initialEventId)) eventSelect.value = "";
-    } else if(prev) {
-      eventSelect.value = prev;
-      if(eventSelect.value !== prev) eventSelect.value = "";
+  async function loadEventsByYear(yearId, { useInitial = false } = {}) {
+    eventSelect.innerHTML = '<option value="">일반(행사 없음)</option>';
+    if (!yearId) return;
+    try {
+      const res = await fetch(`${eventsApiUrl}?year_id=${encodeURIComponent(yearId)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      (data.events || []).forEach(ev => {
+        const opt = document.createElement('option');
+        opt.value = String(ev.id);
+        opt.textContent = `${ev.name} (${+String(ev.date).slice(5, 7)}월 ${+String(ev.date).slice(8, 10)}일)`;
+        eventSelect.appendChild(opt);
+      });
+    } catch (e) {
+      SA.toast('행사 목록을 불러오지 못했습니다.', { type: 'error' });
+      return;
+    }
+    // 행사 상세에서 넘어온 경우 해당 행사를 미리 선택 (없으면 일반)
+    if (useInitial && initialEventId) {
+      eventSelect.value = initialEventId;
+      if (eventSelect.value !== initialEventId) eventSelect.value = "";
     }
   }
 
-  function createTypeToggle(defaultVal="EXPENSE"){
-    const wrap = document.createElement('div');
-    wrap.className = 'type-toggle';
+  function renumber() {
+    const rows = txBody.querySelectorAll('.tx-row');
+    rows.forEach((tr, i) => { tr.querySelector('.tx-row__no').textContent = `#${i + 1}`; });
+    rowCount.textContent = rows.length;
+  }
 
-    const hidden = document.createElement('input');
-    hidden.type = 'hidden';
-    hidden.name = 'transaction_type[]';
-    hidden.value = defaultVal;
+  function recalcTotals() {
+    let income = 0, expense = 0;
+    txBody.querySelectorAll('.tx-row').forEach(tr => {
+      const amt = Number(tr.querySelector('input[name="amount[]"]').value || 0);
+      const typ = tr.querySelector('input[name="transaction_type[]"]').value;
+      if (typ === 'INCOME') income += amt; else if (typ === 'EXPENSE') expense += amt;
+    });
+    sumIncomeEl.textContent = fmt(income);
+    sumExpenseEl.textContent = fmt(expense);
+    sumBalanceEl.textContent = fmt(income - expense).replace('-', '−');
+  }
 
-    const btnIn = document.createElement('button');
-    btnIn.type = 'button';
-    btnIn.className = 'type-btn';
-    btnIn.dataset.val = 'INCOME';
-    btnIn.textContent = '수입';
+  function buildRow(prefillDate) {
+    const tr = tpl.content.firstElementChild.cloneNode(true);
+    const id = ++uid;
+    // unique ids so each visible label points at its input
+    tr.querySelectorAll('.field').forEach(f => {
+      const input = f.querySelector('input:not([type="hidden"])');
+      const label = f.querySelector('label.field-label');
+      if (input && label) { input.id = `tx${id}-${input.name.replace('[]', '')}`; label.htmlFor = input.id; }
+    });
+    const typeGroup = tr.querySelector('.segmented');
+    typeGroup.setAttribute('aria-label', '구분');
 
-    const btnEx = document.createElement('button');
-    btnEx.type = 'button';
-    btnEx.className = 'type-btn';
-    btnEx.dataset.val = 'EXPENSE';
-    btnEx.textContent = '지출';
+    const inputDate = tr.querySelector('input[name="date[]"]');
+    const inputName = tr.querySelector('input[name="item_name[]"]');
+    const inputCat = tr.querySelector('input[name="category[]"]');
+    const inputAmt = tr.querySelector('input[name="amount[]"]');
+    const preview = tr.querySelector('[data-preview]');
+    const hiddenType = tr.querySelector('input[name="transaction_type[]"]');
+    inputDate.value = prefillDate || todayStr();
 
-    function setActive(val){
-      hidden.value = val;
-      btnIn.classList.toggle('active', val === 'INCOME');
-      btnEx.classList.toggle('active', val === 'EXPENSE');
+    function setType(val) {
+      hiddenType.value = val;
+      typeGroup.querySelectorAll('button[data-val]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.val === val)));
       recalcTotals();
     }
-    btnIn.addEventListener('click', () => setActive('INCOME'));
-    btnEx.addEventListener('click', () => setActive('EXPENSE'));
+    typeGroup.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-val]');
+      if (b) setType(b.dataset.val);
+    });
 
-    wrap.appendChild(hidden);
-    wrap.appendChild(btnIn);
-    wrap.appendChild(btnEx);
-
-    setActive(defaultVal);
-    return wrap;
-  }
-
-  function buildRow(prefillDate=todayStr()){
-    const tr = document.createElement('tr');
-
-    // 날짜
-    const tdDate = document.createElement('td');
-    tdDate.className = 'center';
-    const inputDate = document.createElement('input');
-    inputDate.className = 'row-input';
-    inputDate.type = 'date';
-    inputDate.name = 'date[]';
-    inputDate.value = prefillDate;
-    inputDate.required = true;
-    tdDate.appendChild(inputDate);
-
-    // 항목명
-    const tdName = document.createElement('td');
-    const inputName = document.createElement('input');
-    inputName.className = 'row-input';
-    inputName.type = 'text';
-    inputName.name = 'item_name[]';
-    inputName.placeholder = '예) 식자재 / 홍보물 / 대관료...';
-    tdName.appendChild(inputName);
-
-    // 카테고리
-    const tdCat = document.createElement('td');
-    tdCat.className = 'center';
-    const inputCat = document.createElement('input');
-    inputCat.className = 'row-input';
-    inputCat.type = 'text';
-    inputCat.name = 'category[]';
-    inputCat.placeholder = '예) 운영 / 행사 / 홍보';
-    tdCat.appendChild(inputCat);
-
-    // 금액
-    const tdAmt = document.createElement('td');
-    tdAmt.className = 'right';
-    const inputAmt = document.createElement('input');
-    inputAmt.className = 'row-input';
-    inputAmt.type = 'number';
-    inputAmt.name = 'amount[]';
-    inputAmt.min = '0';
-    inputAmt.placeholder = '0';
-    inputAmt.inputMode = 'numeric';
-    const preview = document.createElement('div');
-    preview.className = 'money-preview';
-    preview.textContent = '0원';
     inputAmt.addEventListener('input', () => {
-      preview.textContent = `${formatNumber(inputAmt.value)}원`;
+      preview.textContent = inputAmt.value ? `${fmt(inputAmt.value)}원` : '';
       recalcTotals();
     });
-    tdAmt.appendChild(inputAmt);
-    tdAmt.appendChild(preview);
 
-    // 구분 토글
-    const tdType = document.createElement('td');
-    tdType.className = 'center';
-    const typeToggle = createTypeToggle('EXPENSE');
-    tdType.appendChild(typeToggle);
-
-    // 상세내용(서버 name 맞추기용 hidden)
-    const hiddenDesc = document.createElement('input');
-    hiddenDesc.type = 'hidden';
-    hiddenDesc.name = 'description[]';
-    hiddenDesc.value = '';
-    tr.appendChild(hiddenDesc);
-
-    // 삭제
-    const tdDel = document.createElement('td');
-    tdDel.className = 'center';
-    const delBtn = document.createElement('button');
-    delBtn.type = 'button';
-    delBtn.className = 'btn danger';
-    delBtn.style.padding = '.55rem .7rem';
-    delBtn.innerHTML = `<i class="fas fa-trash"></i>`;
-    delBtn.addEventListener('click', () => {
+    tr.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => {
       tr.remove();
-      recalcTotals();
       ensureAtLeastOneRow();
-    });
-    tdDel.appendChild(delBtn);
+      renumber();
+      recalcTotals();
+    }));
 
-    // Enter로 마지막 필드에서 다음 행 추가
+    // Enter: 다음 칸으로, 마지막 칸(금액)에서는 새 행 추가
     const focusables = [inputDate, inputName, inputCat, inputAmt];
     focusables.forEach((el, idx) => {
       el.addEventListener('keydown', (e) => {
-        if(e.key === 'Enter'){
-          e.preventDefault();
-          if(idx < focusables.length - 1){
-            focusables[idx+1].focus();
-          }else{
-            const newRow = addRow();
-            newRow.querySelector('input[name="item_name[]"]').focus();
-          }
-        }
+        if (e.key !== 'Enter' || e.isComposing) return;
+        e.preventDefault();
+        if (idx < focusables.length - 1) focusables[idx + 1].focus();
+        else addRow(inputDate.value).querySelector('input[name="item_name[]"]').focus();
       });
     });
-
-    tr.appendChild(tdDate);
-    tr.appendChild(tdName);
-    tr.appendChild(tdCat);
-    tr.appendChild(tdAmt);
-    tr.appendChild(tdType);
-    tr.appendChild(tdDel);
-
     return tr;
   }
 
-  function addRow(){
-    const row = buildRow();
+  function addRow(prefillDate) {
+    const row = buildRow(prefillDate);
     txBody.appendChild(row);
+    renumber();
     recalcTotals();
     return row;
   }
+  function ensureAtLeastOneRow() { if (!txBody.querySelector('.tx-row')) addRow(); }
 
-  function ensureAtLeastOneRow(){
-    if(txBody.querySelectorAll('tr').length === 0){
-      addRow();
-    }
-  }
+  yearSelect.addEventListener('change', () => loadEventsByYear(yearSelect.value));
 
-  function recalcTotals(){
-    let income = 0;
-    let expense = 0;
-
-    txBody.querySelectorAll('tr').forEach(tr => {
-      const amtInput = tr.querySelector('input[name="amount[]"]');
-      const typeInput = tr.querySelector('input[type="hidden"][name="transaction_type[]"]');
-
-      const amt = Number(amtInput?.value || 0);
-      const typ = typeInput?.value;
-
-      if(typ === 'INCOME') income += amt;
-      else if(typ === 'EXPENSE') expense += amt;
-    });
-
-    sumIncomeEl.textContent = formatNumber(income);
-    sumExpenseEl.textContent = formatNumber(expense);
-    sumBalanceEl.textContent = formatNumber(income - expense);
-  }
-
-  // ✅ 기수 변경 시 행사 목록 갱신 (initialEventId는 이때는 무시하고 싶으니 한번 비움)
-  yearSelect.addEventListener('change', async () => {
-    // 사용자가 기수를 바꾸는 순간부터는 "initialEventId" 고정은 UX를 방해함 → 일반으로 초기화
-    // (페이지 로드 시에만 initialEventId를 쓰기 위해 지역변수로 처리)
-    await loadEventsByYear(yearSelect.value);
+  document.getElementById('addRowBtn').addEventListener('click', () => {
+    const last = txBody.querySelector('.tx-row:last-child input[name="date[]"]');
+    addRow(last && last.value).querySelector('input[name="item_name[]"]').focus();
   });
 
-  addRowBtn.addEventListener('click', () => {
-    const r = addRow();
-    r.querySelector('input[name="item_name[]"]').focus();
-  });
-
-  clearBtn.addEventListener('click', () => {
-    if(!confirm('입력 중인 행을 모두 비울까요?')) return;
+  document.getElementById('clearBtn').addEventListener('click', async () => {
+    const ok = await SA.confirm({ title: '입력 중인 행을 모두 비우시겠습니까?', message: '저장하지 않은 입력이 모두 사라집니다.', confirmText: '비우기', danger: true });
+    if (!ok) return;
     txBody.innerHTML = '';
-    for(let i=0;i<3;i++) addRow();
+    for (let i = 0; i < 3; i++) addRow();
   });
 
-  // 제출 전: 항목명 없는 행 제거
-  document.getElementById('accForm').addEventListener('submit', () => {
-    const rows = Array.from(txBody.querySelectorAll('tr'));
-    rows.forEach(tr => {
-      const name = tr.querySelector('input[name="item_name[]"]')?.value?.trim();
-      if(!name){
-        tr.remove();
-      }
-    });
-    ensureAtLeastOneRow();
+  // 제출 전: 항목명 없는 행 제거 + 필수값 확인 (서버는 인덱스 기준으로 date/amount/... 를 짝지음)
+  form.addEventListener('submit', (e) => {
+    if (!yearSelect.value) {
+      e.preventDefault();
+      SA.toast('연도를 선택해 주십시오.', { type: 'error' });
+      yearSelect.focus();
+      return;
+    }
+    const named = Array.from(txBody.querySelectorAll('.tx-row')).filter(tr => tr.querySelector('input[name="item_name[]"]').value.trim());
+    if (!named.length) {
+      e.preventDefault();
+      SA.toast('항목명을 한 건 이상 입력해 주십시오.', { type: 'error' });
+      txBody.querySelector('input[name="item_name[]"]').focus();
+      return;
+    }
+    for (const tr of named) {
+      const amt = tr.querySelector('input[name="amount[]"]');
+      const date = tr.querySelector('input[name="date[]"]');
+      if (!date.value) { e.preventDefault(); SA.toast('날짜를 입력해 주십시오.', { type: 'error' }); date.focus(); return; }
+      if (amt.value === '' || Number(amt.value) < 0) { e.preventDefault(); SA.toast('금액을 입력해 주십시오.', { type: 'error' }); amt.focus(); return; }
+    }
+    txBody.querySelectorAll('.tx-row').forEach(tr => { if (!named.includes(tr)) tr.remove(); });
+    renumber();
     recalcTotals();
   });
 
-  // 초기 3행
-  for(let i=0;i<3;i++) addRow();
-  recalcTotals();
-
-  // ✅ 페이지 로드 시: 초기 기수 선택값 기준으로 행사 목록 로드 + initialEventId 자동 선택
-  window.addEventListener('DOMContentLoaded', async () => {
-    if(yearSelect.value){
-      await loadEventsByYear(yearSelect.value, { keepSelected: false });
-    }
-  });
+  for (let i = 0; i < 3; i++) addRow();
+  if (yearSelect.value) loadEventsByYear(yearSelect.value, { useInitial: true });
+})();
 </script>
-</body>
-</html>
+{% endblock %}

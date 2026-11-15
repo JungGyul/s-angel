@@ -1,678 +1,250 @@
-<!DOCTYPE html> 
-<html lang="ko">
- <head>
- <meta charset="UTF-8"> 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>관리자 페이지</title> 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-{% load static %}
+{% extends "layouts/app.html" %}
 
+{% block title %}부원 관리{% endblock %}
+{% block page_title %}관리{% endblock %}
+{% block page_class %}page page--wide{% endblock %}
+
+{% block css %}
 <style>
-  :root{
-    --navy:#1E3A8A;
-    --navy2:#312E81;
-    --bg:#F9FAFB;
-    --card:#FFFFFF;
-    --border:#E5E7EB;
-    --text:#0F172A;
-    --muted:#64748B;
-    --danger:#EF4444;
-    --dangerBg:#FEF2F2;
-    --shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
-    --ring: 0 0 0 3px rgba(30,58,138,.18);
-    --radius: 16px;
-  }
-
-  /* ✅ iOS Safari에서 가로 튐/줌/레이아웃 깨짐 방지 핵심 */
-  html, body { max-width: 100%; overflow-x: hidden; }
-  *{ box-sizing:border-box; }
-  img, svg{ max-width:100%; height:auto; }
-  input, select, textarea, button { font: inherit; }
-  input, select, textarea { min-width:0; }
-  /* iOS zoom 방지(폼 포커스 시 확대) - 필요하면 16px 이상 */
-  .search-input, .gen-select, .form-control, .form-select{ font-size:16px; }
-
-  .admin-page{
-    background: radial-gradient(1200px 500px at 25% -10%, rgba(30,58,138,.08), transparent 60%),
-                radial-gradient(900px 400px at 90% 0%, rgba(49,46,129,.06), transparent 55%),
-                var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 1.8rem 0;
-  }
-
-  .admin-wrap{
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem;
-  }
-
-  .page-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap: 1rem;
-    padding-bottom: 1.25rem;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 1.5rem;
-  }
-
-  .page-title{
-    margin:0;
-    font-weight: 1000;
-    font-size: 1.9rem;
-    letter-spacing: -0.02em;
-    border-left: 5px solid var(--navy);
-    padding-left: .9rem;
-    line-height: 1.15;
-  }
-
-  .header-actions{
-    display:flex;
-    gap: .65rem;
-    flex-wrap: wrap;
-    align-items:center;
-  }
-
-  /* ✅ 버튼(부트스트랩 없어도 보기 유지) */
-  .btn-pill{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:.45rem;
-    padding: .7rem 1rem;
-    border-radius: 14px;
-    font-weight: 600;
-    text-decoration:none;
-    border: 1px solid var(--border);
-    background: #fff;
-    color: var(--text);
-    cursor: pointer;
-    transition: .15s ease;
-    white-space: nowrap;
-    user-select:none;
-    line-height: 1;
-  }
-  .btn-pill:hover{ background:#F1F5F9; }
-
-  /* ✅ (수정본) 회계 장부 버튼 hover 깜빡임 완화 */
-  .btn-primary{
-    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
-    color:#fff;
-    border: none;
-    box-shadow: 0 12px 20px rgba(30,58,138,.22);
-    transition: filter .15s ease, transform .15s ease, box-shadow .15s ease; /* ✅ 명시 */
-    will-change: filter, transform; /* ✅ 사파리에서 깜빡임 완화 */
-  }
-  .btn-primary:hover{
-    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%); /* ✅ 유지 */
-    filter: brightness(.97);
-    transform: translateY(-1px);
-    box-shadow: 0 14px 24px rgba(30,58,138,.26);
-  }
-
-  /* ✅ 알림(기존 누락된 custom-alert 복구) */
-  .custom-alert{
-    display:flex;
-    align-items:center;
-    gap:.75rem;
-    padding: .95rem 1rem;
-    border: 1px solid var(--border);
-    border-left: 5px solid var(--navy);
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    margin-bottom: 1rem;
-    color: #334155;
-    font-weight: 600;
-  }
-  .custom-alert i{
-    color: var(--navy);
-    font-size: 1.15rem;
-  }
-
-  .grid{
-    display:grid;
-    grid-template-columns: 5fr 7fr;
-    gap: 1rem;
-  }
-
-  .card{
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow:hidden;
-  }
-
-  .card-head{
-    padding: 1rem 1.25rem;
-    background: #F8FAFC;
-    border-bottom: 1px solid var(--border);
-    font-weight: 600;
-    color: #334155;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:.75rem;
-  }
-
-  .card-body{
-    padding: 1rem 1.25rem;
-  }
-
-  .badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding: .25rem .6rem;
-    border-radius: 999px;
-    font-weight: 600;
-    font-size: .82rem;
-    border: 1px solid var(--border);
-    background: #fff;
-    color: #334155;
-    white-space: nowrap;
-  }
-  .badge-danger{
-    border-color: rgba(239,68,68,.25);
-    background: rgba(239,68,68,.08);
-    color: #B91C1C;
-  }
-  .badge-gray{
-    background: #fff;
-    color: #334155;
-  }
-
-  .user-item{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap: 1rem;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .user-item:last-child{ border-bottom: none; }
-
-  .user-details strong{
-    font-size: 1.02rem;
-    font-weight: 700;
-    color: #0F172A;
-  }
-  .user-details small{
-    color: var(--muted);
-    font-weight: 600;
-    display:block;
-    margin-top: .25rem;
-  }
-
-  .user-details-link{
-    text-decoration:none;
-    color: inherit;
-  }
-  .user-details-link:hover strong{
-    color: var(--navy);
-    text-decoration: underline;
-  }
-
-  .btn-mini{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:.4rem;
-    padding: .45rem .75rem;
-    border-radius: 10px;
-    font-weight: 600;
-    border: 1px solid var(--border);
-    background: #fff;
-    cursor:pointer;
-    transition:.15s ease;
-    white-space: nowrap;
-    line-height: 1;
-    color: var(--text);
-  }
-  .btn-mini:hover{ background:#F1F5F9; }
-
-  .btn-danger{
-    background: var(--dangerBg);
-    border: 1px solid rgba(239,68,68,.25);
-    color: #B91C1C;
-  }
-  .btn-danger:hover{
-    background: rgba(239,68,68,.12);
-  }
-
-  /* ✅ 검색/필터 */
-  .filter-bar{
-    display:flex;
-    gap: .75rem;
-    margin-bottom: 1rem;
-    align-items: stretch;
-  }
-
-  .search-form{ position:relative; flex: 1 1 auto; }
-  .search-icon{
-    position:absolute;
-    left: .9rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    pointer-events:none;
-  }
-  .search-input{
-    width:100%;
-    padding: .75rem 1rem .75rem 2.5rem;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background:#fff;
-    font-weight: 500;
-    color:#0F172A;
-  }
-  .search-input:focus{
-    outline:none;
-    box-shadow: var(--ring);
-    border-color: rgba(30,58,138,.5);
-  }
-
-  .gen-select{
-    width: 160px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 0 .9rem;
-    background:#fff;
-    font-weight: 500;
-    color:#0F172A;
-    /* iOS select 튐 방지 */
-    max-width: 100%;
-  }
-  .gen-select:focus{
-    outline:none;
-    box-shadow: var(--ring);
-    border-color: rgba(30,58,138,.5);
-  }
-
-  /* ✅ 가중치 폼 */
-  .weight-form{
-    display:flex;
-    align-items:center;
-    gap: .6rem;
-    flex-wrap: wrap;
-    margin-top: .6rem;
-  }
-  .weight-form label{
-    color: var(--muted);
-    font-weight: 600;
-    font-size: .85rem;
-  }
-  .weight-input{
-    width: 82px;
-    padding: .5rem .6rem;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-weight: 600;
-  }
-  .weight-input:focus{
-    outline:none;
-    box-shadow: var(--ring);
-    border-color: rgba(30,58,138,.5);
-  }
-
-  /* ✅ 모바일 */
-  @media (max-width: 992px){
-    .grid{ grid-template-columns: 1fr; }
-  }
-
-  /* ✅ 모바일 환경 수정본 */
-  @media (max-width: 768px){
-    .admin-page{ padding: 1.1rem 0; }
-    .page-title{ font-size: 1.35rem; }
-
-    .page-header{
-      flex-direction: column;
-      align-items: flex-start;
-      gap: .85rem;
-    }
-
-    .header-actions{
-      width: 100%;
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .btn-pill{ width: 100%; }
-
-    .filter-bar{
-      flex-direction: column;
-      gap: .6rem;
-    }
-    .gen-select{
-      width: 100%;
-      height: 46px;
-    }
-
-    .user-item{
-      flex-direction: column;
-      align-items: stretch;
-      gap: 1rem;
-      position: relative;
-    }
-
-    /* 가중치 폼 레이아웃 최적화 */
-    .weight-form {
-    display: flex;
-    flex-wrap: nowrap; /* 요소들이 한 줄에 유지되도록 */
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.4rem; /* 간격을 살짝 줄임 */
-    width: 100%;
-    margin-top: 0.6rem;
-  }
-
-  .weight-input {
-    width: 60px !important; /* 입력창 폭을 더 줄임 */
-    flex: 0 0 60px !important;
-    height: 36px;
-    padding: 0.4rem !important; /* 내부 여백 축소 */
-    font-size: 14px;
-  }
-
-  .weight-form label {
-    flex-shrink: 0;
-    font-size: 0.8rem;
-    margin-right: 2px;
-  }
-
-  /* 수정 버튼 최적화 */
-  .weight-form .btn-mini {
-    flex: 0 0 auto;
-    white-space: nowrap; 
-    padding: 0.4rem 0.6rem !important;
-    height: 36px;
-    font-size: 13px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-
-    /* ▼▼▼ 글자 색상을 명시적으로 고정 (다크 네이비) ▼▼▼ */
-    background: #ffffff !important; /* 배경을 확실하게 흰색으로 */
-    color: var(--text) !important;  /* 글자색을 테마 텍스트색(#0F172A)으로 고정 */
-    border: 1px solid var(--border) !important;
-  }
-
-  /* 아이콘 색상도 함께 고정 */
-  .weight-form .btn-mini i {
-    color: var(--text) !important;
-    font-size: 0.75rem;
-    margin-right: 2px !important;
-  }
-    /* 삭제 버튼 위치 조정 (우측 상단 또는 하단 적절히) */
-    .user-item > div:last-child {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 0.2rem;
-    }
-    
-    .btn-danger {
-        width: 100%; /* 모바일에서 삭제 버튼을 넓게 쓰려면 유지, 아니면 auto */
-        justify-content: center;
-    }
-    /* ✅ 모바일에서는 grid를 세로 스택으로 강제 (잘림/밀림 방지 + 위로 올라감) */
-  .grid{
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* ✅ 가입 승인 대기를 항상 제일 위로 */
-  .card-pending{
-    order: -1;
-  }
-
-  /* ✅ 가로로 커지면서 레이아웃 밀어내는 요소들 차단 */
-  .card, .user-item, .user-details, .card-body{
-    min-width: 0;
-  }
-
-  /* ✅ 긴 이름/아이디가 있어도 줄바꿈되게 해서 가로 overflow 방지 */
-  .user-details,
-  .user-details strong,
-  .user-details small{
-    overflow-wrap: anywhere;
-    word-break: break-word;
-  }
-
-  /* ✅ 버튼 영역도 가로 강제 확장 방지 */
-  .user-item > div{
-    min-width: 0;
-  }
-
-    
-  }
-
-  /* ✅ 아이콘 margin 클래스(me-2 등) 없이도 정렬 깨지지 않게 */
-  .btn-pill i, .btn-mini i{ margin: 0 !important; }
-</style>
- </head>
- <body>
-<div class="admin-page">
-  <div class="admin-wrap">
-
-    <header class="page-header">
-      <h1 class="page-title"><i class="fas fa-user-cog"></i> 관리자 페이지</h1>
-
-      <div class="header-actions">
-        <a href="{% url 'applications:accounting_main' %}" class="btn-pill btn-primary">
-          <i class="fas fa-calculator"></i>회계 장부 관리
-        </a>
-        <a href="{% url 'applications:dashboard' %}" class="btn-pill">
-          <i class="fas fa-arrow-left"></i>대시보드
-        </a>
-      </div>
-    </header>
-
-    {% if messages %}
-      {% for message in messages %}
-        <div class="custom-alert" role="alert">
-          <i class="fas fa-check-circle"></i>
-          <span>{{ message }}</span>
-        </div>
-      {% endfor %}
-    {% endif %}
-
-    <div class="grid">
-
-      <!-- 가입 승인 대기 -->
-      <section class="card card-pending">
-        <div class="card-head">
-          <div>
-            <i class="fas fa-user-clock"></i>
-            가입 승인 대기
-          </div>
-          <span class="badge badge-danger">{{ pending_users.count }} 명</span>
-        </div>
-
-        <div class="card-body">
-          {% for p_user in pending_users %}
-            <div class="user-item">
-              <div class="user-details">
-                <strong>{{ p_user.name }}</strong> ({{ p_user.username }})
-                <small>신청: {{ p_user.date_joined|date:"Y.m.d" }}</small>
-              </div>
-
-              <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-                <form action="{% url 'applications:approve_user' p_user.id %}" method="post" style="margin:0;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn-mini">
-                    <i class="fas fa-check"></i>승인
-                  </button>
-                </form>
-
-                <form action="{% url 'applications:reject_user' p_user.id %}" method="post"
-                      onsubmit="return confirm('정말로 {{ p_user.username }} 님의 가입을 거절하시겠습니까?');"
-                      style="margin:0;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn-mini btn-danger">
-                    <i class="fas fa-times"></i>거절
-                  </button>
-                </form>
-              </div>
-            </div>
-          {% empty %}
-            <div style="padding:1.25rem 0; color:var(--muted); font-weight:600; text-align:center;">
-              승인 대기중인 사용자가 없습니다.
-            </div>
-          {% endfor %}
-        </div>
-      </section>
-
-      <!-- 사용자 관리 -->
-      <section class="card">
-        <div class="card-head">
-          <div>
-            <i class="fas fa-users"></i>
-            사용자 관리
-          </div>
-          <span class="badge badge-gray">{{ active_users.count }} 명</span>
-        </div>
-
-        <div class="card-body">
-
-          <div class="filter-bar">
-            <form method="get" action="{% url 'applications:admin_page' %}" class="search-form" id="searchForm">
-              <i class="fas fa-search search-icon"></i>
-              <input type="text" name="q" class="search-input" placeholder="사용자 아이디 또는 이름으로 검색"
-                     value="{{ search_query|default_if_none:'' }}">
-              <input type="hidden" name="gen" value="{{ gen_filter|default_if_none:'' }}">
-            </form>
-
-            <select class="gen-select" id="genSelect">
-              <option value="">전체 기수</option>
-              {% for g in generations %}
-                <option value="{{ g }}" {% if gen_filter == g|stringformat:"i" %}selected{% endif %}>{{ g }}기</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          {% for a_user in active_users %}
-            <div class="user-item">
-              <div style="flex:1 1 auto;">
-                <div class="user-details">
-                  <a href="{% url 'applications:update_user_info' a_user.id %}" class="user-details-link">
-                    <strong>{{ a_user.name }}</strong>
-                  </a>
-                  <span style="color:var(--muted); font-weight:450; margin-left:.35rem;">({{ a_user.username }}, {{ a_user.generation }}기)</span>
-                  {% if a_user.is_staff %}
-                    <span class="badge" style="margin-left:.5rem; border-color: rgba(59,130,246,.25); background: rgba(59,130,246,.08); color:#1D4ED8;">Admin</span>
-                  {% endif %}
-
-                  <!-- ✅ (수정본) 회계열람 토글 시 확인 메시지 -->
-                  <form action="{% url 'applications:toggle_accounting_permission' a_user.id %}"
-                        method="post"
-                        onsubmit="return confirm('{% if a_user.can_view_accounting %}회계 열람을 차단할까요?{% else %}회계 열람을 허용할까요?{% endif %}');"
-                        style="display:inline-block; margin-left:.5rem;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-mini"
-                            style="
-                              border-radius:999px;
-                              padding:.38rem .65rem;
-                              font-size:.85rem;
-                              border: 1px solid var(--border);
-                              background: {% if a_user.can_view_accounting %}rgba(16,185,129,.10){% else %}#fff{% endif %};
-                              color: {% if a_user.can_view_accounting %}#047857{% else %}#475569{% endif %};
-                            ">
-                      <i class="fas {% if a_user.can_view_accounting %}fa-eye{% else %}fa-eye-slash{% endif %}"></i>
-                      회계열람 {% if a_user.can_view_accounting %}허용{% else %}차단{% endif %}
-                    </button>
-                  </form>
-                </div>
-
-                <form action="{% url 'applications:update_user_weight' a_user.id %}" method="post" class="weight-form">
-                  {% csrf_token %}
-                  <label for="weight-{{ a_user.id }}">가중치</label>
-                  <input id="weight-{{ a_user.id }}" type="number" name="weight" value="{{ a_user.weight }}"
-                         class="weight-input" min="1" inputmode="numeric">
-                  <button type="submit" class="btn-mini">
-                    <i class="fas fa-pencil-alt"></i>수정
-                  </button>
-                </form>
-              </div>
-
-              <div>
-                {% if not a_user.is_staff %}
-                  <form action="{% url 'applications:delete_user' a_user.id %}" method="post"
-                        onsubmit="return confirm('정말로 {{ a_user.username }} 사용자를 삭제하시겠습니까?');"
-                        style="margin:0;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-mini btn-danger" title="삭제">
-                      <i class="fas fa-trash-alt"></i>삭제
-                    </button>
-                  </form>
-                {% endif %}
-              </div>
-            </div>
-          {% empty %}
-            <div style="padding:1.25rem 0; color:var(--muted); font-weight:600; text-align:center;">
-              {% if search_query %}
-                '{{ search_query }}'에 대한 검색 결과가 없습니다.
-              {% else %}
-                활성 사용자가 없습니다.
-              {% endif %}
-            </div>
-          {% endfor %}
-        </div>
-      </section>
-
-        <!-- 회계 시스템 관리 -->
-      <section class="card" style="margin-bottom: 1.5rem; grid-column: span 2;">
-  <div class="card-head" style="background: var(--navy); color: white;">
-    <div>
-      <i class="fas fa-file-invoice-dollar"></i>
-      회계 시스템 관리 (기수 및 장부)
-    </div>
-    <span class="badge" style="color: white; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1);">Master Control</span>
-  </div>
-
-  <div class="card-body" style="display: flex; gap: 2rem; flex-wrap: wrap;">
-    
-    <div style="flex: 1; min-width: 300px;">
-  <h4 style="margin-bottom: 1rem; font-size: 1rem;"><i class="fas fa-plus-circle"></i> 새 회계 연도 생성</h4>
+  .admin-grid { display: grid; gap: var(--s-6); grid-template-columns: 1fr; }
   
-  <form action="{% url 'applications:create_budget_year' %}" method="post" class="filter-bar" 
-        style="flex-direction: column;"
-        onsubmit="return confirm('새로운 회계 기수를 생성하시겠습니까?\n생성 시 기존에 활성화된 기수는 자동으로 비활성화됩니다.');">
-    
-    {% csrf_token %}
-    <input type="number" name="year" class="search-input" placeholder="연도 입력 (예: 2026)" 
-           required style="margin-bottom: 0.5rem; padding-left: 1rem;">
-    
-    <div style="display: flex; gap: 0.5rem;">
-      <button type="submit" class="btn-pill btn-primary" style="flex: 1; justify-content: center;">
-        <i class="fas fa-save"></i> 기수 생성 및 활성화
-      </button>
-    </div>
-  </form>
-</div>
+  .admin-grid .section { margin-top: 0; }
 
+  .member { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 12px; padding: 14px var(--s-5); align-items: center; }
+  .member + .member { border-top: 1px solid var(--line); }
+  .member__name { font-weight: 700; color: var(--text); text-decoration: none; }
+  .member__name:hover { color: var(--accent); }
+  .member__meta { font-size: var(--fs-sm); color: var(--text-3); }
+  .member__chips { display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: 1px; }
+  .member__controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+  .member__controls > form { margin: 0; }
+  @media (min-width: 720px) {
+    .member { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .member__controls { grid-column: auto; justify-content: flex-end; }
+  }
+  .weight-form { display: inline-flex; align-items: center; gap: 4px; padding: 3px 3px 3px 12px; border-radius: var(--r-pill); background: var(--surface-sunken); border: 1px solid var(--line); }
+  .weight-form label { font-size: var(--fs-xs); font-weight: 700; color: var(--text-3); }
+  .weight-form .stepper { border: 0; background: transparent; }
+  .member { transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out); }
+  .is-removing { opacity: 0; transform: translateX(16px); }
+  .member__controls > form { display: inline-flex; }
+  .member__controls > .delete-user-form { margin-left: auto; }
+  @media (max-width: 639px) {
+    .member__controls { gap: 4px; }
+    .weight-form label { display: none; }
+    .weight-form { padding-left: 2px; }
+    .switch__label { display: none; }
+    .switch::after { content: "회계"; font-size: var(--fs-xs); color: inherit; white-space: nowrap; }
+  }
+  a.member__name { display: inline-flex; align-items: center; min-height: 44px; }
+  .del-btn { color: var(--text-3); }
+  .del-btn:hover { color: var(--bad-text); background: var(--bad-soft); }
+  /* iOS-style switch */
+  .switch { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 6px; border: 0; background: none; cursor: pointer; font: inherit; color: var(--text-2); font-size: var(--fs-sm); font-weight: 650; }
+  .switch__track { position: relative; width: 44px; height: 26px; border-radius: 999px; background: #e5e7eb; box-shadow: inset 0 0 0 1px rgba(15,23,42,0.06); transition: background 200ms ease; }
+  .switch__thumb { position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(15,23,42,0.25); transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .switch[aria-checked="true"] .switch__track { background: var(--accent); }
+  .switch[aria-checked="true"] .switch__thumb { transform: translateX(18px); }
+  .switch[aria-checked="true"] .switch__label { color: var(--accent); }
+  .switch:active .switch__thumb { width: 26px; }
+  .switch[aria-busy="true"] { opacity: 0.6; pointer-events: none; }
+
+  .pending-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); padding: 14px var(--s-5); }
+  .pending-row + .pending-row { border-top: 1px solid var(--line); }
+  .pending-row .list-row__main { flex: 1 1 160px; }
+  .pending-row .btn-row { flex: 1 1 auto; justify-content: flex-end; }
+  @media (max-width: 479px) { .pending-row .btn-row .btn { flex: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div class="page-head__text">
+    <h1 class="page-title">부원 관리</h1>
+    <p class="page-sub">가입 승인 · 추첨 가중치 · 회계 열람 권한</p>
   </div>
-</section>
+</header>
 
-    </div>
+<div class="admin-grid">
+  <div class="stack stack--lg">
+    {# ---------- pending approvals ---------- #}
+    {% with pc=pending_users.count %}
+    <section class="section" aria-labelledby="pending-title">
+      <div class="section-head">
+        <h2 class="section-title" id="pending-title">가입 승인 대기 <span class="count" data-pending-count>{{ pc }}</span></h2>
+      </div>
+      <div class="panel panel--flush">
+        {% for p_user in pending_users %}
+        <div class="pending-row" data-pending="{{ p_user.id }}">
+          <span class="avatar" aria-hidden="true">{{ p_user.name|default:p_user.username|slice:":1" }}</span>
+          <div class="list-row__main">
+            <div class="list-row__title">{{ p_user.name|default:"(이름 없음)" }}</div>
+            <div class="list-row__meta">{{ p_user.username }}{% if p_user.generation %} · {{ p_user.generation }}기{% endif %} · {{ p_user.date_joined|date:"n월 j일" }} 신청</div>
+          </div>
+          <div class="btn-row">
+            <form action="{% url 'applications:reject_user' p_user.id %}" method="post" class="pending-form"
+                  data-confirm-title="{{ p_user.name|default:p_user.username }}님의 가입을 거절하시겠습니까?"
+                  data-confirm="가입 신청 정보가 삭제됩니다." data-confirm-ok="거절" data-danger>
+              {% csrf_token %}
+              <button type="submit" class="btn btn--danger-ghost btn--sm">거절</button>
+            </form>
+            <form action="{% url 'applications:approve_user' p_user.id %}" method="post" class="pending-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn--primary btn--sm"><i class="fa-solid fa-check" aria-hidden="true"></i>승인</button>
+            </form>
+          </div>
+        </div>
+        {% empty %}
+        <div class="empty" style="padding-block: var(--s-6)">
+          <div class="empty__icon"><i class="fa-solid fa-user-check" aria-hidden="true"></i></div>
+          <p class="empty__title">대기 중인 가입 신청이 없습니다</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endwith %}
+
+    {# ---------- members ---------- #}
+    <section class="section" aria-labelledby="members-title">
+      <div class="section-head">
+        <h2 class="section-title" id="members-title">부원 <span class="count" data-member-count>{{ active_users.count }}</span></h2>
+      </div>
+
+      <form method="get" action="{% url 'applications:admin_page' %}" class="toolbar" id="searchForm" role="search">
+        <label class="input-affix grow">
+          <span class="sr-only">이름 또는 아이디 검색</span>
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input type="search" name="q" class="input" placeholder="이름 또는 아이디" value="{{ search_query|default_if_none:'' }}" enterkeyhint="search">
+        </label>
+        <label>
+          <span class="sr-only">기수</span>
+          <select name="gen" class="select" id="genSelect">
+            <option value="">전체 기수</option>
+            {% for g in generations %}
+              <option value="{{ g }}" {% if gen_filter == g|stringformat:"i" %}selected{% endif %}>{{ g }}기</option>
+            {% endfor %}
+          </select>
+        </label>
+      </form>
+
+      <div class="panel panel--flush">
+        {% for a_user in active_users %}
+        <div class="member" data-member="{{ a_user.id }}">
+          <span class="avatar" aria-hidden="true">{{ a_user.name|default:a_user.username|slice:":1" }}</span>
+          <div style="min-width:0">
+            <a class="member__name" href="{% url 'applications:update_user_info' a_user.id %}">{{ a_user.name|default:a_user.username }}</a>
+            <span class="member__chips">
+              {% if a_user.is_staff %}<span class="chip chip--staff chip--plain">운영진</span>{% endif %}
+            </span>
+            <div class="member__meta">{{ a_user.username }} · {{ a_user.generation }}기{% if a_user.gender %} · {% if a_user.gender == "M" %}남{% else %}여{% endif %}{% endif %}</div>
+          </div>
+          <div class="member__controls">
+            <form action="{% url 'applications:update_user_weight' a_user.id %}" method="post" class="weight-form">
+              {% csrf_token %}
+              <label for="weight-{{ a_user.id }}">가중치</label>
+              <span class="stepper">
+                <button type="button" data-step="-1" aria-label="가중치 1 감소"><i class="fa-solid fa-minus" aria-hidden="true"></i></button>
+                <input id="weight-{{ a_user.id }}" type="number" name="weight" value="{{ a_user.weight }}" min="1" inputmode="numeric">
+                <button type="button" data-step="1" aria-label="가중치 1 증가"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
+              </span>
+              <button type="submit" class="btn btn--primary btn--sm weight-save" hidden>저장</button>
+            </form>
+            <form action="{% url 'applications:toggle_accounting_permission' a_user.id %}" method="post" class="acct-form">
+              {% csrf_token %}
+              <button type="submit" class="switch" role="switch" aria-checked="{% if a_user.can_view_accounting %}true{% else %}false{% endif %}">
+                <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+                <span class="switch__label">회계 열람</span>
+              </button>
+            </form>
+            {% if not a_user.is_staff %}
+            <form action="{% url 'applications:delete_user' a_user.id %}" method="post" class="delete-user-form"
+                  data-confirm-title="{{ a_user.name|default:a_user.username }}님을 삭제하시겠습니까?"
+                  data-confirm="신청 내역을 포함한 모든 정보가 삭제되며 되돌릴 수 없습니다." data-confirm-ok="삭제" data-danger>
+              {% csrf_token %}
+              <button type="submit" class="btn btn--ghost btn--icon del-btn" aria-label="{{ a_user.name|default:a_user.username }} 삭제" title="부원 삭제"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% empty %}
+        <div class="empty">
+          <div class="empty__icon"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></div>
+          {% if search_query or gen_filter %}
+            <p class="empty__title">조건에 맞는 부원이 없습니다</p>
+            <a class="btn btn--secondary" href="{% url 'applications:admin_page' %}">필터 초기화</a>
+          {% else %}
+            <p class="empty__title">활성 부원이 없습니다</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
   </div>
-</div>
 
+</div>
+{% endblock %}
+
+{% block javascript %}
 <script>
-  // ✅ 기수 필터 변경 시 URL 안전하게 구성(특수문자/공백 방지)
   (function () {
-    const genSelect = document.getElementById('genSelect');
-    const searchForm = document.getElementById('searchForm');
-    if (!genSelect || !searchForm) return;
+    var sel = document.getElementById("genSelect");
+    var form = document.getElementById("searchForm");
+    if (sel && form) sel.addEventListener("change", function () { form.requestSubmit ? form.requestSubmit() : form.submit(); });
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest(".stepper [data-step]");
+      if (!b) return;
+      var input = b.parentElement.querySelector("input");
+      var v = Math.max(parseInt(input.min || "1", 10), (parseInt(input.value, 10) || 1) + parseInt(b.dataset.step, 10));
+      input.value = v;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    function bump(sel, d) { var el = document.querySelector(sel); if (el) el.textContent = Math.max(0, (parseInt(el.textContent, 10) || 0) + d); }
+    function removeRow(row) { row.classList.add("is-removing"); setTimeout(function () { row.remove(); }, 220); }
 
-    genSelect.addEventListener('change', function () {
-      const params = new URLSearchParams(new FormData(searchForm));
-      params.set('gen', this.value || '');
-      const url = window.location.pathname + '?' + params.toString();
-      window.location.href = url;
+    // 회계 열람: 즉시 토글, 새로고침 없음 (실패 시 원래대로)
+    document.querySelectorAll(".acct-form").forEach(function (form) {
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var sw = form.querySelector(".switch");
+        var prev = sw.getAttribute("aria-checked");
+        sw.setAttribute("aria-checked", prev === "true" ? "false" : "true");
+        sw.setAttribute("aria-busy", "true");
+        try {
+          var r = await fetch(form.action, { method: "POST", body: new FormData(form), credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" } });
+          var d = await r.json();
+          if (!r.ok || !d.ok) throw new Error(d.message);
+          sw.setAttribute("aria-checked", d.can_view_accounting ? "true" : "false");
+          SA.toast(d.message);
+        } catch (err) {
+          sw.setAttribute("aria-checked", prev);
+          SA.toast((err && err.message) || "변경하지 못했습니다. 다시 시도해 주십시오.", { type: "error" });
+        } finally { sw.removeAttribute("aria-busy"); }
+      });
+    });
+
+    // 부원 삭제 / 가입 승인·거절 / 가중치 저장: 새로고침 없이 반영
+    document.querySelectorAll(".delete-user-form").forEach(function (form) {
+      SA.ajax(form, { onSuccess: function () { removeRow(form.closest("[data-member]")); bump("[data-member-count]", -1); } });
+    });
+    // 가입 거절은 새로고침 없이 행 제거, 승인은 부원 목록에 바로 반영되도록 일반 제출(새로고침)로 처리
+    document.querySelectorAll(".pending-form[data-confirm]").forEach(function (form) {
+      SA.ajax(form, { onSuccess: function () {
+        removeRow(form.closest("[data-pending]")); bump("[data-pending-count]", -1);
+      } });
+    });
+    document.querySelectorAll(".weight-form").forEach(function (form) {
+      SA.ajax(form, { onSuccess: function (d) {
+        var i = form.querySelector("input[name=weight]"); i.defaultValue = String(d.weight); i.value = String(d.weight);
+        form.querySelector(".weight-save").hidden = true;
+      } });
+    });
+
+    document.addEventListener("input", function (e) {
+      var f = e.target.closest(".weight-form");
+      if (!f) return;
+      var i = f.querySelector("input[name=weight]");
+      f.querySelector(".weight-save").hidden = String(i.value) === String(i.defaultValue);
     });
   })();
 </script>
-</body> 
-</html>
+{% endblock %}

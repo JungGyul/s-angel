@@ -1,186 +1,131 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>회계 내역 수정</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    :root{
-      --navy:#1E3A8A; --bg:#F9FAFB; --card:#fff; --border:#E5E7EB;
-      --text:#334155; --muted:#64748B; --shadow:0 10px 18px rgba(15,23,42,.06);
-    }
-    *{ box-sizing:border-box; }
-    /* ✅ 모바일/iOS 가로 튐 방지 핵심 */
-input, select, textarea{
-  max-width: 100%;
-  min-width: 0;
-}
+{% extends "layouts/app.html" %}
+{% block title %}회계 내역 수정{% endblock %}
+{% block page_title %}회계 · 내역 수정{% endblock %}
+{% block page_class %}page page--narrow{% endblock %}
 
-    body{ margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; }
-    .wrap{ max-width: 820px; margin:0 auto; padding: 1.25rem 1rem; }
-    .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow: var(--shadow); padding: 1rem; }
-    .header{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom:1rem; }
-    h1{ margin:0; font-size: 1.25rem; font-weight:1000; border-left:4px solid var(--navy); padding-left:.85rem; }
-    .sub{ margin:.35rem 0 0; padding-left:.95rem; color:var(--muted); font-weight:800; }
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
-      padding:.65rem 1rem; border-radius:.8rem; font-weight:950;
-      border:1px solid transparent; cursor:pointer; text-decoration:none; transition:.15s ease;
-      white-space: nowrap;
-    }
-    .btn.ghost{ background:#fff; border-color:var(--border); color:var(--text); }
-    .btn.ghost:hover{ background:#F1F5F9; }
-    .btn.primary{ background:var(--navy); color:#fff; box-shadow: 0 10px 18px rgba(30,58,138,.18); }
-    .btn.primary:hover{ filter:brightness(.97); }
+{% block css %}
+<style>
+  .segmented > input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .segmented > input[value="INCOME"]:checked + label { color: var(--ok-text); }
+  .segmented > input[value="EXPENSE"]:checked + label { color: var(--bad-text); }
+  .grid-2 > .field + .field, .tx-row .field + .field { margin-top: 0; }
+</style>
+{% endblock %}
 
-    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:.85rem; }
-    
-    label{ display:block; font-size:.86rem; color:var(--muted); font-weight:900; margin:0 0 .35rem; }
-    input, select, textarea{
-      width:100%; border:1px solid var(--border); border-radius:.8rem;
-      padding:.7rem .85rem; font-weight:900; outline:none; background:#fff;
-    }
-    input:focus, select:focus, textarea:focus{ box-shadow: 0 0 0 3px rgba(30,58,138,.18); border-color: rgba(30,58,138,.35); }
-    .row{ margin-top:.85rem; }
-    .actions{ display:flex; justify-content:flex-end; gap:.6rem; margin-top: 1rem; flex-wrap: wrap; }
-    @media (max-width: 720px){ .grid{ grid-template-columns: 1fr; } }
-  </style>
-</head>
-
-<body>
-<div class="wrap">
-  <div class="header">
-    <div>
-      <h1>회계 내역 수정</h1>
-      <div class="sub">기수 변경 시 행사 목록이 자동으로 바뀝니다.</div>
-    </div>
-    <a class="btn ghost" href="{% url 'applications:accounting_year_list' year=transaction.budget_year.year %}">
-      <i class="fas fa-arrow-left"></i>목록으로
-    </a>
+{% block content %}
+<header class="page-head page-head--back">
+  <a class="back-btn" href="{% url 'applications:accounting_year_list' year=transaction.budget_year.year %}" aria-label="뒤로 가기: {{ transaction.budget_year.year }}년 회계" title="{{ transaction.budget_year.year }}년 회계"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></a>
+  <div class="page-head__text">
+    <h1 class="page-title">내역 수정</h1>
+    <p class="page-sub">연도를 바꾸면 행사 목록이 자동으로 바뀝니다.</p>
   </div>
+</header>
 
-  <form method="post" class="card" id="updateForm">
-    {% csrf_token %}
+<form method="post" id="updateForm" data-busy>
+  {% csrf_token %}
+  <div class="panel panel--pad">
+    <div class="field">
+      <span class="field-label" id="typeLabel">구분</span>
+      <div class="segmented" role="radiogroup" aria-labelledby="typeLabel" style="align-self:flex-start">
+        <input type="radio" id="type_income" name="transaction_type" value="INCOME" {% if transaction.transaction_type == 'INCOME' %}checked{% endif %} required>
+        <label for="type_income"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i>수입</label>
+        <input type="radio" id="type_expense" name="transaction_type" value="EXPENSE" {% if transaction.transaction_type == 'EXPENSE' %}checked{% endif %}>
+        <label for="type_expense"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i>지출</label>
+      </div>
+    </div>
 
-    <div class="grid">
-      <div>
-        <label for="budget_year">기수(연도)</label>
+    <div class="field">
+      <label class="field-label" for="item_name">항목명 <span class="req" aria-hidden="true">*</span></label>
+      <input id="item_name" type="text" name="item_name" value="{{ transaction.item_name }}" required>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <label class="field-label" for="amount">금액(원) <span class="req" aria-hidden="true">*</span></label>
+        <input id="amount" type="number" min="0" inputmode="numeric" name="amount" value="{{ transaction.amount }}" class="tnum" required>
+      </div>
+      <div class="field">
+        <label class="field-label" for="date">날짜 <span class="req" aria-hidden="true">*</span></label>
+        <input id="date" type="date" name="date" value="{{ transaction.date|date:'Y-m-d' }}" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="category">카테고리 <span class="req" aria-hidden="true">*</span></label>
+      <input id="category" type="text" name="category" value="{{ transaction.category }}" placeholder="예) 운영 / 행사 / 홍보" required>
+    </div>
+
+    <hr class="divider">
+
+    <div class="grid-2">
+      <div class="field">
+        <label class="field-label" for="budget_year">연도</label>
         <select id="budget_year" name="budget_year" required>
           {% for y in years %}
-            <option value="{{ y.id }}" {% if y.id == transaction.budget_year.id %}selected{% endif %}>
-              {{ y.year }}년도{% if y.is_active %} (활성){% endif %}
-            </option>
+            <option value="{{ y.id }}" {% if y.id == transaction.budget_year.id %}selected{% endif %}>{{ y.year }}년{% if y.is_active %} (활성){% endif %}</option>
           {% endfor %}
         </select>
       </div>
-
-      <div>
-        <label for="accounting_event">행사(선택)</label>
+      <div class="field">
+        <label class="field-label" for="accounting_event">행사</label>
         <select id="accounting_event" name="accounting_event">
           <option value="">일반(행사 없음)</option>
           {% for e in events %}
-            <option value="{{ e.id }}" {% if transaction.event and e.id == transaction.event.id %}selected{% endif %}>
-              {{ e.name }} ({{ e.date|date:"Y-m-d" }})
-            </option>
+            <option value="{{ e.id }}" {% if transaction.event and e.id == transaction.event.id %}selected{% endif %}>{{ e.name }} ({{ e.date|date:"n월 j일" }})</option>
           {% endfor %}
         </select>
       </div>
     </div>
 
-    <div class="grid row">
-      <div>
-        <label for="date">날짜</label>
-        <input id="date" type="date" name="date" value="{{ transaction.date|date:'Y-m-d' }}" required>
-      </div>
-      <div>
-        <label for="transaction_type">구분</label>
-        <select id="transaction_type" name="transaction_type" required>
-          <option value="INCOME" {% if transaction.transaction_type == 'INCOME' %}selected{% endif %}>수입</option>
-          <option value="EXPENSE" {% if transaction.transaction_type == 'EXPENSE' %}selected{% endif %}>지출</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="grid row">
-      <div>
-        <label for="item_name">항목명</label>
-        <input id="item_name" type="text" name="item_name" value="{{ transaction.item_name }}" required>
-      </div>
-      <div>
-        <label for="amount">금액</label>
-        <input id="amount" type="number" min="0" name="amount" value="{{ transaction.amount }}" required>
-      </div>
-    </div>
-
-    <div class="row">
-      <label for="category">카테고리</label>
-      <input id="category" type="text" name="category" value="{{ transaction.category }}" required>
-    </div>
-
-    <div class="row">
-      <label for="description">상세 내용(선택)</label>
+    <div class="field">
+      <label class="field-label" for="description">상세 내용 <span class="muted">(선택)</span></label>
       <textarea id="description" name="description" rows="3" placeholder="영수증 메모, 거래처, 정산 내용 등">{{ transaction.description }}</textarea>
     </div>
+  </div>
 
-    <div class="actions">
-      <a class="btn ghost" href="{% url 'applications:accounting_year_list' year=transaction.budget_year.year %}">
-        <i class="fas fa-times"></i>취소
-      </a>
-      <button class="btn primary" type="submit">
-        <i class="fas fa-check"></i>수정 저장
-      </button>
-    </div>
-  </form>
-</div>
+  <div class="form-actions form-actions--sticky">
+    <a class="btn btn--ghost" href="{% url 'applications:accounting_year_list' year=transaction.budget_year.year %}">취소</a>
+    <button class="btn btn--primary" type="submit"><i class="fa-solid fa-check" aria-hidden="true"></i>저장</button>
+  </div>
+</form>
+{% endblock %}
 
+{% block javascript %}
 <script>
+(function () {
   const eventsApiUrl = "{% url 'applications:accounting_events_api' %}";
   const yearSelect = document.getElementById('budget_year');
   const eventSelect = document.getElementById('accounting_event');
-
-  // 현재 선택된 event id(있다면) 유지 시도
   let currentEventId = eventSelect.value || "";
 
-  async function refreshEvents(yearId){
-    eventSelect.innerHTML = `<option value="">일반(행사 없음)</option>`;
-    if(!yearId) return;
-
-    const url = `${eventsApiUrl}?year_id=${encodeURIComponent(yearId)}`;
-    const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }});
-    if(!res.ok) return;
-
-    const data = await res.json();
-    (data.events || []).forEach(ev => {
-      const opt = document.createElement('option');
-      opt.value = ev.id;
-      opt.textContent = `${ev.name} (${ev.date})`;
-      eventSelect.appendChild(opt);
-    });
-
-    // 기존 선택 유지(가능하면)
-    if(currentEventId){
+  async function refreshEvents(yearId) {
+    eventSelect.innerHTML = '<option value="">일반(행사 없음)</option>';
+    if (!yearId) return;
+    try {
+      const res = await fetch(`${eventsApiUrl}?year_id=${encodeURIComponent(yearId)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      (data.events || []).forEach(ev => {
+        const opt = document.createElement('option');
+        opt.value = String(ev.id);
+        opt.textContent = `${ev.name} (${+String(ev.date).slice(5, 7)}월 ${+String(ev.date).slice(8, 10)}일)`;
+        eventSelect.appendChild(opt);
+      });
+    } catch (e) {
+      SA.toast('행사 목록을 불러오지 못했습니다.', { type: 'error' });
+      return;
+    }
+    if (currentEventId) {
       eventSelect.value = currentEventId;
-      // 만약 해당 기수에 그 행사가 없으면 일반으로 떨어짐
-      if(eventSelect.value !== currentEventId){
-        currentEventId = "";
-        eventSelect.value = "";
-      }
+      if (eventSelect.value !== currentEventId) { currentEventId = ""; eventSelect.value = ""; }
     }
   }
 
   yearSelect.addEventListener('change', async () => {
-    // 기수를 바꾸면 “행사 선택”은 원칙적으로 해제하는 게 혼동이 적음
-    currentEventId = "";
+    currentEventId = "";  // 연도를 바꾸면 행사 선택은 해제
     await refreshEvents(yearSelect.value);
   });
-
-  eventSelect.addEventListener('change', () => {
-    currentEventId = eventSelect.value || "";
-  });
-
-  // (페이지 로드시) 선택된 기수 기준으로 최신 행사 목록을 보장하고 싶으면 아래 실행
-  // refreshEvents(yearSelect.value);
+  eventSelect.addEventListener('change', () => { currentEventId = eventSelect.value || ""; });
+})();
 </script>
-</body>
-</html>
+{% endblock %}

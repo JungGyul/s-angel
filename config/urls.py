@@ -3,9 +3,12 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include
 from django.urls import path
+from django.urls import re_path
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
 from django.contrib.auth import views as auth_views
+
+from s_angel.users import views as user_views
 
 
 urlpatterns = [
@@ -18,12 +21,16 @@ urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),
     # User management
     # path("users/", include("s_angel.users.urls", namespace="users")),
+    # Retain allauth reverse names for installed integrations, but send its
+    # public account screens through the site's login and password flows.
+    path("accounts/logout/", auth_views.LogoutView.as_view(next_page="users:main")),
+    re_path(r"^accounts/password(?:/.*)?$", user_views.legacy_password_redirect),
+    re_path(r"^accounts(?:/.*)?$", user_views.legacy_account_redirect),
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
     # ...
     path("",include("s_angel.users.urls", namespace="users")),
     path("applications/", include("s_angel.applications.urls", namespace="applications")),
-    path("rchoice/", include("s_angel.rchoice.urls", namespace="rchoice")),
     path('logout/', auth_views.LogoutView.as_view(next_page='users:main'), name='logout'), 
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
