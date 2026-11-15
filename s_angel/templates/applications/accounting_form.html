@@ -21,13 +21,13 @@
   .tx-row__no { font-size: var(--fs-sm); font-weight: 750; color: var(--text-3); font-variant-numeric: tabular-nums; }
   .tx-row__name { grid-area: name; }
   .tx-row__amt  { grid-area: amt; }
-  .tx-row__type { grid-area: type; align-self: end; }
+  .tx-row__type { grid-area: type; align-self: start; }
   .tx-row__date { grid-area: date; }
   .tx-row__cat  { grid-area: cat; }
   .tx-row__del-desk { display: none; }
   .tx-row .field-label { font-size: var(--fs-xs); }
-  .tx-row .segmented { min-height: 0; padding: 2px; align-items: stretch; }
-  .tx-row .segmented > button { min-width: 52px; min-height: 44px; flex: 1 1 0; }
+  .tx-row .segmented { min-height: 0; height: 48px; padding: 2px; align-items: stretch; box-sizing: border-box; }
+  .tx-row .segmented > button { min-width: 52px; min-height: 0; height: 100%; flex: 1 1 0; }
   .tx-row__type .segmented { display: flex; width: 100%; }
   .segmented > button[data-val="INCOME"][aria-pressed="true"] { color: var(--ok-text); }
   .segmented > button[data-val="EXPENSE"][aria-pressed="true"] { color: var(--bad-text); }
