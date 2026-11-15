@@ -2,7 +2,7 @@
 
 - 작성일: 2026-11-16
 - 대상: `s-angel/` (Django 5.1, Render 배포)
-- 상태: **코드 작업·검수 완료, 커밋·배포 전** (로컬 미리보기에서 검증)
+- 상태: **배포 완료** (2026-11-16, 커밋 `ca7b7d1` + 핫픽스 `3e6c52a`, `d72844a`) — https://s-angel-n2i7.onrender.com
 
 ---
 
@@ -253,9 +253,20 @@ git push
 
 ---
 
+### 7.7 실제 배포 기록 (2026-11-16)
+1. `ca7b7d1` 배포 직후 **모든 화면 500** — `Missing staticfiles manifest entry`.
+   - 원인: Render 대시보드의 **Build Command가 `./build.sh`가 아님** → `collectstatic`(그리고 아마 `migrate`도) 미실행.
+2. 핫픽스 `3e6c52a` — manifest가 없어도 죽지 않는 정적 저장소(`s_angel/static_storage.py`), `WHITENOISE_USE_FINDERS`, **서버 시작 시 `migrate` · `createcachetable` · `collectstatic` 자동 실행**(`config/wsgi.py`, Postgres advisory lock).
+3. 화면이 스타일 없이 깨짐 — 시작 작업이 WhiteNoise 초기화 **뒤에** 실행돼 해시된 CSS/JS가 404.
+4. 핫픽스 `d72844a` — 시작 작업을 WhiteNoise 초기화 **전에** 실행 → 라이브에서 CSS·JS·폰트·이미지 전부 200, 콘솔 오류 0 확인.
+
+**권장:** Render → Settings → Build Command 를 `./build.sh` 로 변경. (지금은 서버 시작 때 같은 작업을 하므로 안 바꿔도 동작하지만, 바꾸면 시작이 빨라집니다. 시작 시 작업을 끄려면 환경변수 `DJANGO_PREPARE_ON_START=0`.)
+브라우저에 깨진 화면이 남아 있으면 새로고침(모바일은 탭 닫고 다시 열기) 한 번이면 됩니다.
+
 ## 8. 그 외 권장
 1. **프로젝트를 iCloud 데스크탑 밖으로 이동** (예: `~/dev/s-angel-page`). iCloud가 `.venv` 파일을 비워서 Django가 멈추는 문제가 있었습니다(테스트는 `/tmp` 별도 환경에서 실행).
-2. 백업 폴더 `s-angel.backup-20261115`는 불완전한 복사본 → 되돌릴 땐 git 기준.
+2. **`nano.env`가 git에 올라가 있음**(이번 작업 이전부터). 저장소가 공개라면 Render의 `DJANGO_SECRET_KEY`를 새로 바꾸고 `git rm --cached nano.env` + `.gitignore` 추가 권장.
+3. 백업 폴더 `s-angel.backup-20261115`는 불완전한 복사본 → 되돌릴 땐 git 기준.
 3. 테스트 실행 명령(로컬):
    ```bash
    DATABASE_URL=sqlite:////tmp/sangel-test.sqlite3 python -m pytest -q
