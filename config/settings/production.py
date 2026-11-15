@@ -156,8 +156,10 @@ ADMIN_URL = env("DJANGO_ADMIN_URL")
 # https://whitenoise.readthedocs.io/en/stable/django.html
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "s_angel.static_storage.SafeCompressedManifestStaticFilesStorage"},
 }
+# Serve straight from app static dirs too, so the site works even if collectstatic didn't run.
+WHITENOISE_USE_FINDERS = True
 
 # LOGGING
 # ------------------------------------------------------------------------------
