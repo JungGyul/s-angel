@@ -1,36 +1,19 @@
 """
 WSGI config for S-angel project.
 
-This module contains the WSGI application used by Django's development server
-and any production WSGI deployments. It should expose a module-level variable
-named ``application``. Django's ``runserver`` and ``runfcgi`` commands discover
-this application via the ``WSGI_APPLICATION`` setting.
-
-Usually you will have the standard Django WSGI application here, but it also
-might make sense to replace the whole Django WSGI application with a custom one
-that later delegates to the Django one. For example, you could introduce WSGI
-middleware here, or combine a Django application with an application of another
-framework.
-
+Exposes the module-level ``application`` used by gunicorn.
 """
 
 import os
 import sys
 from pathlib import Path
 
+import django
 from django.core.wsgi import get_wsgi_application
 
-
-# This allows easy placement of apps within the interior
-# s_angel directory.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 sys.path.append(str(BASE_DIR / "s_angel"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
-
-# This application object is used by any WSGI server configured to use this
-# file. This includes Django's development server, if the WSGI_APPLICATION
-# setting points here.
-application = get_wsgi_application()
 
 
 def _prepare_on_start():
@@ -72,4 +55,9 @@ def _prepare_on_start():
         connection.close()
 
 
+# Prepare BEFORE building the WSGI app: WhiteNoise indexes STATIC_ROOT when its
+# middleware is created, so collectstatic must have finished by then
+# (otherwise the hashed /static/ URLs return 404).
+django.setup(set_prefix=False)
 _prepare_on_start()
+application = get_wsgi_application()
