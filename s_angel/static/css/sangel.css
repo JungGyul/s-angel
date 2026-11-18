@@ -320,6 +320,10 @@ input, textarea { caret-color: var(--accent); }
   transform-origin: top right;
   animation: pop-in var(--dur-2) var(--ease-out);
 }
+.appbar .menu__panel.glass { background: var(--surface-solid); }
+@media (prefers-reduced-transparency: no-preference) {
+  .appbar .menu__panel.glass { background: color-mix(in srgb, var(--surface-solid) 96%, transparent); }
+}
 .menu__head { padding: 10px 12px 12px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
 .menu__name { font-weight: 700; }
 .menu__meta { font-size: var(--fs-sm); color: var(--text-3); }
